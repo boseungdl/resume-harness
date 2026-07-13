@@ -1,0 +1,10 @@
+# 개인정보 (PII) — 공개 금지
+docs/profile/
+portfolio/
+*.pdf
+
+# 생성된 자소서 등 개인 서사 산출물
+.scratch/
+
+# .agents/skills 로의 절대경로 심링크 (다른 머신에서 깨짐)
+.claude/skills
