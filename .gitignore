@@ -8,3 +8,4 @@ portfolio/
 
 # .agents/skills 로의 절대경로 심링크 (다른 머신에서 깨짐)
 .claude/skills
+프로젝트자료/
