@@ -7,13 +7,15 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2240%22 r=%2226%22 fill=%22%230ea8b8%22/><circle cx=%2242%22 cy=%2238%22 r=%224%22 fill=%22%23122430%22/><circle cx=%2258%22 cy=%2238%22 r=%224%22 fill=%22%23122430%22/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <style>
     :root {
       --ink: #16303c;
       --ink-soft: rgba(22, 48, 60, 0.76);
       --accent: #0ea8b8;
       --coral: #ff7a59;
+      --hair: rgba(22, 48, 60, 0.16);
+      --mono: 'IBM Plex Mono', 'Consolas', monospace;
       --gap: clamp(0.7rem, 1.6vh, 1rem);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,6 +33,7 @@
     ::-webkit-scrollbar-thumb { background: rgba(22,48,60,0.25); border-radius: 5px; border: 2px solid #cfe9f8; }
     ::-webkit-scrollbar-track { background: transparent; }
 
+    /* 여정 UI 공용 유리 패널 (랜딩은 쓰지 않는다) */
     .panel {
       background: linear-gradient(150deg, rgba(255,255,255,0.72), rgba(226,248,252,0.5));
       backdrop-filter: blur(12px);
@@ -60,26 +63,29 @@
 
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-    /* ===== 랜딩 — 한 화면. 유리 뒤로 3D 세계가 비친다 ===== */
+    /* ===== 랜딩 — 라이트 홀로그램 관제화면. 박스 없음, 세계 위의 라인과 데이터 ===== */
     #landing {
       position: relative;
       z-index: 2;
       height: 100vh;
       display: flex;
       background: linear-gradient(180deg,
-        rgba(207, 233, 248, 0.42) 0%,
+        rgba(207, 233, 248, 0.46) 0%,
         rgba(211, 236, 247, 0.60) 55%,
         rgba(214, 237, 246, 0.55) 86%,
         rgba(216, 238, 246, 0) 100%);
     }
-    /* 광원은 우상단 하나(3D 태양과 일치) — 웜 글로우 1 + 쿨 반사광 1 */
+    /* 광원 우상단 웜 글로우 + 초미세 설계도 그리드 */
     #landing::before {
       content: '';
       position: absolute; inset: 0;
       pointer-events: none;
       background:
-        radial-gradient(720px 420px at 82% 4%, rgba(255, 214, 160, 0.16), transparent 70%),
-        radial-gradient(640px 400px at 22% 88%, rgba(14, 168, 184, 0.07), transparent 72%);
+        radial-gradient(720px 420px at 82% 4%, rgba(255, 214, 160, 0.14), transparent 70%),
+        radial-gradient(640px 400px at 22% 88%, rgba(14, 168, 184, 0.06), transparent 72%),
+        linear-gradient(rgba(22, 48, 60, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22, 48, 60, 0.035) 1px, transparent 1px);
+      background-size: auto, auto, 100% 52px, 52px 100%;
     }
     .land-wrap {
       width: min(1200px, 94vw);
@@ -91,22 +97,52 @@
       justify-content: space-between;
       gap: var(--gap);
     }
+    /* 대시보드 외곽 헤어라인 프레임 + 코너 틱 */
+    .land-wrap::before {
+      content: '';
+      position: absolute; inset: -22px -26px;
+      pointer-events: none;
+      border: 1px solid rgba(22, 48, 60, 0.10);
+    }
+    .land-wrap::after {
+      content: '';
+      position: absolute; inset: -22px -26px;
+      pointer-events: none;
+      background:
+        linear-gradient(var(--accent), var(--accent)) 0 0 / 14px 1.5px,
+        linear-gradient(var(--accent), var(--accent)) 0 0 / 1.5px 14px,
+        linear-gradient(var(--accent), var(--accent)) 100% 100% / 14px 1.5px,
+        linear-gradient(var(--accent), var(--accent)) 100% 100% / 1.5px 14px;
+      background-repeat: no-repeat;
+      opacity: 0.8;
+    }
+    /* 우상단 라이브 메타 */
+    #hud-meta {
+      position: absolute;
+      top: -0.2rem; right: 0;
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.18em;
+      color: rgba(22, 48, 60, 0.55);
+      text-shadow: 0 1px 8px rgba(255,255,255,0.8);
+    }
+    #hud-meta b { color: var(--accent); font-weight: 500; }
 
-    /* 히어로 — 카드가 아니라 세계 위의 텍스트 */
+    /* 히어로 — 세계 위의 이름과 숫자 */
     #hero {
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
       gap: 2rem;
-      padding: 0 0.4rem clamp(0.3rem, 1vh, 0.8rem);
+      padding: 0.9rem 0.2rem 0.2rem;
     }
     #hero .status {
       display: flex; align-items: center; gap: 0.55em;
-      font-size: 11px; letter-spacing: 0.24em; font-weight: 700;
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.24em; font-weight: 500;
       color: rgba(22,48,60,0.55);
-      margin-bottom: clamp(0.7rem, 1.6vh, 1.2rem);
+      margin-bottom: clamp(0.7rem, 1.6vh, 1.1rem);
     }
-    #hero .led { width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; flex: none; }
+    #hero .led { width: 7px; height: 7px; border-radius: 50%; background: #2ec27e; flex: none; }
     #hero h1 {
       font-size: clamp(3.2rem, 5.4vw, 4.8rem);
       font-weight: 700;
@@ -122,38 +158,87 @@
       text-shadow: 0 1px 18px rgba(255,255,255,0.9);
     }
     #hero .role b { color: var(--ink); font-weight: 700; }
-    /* 히어로 우측 — 상자 없는 빅넘버 (수치만 시각화) */
+    /* 상자 없는 빅넘버 — 모노스페이스 계기 숫자 */
     .hero-stats {
       display: flex;
       gap: clamp(1.6rem, 3vw, 2.6rem);
       flex: none;
       align-self: center;
-      font-variant-numeric: tabular-nums;
     }
-    .hero-stats .kpi + .kpi { border-left: 1px solid rgba(22, 48, 60, 0.16); padding-left: clamp(1.6rem, 3vw, 2.6rem); }
+    .hero-stats .kpi { position: relative; padding-top: 0.55rem; }
+    .hero-stats .kpi::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 26px; height: 2px;
+      background: var(--accent);
+    }
     .hero-stats .n {
       display: block;
-      font-size: clamp(2rem, 2.8vw, 2.7rem);
+      font-family: var(--mono);
+      font-size: clamp(1.9rem, 2.7vw, 2.6rem);
       font-weight: 700;
       line-height: 1.1;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
       background: linear-gradient(120deg, #0a8fa0, #0ea8b8 55%, #22c4d4);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
       filter: drop-shadow(0 1px 12px rgba(255, 255, 255, 0.8));
     }
-    .hero-stats .n i { font-style: normal; font-size: 0.46em; font-weight: 700; }
+    .hero-stats .n i { font-style: normal; font-family: 'IBM Plex Sans KR', sans-serif; font-size: 0.44em; font-weight: 700; }
     .hero-stats .k { display: block; font-size: 12px; color: rgba(22, 48, 60, 0.6); margin-top: 5px; word-break: keep-all; text-shadow: 0 1px 10px rgba(255,255,255,0.85); }
-    /* 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
-    .stack-viz {
-      padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
-      display: flex; flex-direction: column; justify-content: center;
+
+    /* 존 — 박스가 아니라 구획: 헤어라인 + 라벨 + 옅은 베일 */
+    .zone {
+      position: relative;
+      border-top: 1px solid var(--hair);
+      padding: 0.8rem 1rem 0.7rem;
+      background: rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
+    .zone::before {
+      content: '';
+      position: absolute; top: -1px; left: 0;
+      width: 34px; height: 2px;
+      background: var(--accent);
+    }
+    #landing .sk {
+      display: flex; align-items: center; gap: 0.7em;
+      font-size: 11px; letter-spacing: 0.05em; font-weight: 700;
+      color: rgba(22, 48, 60, 0.6);
+      margin-bottom: 0.55rem;
+    }
+    #landing .sk i {
+      font-style: normal;
+      font-family: var(--mono);
+      font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+      color: var(--accent);
+    }
+    #landing .dim { color: rgba(22, 48, 60, 0.42); font-size: 12px; }
+
+    /* 2행 — 소개 · 성장 경로 · 프로필 */
+    #land-bio { display: grid; grid-template-columns: 1.4fr 1.15fr 0.85fr; gap: var(--gap); }
+    .bio p {
+      font-size: 15px;
+      line-height: 1.72;
+      color: var(--ink-soft);
+      word-break: keep-all;
+    }
+    .facts { display: flex; flex-direction: column; gap: 0.4rem; }
+    .facts .frow + .frow { border-top: 1px dashed rgba(22, 48, 60, 0.14); padding-top: 0.4rem; }
+    .facts .fk { font-size: 10.5px; letter-spacing: 0.05em; font-weight: 700; color: rgba(22,48,60,0.48); margin-bottom: 2px; }
+    .facts .fv { font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; }
+    .facts .fv b { color: var(--ink); font-weight: 700; }
+    .facts .fv a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .facts .fv a:hover { text-decoration: underline; }
+
+    /* 성장 경로 다이어그램 */
+    .stack-viz { display: flex; flex-direction: column; justify-content: center; }
     .stack-viz .lane { position: relative; }
     .stack-viz .lane::before {
       content: '';
-      position: absolute; left: 4px; top: 14px; bottom: 14px;
+      position: absolute; left: 4px; top: 13px; bottom: 13px;
       width: 2px; border-radius: 2px;
       background: linear-gradient(180deg, var(--accent), #6fd8e4);
       transform: scaleY(0); transform-origin: top;
@@ -163,7 +248,7 @@
     .lay {
       position: relative;
       display: flex; align-items: baseline; gap: 0.7em;
-      padding: 0.44rem 0 0.44rem 24px;
+      padding: 0.4rem 0 0.4rem 24px;
       opacity: 0.22; transform: translateX(-6px);
       transition: opacity 0.5s, transform 0.5s;
     }
@@ -178,7 +263,7 @@
     }
     .lay.on::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 8px rgba(14, 168, 184, 0.6); }
     .lay b { font-size: 13.5px; font-weight: 700; flex: none; }
-    .lay span { font-size: 11.5px; color: rgba(22, 48, 60, 0.55); word-break: keep-all; }
+    .lay span { font-size: 11.5px; font-family: var(--mono); letter-spacing: -0.02em; color: rgba(22, 48, 60, 0.55); word-break: keep-all; }
     .lay.now.on b { color: var(--accent); }
     .lay.now.on::before { border-color: var(--coral); background: var(--coral); box-shadow: 0 0 10px rgba(255, 122, 89, 0.7); }
     .lay .tag {
@@ -193,129 +278,77 @@
     }
     .lay.on .tag { opacity: 1; }
 
-
-    /* 랜딩 카드 — 진짜 유리: 뒤의 세계를 블러하고, 그림자는 좌하단(광원 우상단) */
-    #landing .panel {
-      background: rgba(255, 255, 255, 0.84);
-      backdrop-filter: blur(14px) saturate(1.15);
-      -webkit-backdrop-filter: blur(14px) saturate(1.15);
-      border: 1px solid rgba(22, 48, 60, 0.10);
-      border-radius: 12px;
-      box-shadow:
-        -1px 2px 2px rgba(23, 76, 110, 0.07),
-        -8px 16px 34px rgba(23, 76, 110, 0.11),
-        -18px 34px 70px rgba(14, 110, 140, 0.09),
-        inset 1px 1px 0 rgba(255, 255, 255, 0.95);
-      transition: box-shadow 0.3s;
-    }
-    #landing .panel:hover {
-      box-shadow:
-        -1px 2px 3px rgba(23, 76, 110, 0.08),
-        -10px 20px 44px rgba(23, 76, 110, 0.15),
-        -22px 42px 86px rgba(14, 110, 140, 0.12),
-        inset 1px 1px 0 rgba(255, 255, 255, 0.95);
-    }
-    /* 카드 라벨 — 한글엔 광폭 자간 금지 */
-    #landing .sk {
-      display: flex; align-items: center; gap: 0.55em;
-      font-size: 11px; letter-spacing: 0.05em; font-weight: 700;
-      color: rgba(22, 48, 60, 0.55);
-      margin-bottom: 0.6rem;
-    }
-    #landing .sk::before {
-      content: ''; width: 3px; height: 1em;
-      background: var(--accent); border-radius: 2px;
-      flex: none;
-    }
-    #landing .dim { color: rgba(22, 48, 60, 0.42); font-size: 12px; }
-
-    /* 소개 + 성장 경로 + 사실 */
-    #land-bio { display: grid; grid-template-columns: 1.4fr 1.15fr 0.85fr; gap: var(--gap); }
-    .bio { padding: clamp(0.9rem, 2vh, 1.3rem) 1.5rem; display: flex; align-items: center; }
-    .bio p {
-      font-size: 15px;
-      line-height: 1.75;
-      color: var(--ink-soft);
-      word-break: keep-all;
-    }
-    .facts {
-      padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.4rem;
-      display: flex; flex-direction: column; justify-content: center;
-      gap: 0.45rem;
-    }
-    .facts .frow + .frow { border-top: 1px dashed rgba(14, 168, 184, 0.22); padding-top: 0.45rem; }
-    .facts .fk { font-size: 11px; letter-spacing: 0.05em; font-weight: 700; color: rgba(22,48,60,0.5); margin-bottom: 3px; }
-    .facts .fv { font-size: 13px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
-    .facts .fv b { color: var(--ink); font-weight: 700; }
-    .facts .fv a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    .facts .fv a:hover { text-decoration: underline; }
-
-    /* 실데이터 — 차트 · 자격증 · 도구 */
+    /* 3행 — 차트 · 자격증 · 도구 */
     #land-live { display: grid; grid-template-columns: 1.5fr 1.05fr 0.9fr; gap: var(--gap); }
-    .certs {
-      padding: clamp(0.8rem, 1.8vh, 1.1rem) 1.3rem;
-      display: flex; flex-direction: column; justify-content: center;
-      gap: 0.55rem;
-    }
+    #gh-chart { width: 100%; height: clamp(112px, 15vh, 160px); }
+    .chart-cap { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: rgba(22, 48, 60, 0.45); margin-top: 2px; }
+    .certs { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; }
     .cert { display: flex; align-items: center; gap: 0.75em; }
     .cert b {
-      font-size: 12px; font-weight: 700; color: var(--accent);
+      font-family: var(--mono);
+      font-size: 11.5px; font-weight: 700; color: var(--accent);
       border: 1px solid rgba(14, 168, 184, 0.45);
-      background: rgba(14, 168, 184, 0.07);
-      border-radius: 6px;
+      background: rgba(14, 168, 184, 0.06);
+      border-radius: 3px;
       padding: 3px 8px;
-      flex: none; min-width: 5em; text-align: center;
+      flex: none; min-width: 5.4em; text-align: center;
     }
     .cert span { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
-    #land-live .live { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; }
-    #gh-chart { width: 100%; height: clamp(112px, 15vh, 160px); }
-    .chart-cap { font-size: 11px; color: rgba(22, 48, 60, 0.45); margin-top: 2px; }
     #land-live .skills {
-      width: 100%; max-width: 13.5rem; display: block; margin: 0.35rem auto 0;
+      width: 100%; max-width: 13.5rem; display: block; margin: 0.3rem auto 0;
       filter: saturate(0.6) opacity(0.9);
       transition: filter 0.35s;
     }
     #land-live .tools:hover .skills { filter: none; }
 
-    /* 세 개의 문 */
+    /* 문 — 라인 액션 행 */
     #land-doors { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: var(--gap); }
     .door {
       display: block;
-      padding: clamp(0.8rem, 1.8vh, 1.1rem) 1.5rem;
+      position: relative;
+      border-top: 1px solid var(--hair);
+      padding: 0.7rem 1rem 0.65rem;
       text-decoration: none;
       color: var(--ink);
       cursor: pointer;
       font-family: inherit;
       text-align: left;
+      background: rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      transition: background 0.3s;
     }
-    .door .dq { font-size: 12px; color: rgba(22,48,60,0.55); margin-bottom: 0.35rem; word-break: keep-all; }
-    .door .dl { font-size: 17px; font-weight: 700; word-break: keep-all; }
+    .door::before {
+      content: '';
+      position: absolute; top: -1px; left: 0;
+      width: 34px; height: 2px;
+      background: var(--accent);
+      transition: width 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+    .door:hover::before { width: 100%; }
+    .door .dq { font-size: 11.5px; color: rgba(22,48,60,0.55); margin-bottom: 0.3rem; word-break: keep-all; }
+    .door .dl { font-size: 16px; font-weight: 700; word-break: keep-all; }
     .door .dl::after { content: ' →'; color: var(--accent); }
     .door:not(.walk):hover .dl { color: var(--accent); }
     #landing .door.walk {
-      border: none;
-      background: linear-gradient(120deg, var(--accent), #22c4d4);
-      position: relative;
+      border-top: 1px solid var(--accent);
+      background: linear-gradient(120deg, rgba(14, 168, 184, 0.14), rgba(34, 196, 212, 0.10));
       overflow: hidden;
-      box-shadow: -8px 16px 36px rgba(14, 110, 140, 0.30), -1px 2px 3px rgba(23, 76, 110, 0.10);
+      box-shadow: 0 0 22px rgba(14, 168, 184, 0.16);
     }
-    .door.walk .dq { color: rgba(255,255,255,0.88); }
-    .door.walk .dl { color: #fff; }
-    .door.walk .dl::after { content: ' ↓'; color: #fff; }
-    /* 샤인 스윕 — 시선을 끄는 유일한 상시 모션 */
-    .door.walk::after {
-      content: '';
+    #landing .door.walk::before { background: var(--coral); }
+    .door.walk .dq { color: rgba(22,48,60,0.6); }
+    .door.walk .dl { color: var(--accent); }
+    .door.walk .dl::after { content: ' ↓'; color: var(--coral); }
+    .door.walk .shine {
       position: absolute; top: -40%; bottom: -40%; left: -60%;
       width: 34%;
-      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.34), transparent);
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
       transform: skewX(-18deg);
       animation: door-shine 4s ease-in-out infinite;
       pointer-events: none;
     }
     @keyframes door-shine { 0%, 55% { left: -60%; } 85%, 100% { left: 135%; } }
-    /* 대형 카드 호버 리프트 (틸트 카드는 자체 모션이 있어 제외) */
-    .bio, .facts { transition: transform 0.3s, box-shadow 0.3s; }
-    .bio:hover, .facts:hover { transform: translateY(-3px); }
 
     /* 로드 스태거 등장 */
     .fx { opacity: 0; transform: translateY(14px); }
@@ -323,7 +356,7 @@
     @media (prefers-reduced-motion: reduce) {
       .fx { opacity: 1; transform: none; }
       .fx.in { transition: none; }
-      .door.walk::after { animation: none; }
+      .door.walk .shine { animation: none; }
       .lay, .stack-viz .lane::before { transition: none; }
     }
 
@@ -337,15 +370,15 @@
       #hero h1 { font-size: clamp(2.5rem, 4.4vw, 3.4rem); }
       #hero .role { margin-top: 0.45rem; }
       .hero-stats .n { font-size: 1.7rem; }
-      .bio p { font-size: 14px; line-height: 1.62; }
-      .lay { padding: 0.28rem 0 0.28rem 24px; }
+      .bio p { font-size: 14px; line-height: 1.6; }
+      .lay { padding: 0.26rem 0 0.26rem 24px; }
       .lay b { font-size: 13px; }
       #gh-chart { height: 104px; }
       #land-live .skills { max-width: 10.5rem; }
       .facts .fv { font-size: 12px; line-height: 1.5; }
       .facts .fk { margin-bottom: 1px; }
-      .door { padding: 0.65rem 1.3rem; }
-      .door .dl { font-size: 15px; }
+      .door { padding: 0.55rem 1rem 0.5rem; }
+      .door .dl { font-size: 14.5px; }
     }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
@@ -592,7 +625,8 @@
   <canvas id="bg"></canvas>
   <header id="landing">
     <div class="land-wrap">
-      <!-- 히어로: 주인공은 이름, 배경은 진짜 세계 -->
+      <div id="hud-meta">SEOUL · KST <b id="hud-clock">--:--:--</b></div>
+      <!-- 히어로 -->
       <div id="hero" class="fx">
         <div class="hero-left">
           <div class="status"><span class="led"></span>OPEN TO WORK</div>
@@ -610,9 +644,10 @@
           </div>
         </div>
       </div>
-      <!-- 소개 + 성장 경로 -->
+      <!-- 소개 · 성장 경로 · 프로필 -->
       <div id="land-bio">
-        <div class="bio panel fx">
+        <div class="bio zone fx">
+          <div class="sk"><i>01</i>소개</div>
           <p>
             화면에서 시작해 서버와 인프라를 지나 데이터까지 — 하나를 배우면 그 아래층이 궁금해,
             한 층씩 내려오며 성장했습니다. VDI 플랫폼 현장에 1인 상주하며 191명이 쓰는 서비스를
@@ -621,16 +656,17 @@
             이 페이지도 직접 설계·구현했습니다.
           </p>
         </div>
-        <div class="stack-viz panel fx" id="stack-viz">
-          <div class="sk">한 층씩 내려온 길 — 화면에서 데이터까지</div>
+        <div class="stack-viz zone fx" id="stack-viz">
+          <div class="sk"><i>02</i>한 층씩 내려온 길</div>
           <div class="lane">
             <div class="lay"><b>화면 UI</b><span>React · JavaScript</span></div>
             <div class="lay"><b>서버 · 백엔드</b><span>Spring · Python</span></div>
-            <div class="lay"><b>인프라 · 클라우드</b><span>AWS · Kubernetes · Docker · Linux</span></div>
-            <div class="lay now"><b>데이터</b><span>Kafka · MySQL · PostgreSQL · Redis</span><i class="tag">지금 여기</i></div>
+            <div class="lay"><b>인프라 · 클라우드</b><span>AWS · K8s · Docker · Linux</span></div>
+            <div class="lay now"><b>데이터</b><span>Kafka · SQL · Redis</span><i class="tag">지금 여기</i></div>
           </div>
         </div>
-        <div class="facts panel fx">
+        <div class="facts zone fx">
+          <div class="sk"><i>03</i>프로필</div>
           <div class="frow">
             <div class="fk">경력 — 실무</div>
             <div class="fv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사)<br />현장 1인 상주</div>
@@ -645,37 +681,38 @@
           </div>
         </div>
       </div>
-      <!-- 실데이터 + 자격증 + 도구 -->
+      <!-- 실데이터 · 자격증 · 도구 -->
       <div id="land-live">
-        <div class="live panel fx">
-          <div class="sk">GITHUB — 최근 6주 커밋</div>
+        <div class="live zone fx">
+          <div class="sk"><i>04</i>GITHUB — 최근 6주 커밋</div>
           <div id="gh-chart"></div>
           <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
         </div>
-        <div class="certs panel fx">
-          <div class="sk">IT 자격증 — 5종</div>
+        <div class="certs zone fx">
+          <div class="sk"><i>05</i>IT 자격증 — 5종</div>
           <div class="cert"><b>CKA</b><span>Certified Kubernetes Administrator</span></div>
           <div class="cert"><b>AWS SAA</b><span>Solutions Architect – Associate</span></div>
           <div class="cert"><b>+3</b><span>그 외 3종</span></div>
         </div>
-        <div class="live panel tools fx">
-          <div class="sk">다루는 도구들</div>
+        <div class="live zone tools fx">
+          <div class="sk"><i>06</i>다루는 도구들</div>
           <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=4&theme=light" alt="기술 아이콘" loading="lazy" />
         </div>
       </div>
-      <!-- 세 개의 문 -->
+      <!-- 문 -->
       <div id="land-doors">
-        <a class="door panel fx" href="#">
+        <a class="door fx" href="#">
           <div class="dq">기술과 프로젝트 경험이 궁금하시다면</div>
           <div class="dl">기술 포트폴리오</div>
         </a>
-        <a class="door panel fx" href="#">
+        <a class="door fx" href="#">
           <div class="dq">한눈에 요약이 필요하시다면</div>
           <div class="dl">이력서</div>
         </a>
-        <button class="door walk panel fx" id="start-walk">
+        <button class="door walk fx" id="start-walk">
           <div class="dq">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</div>
           <div class="dl">함께 걸어보세요</div>
+          <span class="shine"></span>
         </button>
       </div>
     </div>

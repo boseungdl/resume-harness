@@ -90,26 +90,17 @@ document.querySelectorAll('[data-count]').forEach((el) => {
   requestAnimationFrame(step)
 })
 
-// 틸트 — rAF 보간(고무줄 없이), 소형 카드만
-if (!reduceMotion) {
-  document.querySelectorAll('#land-live .panel, .door').forEach((card) => {
-    let tx = 0, ty = 0, cx = 0, cy = 0, raf = null
-    const loop = () => {
-      cx += (tx - cx) * 0.14
-      cy += (ty - cy) * 0.14
-      card.style.transform = `perspective(900px) rotateY(${cx.toFixed(2)}deg) rotateX(${cy.toFixed(2)}deg)`
-      if (Math.abs(cx - tx) + Math.abs(cy - ty) > 0.01) raf = requestAnimationFrame(loop)
-      else raf = null
-    }
-    const kick = () => { if (!raf) raf = requestAnimationFrame(loop) }
-    card.addEventListener('pointermove', (e) => {
-      const r = card.getBoundingClientRect()
-      tx = ((e.clientX - r.left) / r.width - 0.5) * 3
-      ty = -((e.clientY - r.top) / r.height - 0.5) * 3
-      kick()
-    })
-    card.addEventListener('pointerleave', () => { tx = 0; ty = 0; kick() })
-  })
+// 우상단 라이브 시계 — 관제화면은 시간이 흐른다
+const hudClock = document.getElementById('hud-clock')
+if (hudClock) {
+  const tick = () => {
+    const d = new Date()
+    hudClock.textContent = [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map((v) => String(v).padStart(2, '0'))
+      .join(':')
+  }
+  tick()
+  setInterval(tick, 1000)
 }
 
 // 커밋 차트 — 외주 위젯 대신 직접 그린다. 주 단위 합계는 0일들을 왜곡 없이 흡수한다.
@@ -137,34 +128,34 @@ async function commitChart() {
   if (cap) cap.textContent = `주 단위 합계 ${total}커밋 · 출처: GitHub API`
   const chart = echarts.init(el)
   chart.setOption({
-    grid: { left: 30, right: 8, top: 10, bottom: 24 },
+    grid: { left: 26, right: 8, top: 10, bottom: 22 },
     xAxis: {
       type: 'category',
       data: weeks.map((w) => w[0]),
-      axisLine: { lineStyle: { color: 'rgba(22,48,60,0.18)' } },
+      axisLine: { lineStyle: { color: 'rgba(22,48,60,0.22)' } },
       axisTick: { show: false },
-      axisLabel: { color: 'rgba(22,48,60,0.5)', fontSize: 10, fontFamily: 'IBM Plex Sans KR' },
+      axisLabel: { color: 'rgba(22,48,60,0.5)', fontSize: 10, fontFamily: 'IBM Plex Mono' },
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
-      splitLine: { lineStyle: { color: 'rgba(14,168,184,0.12)' } },
-      axisLabel: { color: 'rgba(22,48,60,0.45)', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(22,48,60,0.10)', type: [2, 4] } },
+      axisLabel: { color: 'rgba(22,48,60,0.45)', fontSize: 10, fontFamily: 'IBM Plex Mono' },
     },
     tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name} 주 — ${p[0].value}커밋` },
     series: [{
       type: 'bar',
-      barWidth: '55%',
+      barWidth: '42%',
       data: weeks.map((w, i) => ({
         value: w[1],
         itemStyle: i === weeks.length - 1
-          ? { color: '#ff7a59', borderRadius: [4, 4, 0, 0] }
+          ? { color: '#ff7a59', borderRadius: [2, 2, 0, 0] }
           : {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: '#22c4d4' },
                 { offset: 1, color: '#0ea8b8' },
               ]),
-              borderRadius: [4, 4, 0, 0],
+              borderRadius: [2, 2, 0, 0],
             },
       })),
     }],
