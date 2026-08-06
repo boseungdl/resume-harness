@@ -7,8 +7,14 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import * as echarts from 'echarts/core'
+import { BarChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { STORY } from './story.js'
 import { buildWorld } from './world.js'
+
+echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 // ---------- UI 준비 ----------
 
@@ -46,6 +52,112 @@ const chips = STORY.map((item) => {
 })
 // 만남 게이트 — 클릭해서 '수집'해야 걸음이 다시 열린다
 const collected = STORY.map(() => false)
+
+// ---------- 랜딩 인터랙션 (WebGL 여부와 무관) ----------
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// 로드 스태거 등장 — 위에서 아래로
+document.querySelectorAll('#landing .fx').forEach((el, i) => {
+  setTimeout(() => el.classList.add('in'), reduceMotion ? 0 : 250 + i * 90)
+})
+
+// 숫자 카운트업
+document.querySelectorAll('[data-count]').forEach((el) => {
+  const to = Number(el.dataset.count)
+  if (reduceMotion || !Number.isFinite(to)) return
+  const t0 = performance.now()
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / 900)
+    el.textContent = String(Math.round(to * (1 - Math.pow(1 - p, 3))))
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+})
+
+// 틸트 — rAF 보간(고무줄 없이), 소형 카드만
+if (!reduceMotion) {
+  document.querySelectorAll('#land-live .panel, .door').forEach((card) => {
+    let tx = 0, ty = 0, cx = 0, cy = 0, raf = null
+    const loop = () => {
+      cx += (tx - cx) * 0.14
+      cy += (ty - cy) * 0.14
+      card.style.transform = `perspective(900px) rotateY(${cx.toFixed(2)}deg) rotateX(${cy.toFixed(2)}deg)`
+      if (Math.abs(cx - tx) + Math.abs(cy - ty) > 0.01) raf = requestAnimationFrame(loop)
+      else raf = null
+    }
+    const kick = () => { if (!raf) raf = requestAnimationFrame(loop) }
+    card.addEventListener('pointermove', (e) => {
+      const r = card.getBoundingClientRect()
+      tx = ((e.clientX - r.left) / r.width - 0.5) * 3
+      ty = -((e.clientY - r.top) / r.height - 0.5) * 3
+      kick()
+    })
+    card.addEventListener('pointerleave', () => { tx = 0; ty = 0; kick() })
+  })
+}
+
+// 커밋 차트 — 외주 위젯 대신 직접 그린다. 주 단위 합계는 0일들을 왜곡 없이 흡수한다.
+const FALLBACK_WEEKS = [
+  ['6/26', 6], ['7/3', 12], ['7/10', 9], ['7/17', 4], ['7/24', 0], ['7/31', 10],
+]
+async function commitChart() {
+  const el = document.getElementById('gh-chart')
+  if (!el) return
+  let weeks = FALLBACK_WEEKS
+  try {
+    const r = await fetch('https://github-contributions-api.jogruber.de/v4/boseungdl?y=last')
+    const days = (await r.json()).contributions.slice(-42)
+    if (days.length === 42) {
+      weeks = []
+      for (let i = 0; i < 6; i++) {
+        const w = days.slice(i * 7, (i + 1) * 7)
+        const d = new Date(w[0].date)
+        weeks.push([`${d.getMonth() + 1}/${d.getDate()}`, w.reduce((s, x) => s + x.count, 0)])
+      }
+    }
+  } catch { /* 오프라인이면 마지막 확인값으로 그린다 */ }
+  const total = weeks.reduce((s, w) => s + w[1], 0)
+  const cap = document.getElementById('gh-cap')
+  if (cap) cap.textContent = `주 단위 합계 ${total}커밋 · 출처: GitHub API`
+  const chart = echarts.init(el)
+  chart.setOption({
+    grid: { left: 30, right: 8, top: 10, bottom: 24 },
+    xAxis: {
+      type: 'category',
+      data: weeks.map((w) => w[0]),
+      axisLine: { lineStyle: { color: 'rgba(22,48,60,0.18)' } },
+      axisTick: { show: false },
+      axisLabel: { color: 'rgba(22,48,60,0.5)', fontSize: 10, fontFamily: 'IBM Plex Sans KR' },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      splitLine: { lineStyle: { color: 'rgba(14,168,184,0.12)' } },
+      axisLabel: { color: 'rgba(22,48,60,0.45)', fontSize: 10 },
+    },
+    tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name} 주 — ${p[0].value}커밋` },
+    series: [{
+      type: 'bar',
+      barWidth: '55%',
+      data: weeks.map((w, i) => ({
+        value: w[1],
+        itemStyle: i === weeks.length - 1
+          ? { color: '#ff7a59', borderRadius: [4, 4, 0, 0] }
+          : {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#22c4d4' },
+                { offset: 1, color: '#0ea8b8' },
+              ]),
+              borderRadius: [4, 4, 0, 0],
+            },
+      })),
+    }],
+    animationDuration: reduceMotion ? 0 : 700,
+  })
+  window.addEventListener('resize', () => chart.resize())
+}
+commitChart()
 
 // ---------- 3D 세계 ----------
 
@@ -145,7 +257,7 @@ if (!webglAvailable()) {
     clouds.push(cl)
   }
 
-  const hemi = new THREE.HemisphereLight('#eaf6ff', '#c4cdb8', 1.15)
+  const hemi = new THREE.HemisphereLight('#eaf6ff', '#c2d4c4', 1.15)
   scene.add(hemi)
   const sun = new THREE.DirectionalLight('#fff6e4', 1.6)
   sun.position.set(6, 9, 4)
@@ -160,7 +272,7 @@ if (!webglAvailable()) {
   // 땅은 육지 쪽만 — 왼쪽은 모래사장을 지나 바다로 이어진다
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(206, 900),
-    new THREE.MeshStandardMaterial({ color: '#d2ddc4' })
+    new THREE.MeshStandardMaterial({ color: '#cfe0cb' })
   )
   ground.rotation.x = -Math.PI / 2
   ground.position.set(99, 0, -240)
@@ -272,17 +384,12 @@ if (!webglAvailable()) {
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
 
-  // 입체감 — 랜딩 카드가 마우스를 따라 기운다
-  landingEl.querySelectorAll('.panel').forEach((card) => {
-    card.addEventListener('mousemove', (e) => {
-      const r = card.getBoundingClientRect()
-      const x = (e.clientX - r.left) / r.width - 0.5
-      const y = (e.clientY - r.top) / r.height - 0.5
-      card.style.transform = `perspective(800px) rotateY(${(x * 4).toFixed(2)}deg) rotateX(${(-y * 4).toFixed(2)}deg) translateY(-2px)`
-    })
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = ''
-    })
+  // 랜딩에서는 마우스가 카메라를 미세하게 움직인다 — 유리 뒤 세계가 패럴랙스로 살아난다
+  let mouseX = 0
+  let mouseY = 0
+  window.addEventListener('pointermove', (e) => {
+    mouseX = e.clientX / window.innerWidth - 0.5
+    mouseY = e.clientY / window.innerHeight - 0.5
   })
 
   window.addEventListener('resize', () => {
@@ -429,9 +536,12 @@ if (!webglAvailable()) {
       waveAction.reset().play()
     }
 
-    // 살아있는 카메라 — 바닷바람 스웨이 + 만남 때 NPC 쪽으로 시선
-    camera.position.x = -2.1 + Math.sin(t * 0.32) * 0.18
-    camera.position.y = 3.1 + Math.sin(t * 0.45) * 0.08
+    // 살아있는 카메라 — 바닷바람 스웨이 + 랜딩 마우스 패럴랙스 + 만남 때 NPC 쪽으로 시선
+    const onLanding = window.scrollY < journeyBase() * 0.5
+    const px = onLanding && !reduceMotion ? mouseX * 0.6 : 0
+    const py = onLanding && !reduceMotion ? -mouseY * 0.3 : 0
+    camera.position.x = -2.1 + Math.sin(t * 0.32) * 0.18 + px
+    camera.position.y = 3.1 + Math.sin(t * 0.45) * 0.08 + py
     if (activePopup >= 0) {
       const npc = world.npcs[activePopup]
       lookTarget.set(npc.group.position.x * 0.55, 1.05, -2.5)
