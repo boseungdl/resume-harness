@@ -122,26 +122,29 @@
       text-shadow: 0 1px 18px rgba(255,255,255,0.9);
     }
     #hero .role b { color: var(--ink); font-weight: 700; }
-    /* 히어로 우측 — 빅넘버 타일 */
-    .hero-stats { display: flex; gap: var(--gap); flex: none; align-self: center; }
-    #landing .stat {
-      min-width: clamp(11rem, 13vw, 13.5rem);
-      padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
+    /* 히어로 우측 — 상자 없는 빅넘버 (수치만 시각화) */
+    .hero-stats {
+      display: flex;
+      gap: clamp(1.6rem, 3vw, 2.6rem);
+      flex: none;
+      align-self: center;
+      font-variant-numeric: tabular-nums;
     }
-    .stat .n {
+    .hero-stats .kpi + .kpi { border-left: 1px solid rgba(22, 48, 60, 0.16); padding-left: clamp(1.6rem, 3vw, 2.6rem); }
+    .hero-stats .n {
       display: block;
-      font-size: clamp(1.9rem, 2.6vw, 2.5rem);
+      font-size: clamp(2rem, 2.8vw, 2.7rem);
       font-weight: 700;
       line-height: 1.1;
       letter-spacing: -0.01em;
-      font-variant-numeric: tabular-nums;
       background: linear-gradient(120deg, #0a8fa0, #0ea8b8 55%, #22c4d4);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+      filter: drop-shadow(0 1px 12px rgba(255, 255, 255, 0.8));
     }
-    .stat .n i { font-style: normal; font-size: 0.46em; font-weight: 700; }
-    .stat .k { display: block; font-size: 12px; color: rgba(22, 48, 60, 0.55); margin-top: 6px; word-break: keep-all; }
+    .hero-stats .n i { font-style: normal; font-size: 0.46em; font-weight: 700; }
+    .hero-stats .k { display: block; font-size: 12px; color: rgba(22, 48, 60, 0.6); margin-top: 5px; word-break: keep-all; text-shadow: 0 1px 10px rgba(255,255,255,0.85); }
     /* 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
     .stack-viz {
       padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
@@ -174,8 +177,8 @@
       z-index: 1;
     }
     .lay.on::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 8px rgba(14, 168, 184, 0.6); }
-    .lay b { font-size: 14px; font-weight: 700; flex: none; }
-    .lay span { font-size: 12px; color: rgba(22, 48, 60, 0.55); word-break: keep-all; }
+    .lay b { font-size: 13.5px; font-weight: 700; flex: none; }
+    .lay span { font-size: 11.5px; color: rgba(22, 48, 60, 0.55); word-break: keep-all; }
     .lay.now.on b { color: var(--accent); }
     .lay.now.on::before { border-color: var(--coral); background: var(--coral); box-shadow: 0 0 10px rgba(255, 122, 89, 0.7); }
     .lay .tag {
@@ -226,8 +229,8 @@
     }
     #landing .dim { color: rgba(22, 48, 60, 0.42); font-size: 12px; }
 
-    /* 소개 + 성장 경로 */
-    #land-bio { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: var(--gap); }
+    /* 소개 + 성장 경로 + 사실 */
+    #land-bio { display: grid; grid-template-columns: 1.4fr 1.15fr 0.85fr; gap: var(--gap); }
     .bio { padding: clamp(0.9rem, 2vh, 1.3rem) 1.5rem; display: flex; align-items: center; }
     .bio p {
       font-size: 15px;
@@ -247,13 +250,28 @@
     .facts .fv a { color: var(--accent); text-decoration: none; font-weight: 500; }
     .facts .fv a:hover { text-decoration: underline; }
 
-    /* 실데이터 — 차트 · 도구 · 사실 */
-    #land-live { display: grid; grid-template-columns: 1.5fr 0.9fr 1.1fr; gap: var(--gap); }
+    /* 실데이터 — 차트 · 자격증 · 도구 */
+    #land-live { display: grid; grid-template-columns: 1.5fr 1.05fr 0.9fr; gap: var(--gap); }
+    .certs {
+      padding: clamp(0.8rem, 1.8vh, 1.1rem) 1.3rem;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 0.55rem;
+    }
+    .cert { display: flex; align-items: center; gap: 0.75em; }
+    .cert b {
+      font-size: 12px; font-weight: 700; color: var(--accent);
+      border: 1px solid rgba(14, 168, 184, 0.45);
+      background: rgba(14, 168, 184, 0.07);
+      border-radius: 6px;
+      padding: 3px 8px;
+      flex: none; min-width: 5em; text-align: center;
+    }
+    .cert span { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
     #land-live .live { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; }
     #gh-chart { width: 100%; height: clamp(112px, 15vh, 160px); }
     .chart-cap { font-size: 11px; color: rgba(22, 48, 60, 0.45); margin-top: 2px; }
     #land-live .skills {
-      width: 100%; max-width: 12.5rem; display: block; margin: 0.4rem auto 0;
+      width: 100%; max-width: 13.5rem; display: block; margin: 0.35rem auto 0;
       filter: saturate(0.6) opacity(0.9);
       transition: filter 0.35s;
     }
@@ -318,8 +336,7 @@
     @media (max-height: 920px) {
       #hero h1 { font-size: clamp(2.5rem, 4.4vw, 3.4rem); }
       #hero .role { margin-top: 0.45rem; }
-      .stat .n { font-size: 1.6rem; }
-      #landing .stat { padding: 0.75rem 1.2rem; min-width: 10rem; }
+      .hero-stats .n { font-size: 1.7rem; }
       .bio p { font-size: 14px; line-height: 1.62; }
       .lay { padding: 0.28rem 0 0.28rem 24px; }
       .lay b { font-size: 13px; }
@@ -583,11 +600,11 @@
           <p class="role">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
         </div>
         <div class="hero-stats">
-          <div class="stat panel fx">
+          <div class="kpi">
             <span class="n">1<i>년</i> 2<i>개월</i></span>
             <span class="k">플랫폼 실무</span>
           </div>
-          <div class="stat panel fx">
+          <div class="kpi">
             <span class="n"><span data-count="191">191</span><i>명</i></span>
             <span class="k">서비스 구축·오픈</span>
           </div>
@@ -613,26 +630,10 @@
             <div class="lay now"><b>데이터</b><span>Kafka · MySQL · PostgreSQL · Redis</span><i class="tag">지금 여기</i></div>
           </div>
         </div>
-      </div>
-      <!-- 실데이터 + 사실 -->
-      <div id="land-live">
-        <div class="live panel fx">
-          <div class="sk">GITHUB — 최근 6주 커밋</div>
-          <div id="gh-chart"></div>
-          <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
-        </div>
-        <div class="live panel tools fx">
-          <div class="sk">다루는 도구들</div>
-          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=4&theme=light" alt="기술 아이콘" loading="lazy" />
-        </div>
         <div class="facts panel fx">
           <div class="frow">
             <div class="fk">경력 — 실무</div>
-            <div class="fv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사) · 현장 1인 상주</div>
-          </div>
-          <div class="frow">
-            <div class="fk">IT 자격증 — 5종</div>
-            <div class="fv"><b>CKA</b> · <b>AWS SAA</b> 외 3종</div>
+            <div class="fv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사)<br />현장 1인 상주</div>
           </div>
           <div class="frow">
             <div class="fk">학력</div>
@@ -640,8 +641,26 @@
           </div>
           <div class="frow">
             <div class="fk">기본 정보 · 연락처</div>
-            <div class="fv">1996년생 · 서울<br /><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
+            <div class="fv">1996년생 · 서울<br /><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a><br /><a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
           </div>
+        </div>
+      </div>
+      <!-- 실데이터 + 자격증 + 도구 -->
+      <div id="land-live">
+        <div class="live panel fx">
+          <div class="sk">GITHUB — 최근 6주 커밋</div>
+          <div id="gh-chart"></div>
+          <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
+        </div>
+        <div class="certs panel fx">
+          <div class="sk">IT 자격증 — 5종</div>
+          <div class="cert"><b>CKA</b><span>Certified Kubernetes Administrator</span></div>
+          <div class="cert"><b>AWS SAA</b><span>Solutions Architect – Associate</span></div>
+          <div class="cert"><b>+3</b><span>그 외 3종</span></div>
+        </div>
+        <div class="live panel tools fx">
+          <div class="sk">다루는 도구들</div>
+          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=4&theme=light" alt="기술 아이콘" loading="lazy" />
         </div>
       </div>
       <!-- 세 개의 문 -->
