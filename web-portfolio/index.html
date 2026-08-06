@@ -82,14 +82,14 @@
         radial-gradient(640px 400px at 22% 88%, rgba(14, 168, 184, 0.07), transparent 72%);
     }
     .land-wrap {
-      width: min(1120px, 93vw);
-      margin: 0 auto;
+      width: min(1200px, 94vw);
+      height: 90vh;
+      margin: auto;
       position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: space-between;
       gap: var(--gap);
-      padding: clamp(1rem, 2.5vh, 1.8rem) 0;
     }
 
     /* 히어로 — 카드가 아니라 세계 위의 텍스트 */
@@ -132,12 +132,10 @@
     .hero-kpis .kpi .v { display: block; font-size: clamp(1.4rem, 2vw, 1.8rem); font-weight: 700; line-height: 1.15; }
     .hero-kpis .kpi .v small { font-size: 0.55em; font-weight: 500; color: rgba(22,48,60,0.55); margin-left: 1px; }
     .hero-kpis .kpi .k { display: block; font-size: 12px; color: rgba(22,48,60,0.55); margin-top: 3px; word-break: keep-all; }
-    /* 히어로 우측 — 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
+    /* 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
     .stack-viz {
-      flex: none;
-      width: min(29rem, 40vw);
       padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
-      align-self: center;
+      display: flex; flex-direction: column; justify-content: center;
     }
     .stack-viz .lane { position: relative; }
     .stack-viz .lane::before {
@@ -182,19 +180,6 @@
     }
     .lay.on .tag { opacity: 1; }
 
-    /* 자격증 — 개수가 아니라 이름이 정보다 */
-    .certs { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .cert { display: flex; align-items: center; gap: 0.75em; }
-    .cert b {
-      font-size: 12px; font-weight: 700; color: var(--accent);
-      border: 1px solid rgba(14, 168, 184, 0.45);
-      background: rgba(14, 168, 184, 0.07);
-      border-radius: 6px;
-      padding: 3px 8px;
-      flex: none; min-width: 5em; text-align: center;
-    }
-    .cert span { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
-    .certs .dim { margin-top: 0.2rem; }
 
     /* 랜딩 카드 — 진짜 유리: 뒤의 세계를 블러하고, 그림자는 좌하단(광원 우상단) */
     #landing .panel {
@@ -231,8 +216,8 @@
     }
     #landing .dim { color: rgba(22, 48, 60, 0.42); font-size: 12px; }
 
-    /* 소개 + 사실 */
-    #land-bio { display: grid; grid-template-columns: 1.9fr 1.1fr; gap: var(--gap); }
+    /* 소개 + 성장 경로 */
+    #land-bio { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: var(--gap); }
     .bio { padding: clamp(0.9rem, 2vh, 1.3rem) 1.5rem; display: flex; align-items: center; }
     .bio p {
       font-size: 15px;
@@ -569,17 +554,8 @@
             <div class="kpi"><span class="v"><span data-count="191">191</span><small>명</small></span><span class="k">서비스 구축·오픈</span></div>
           </div>
         </div>
-        <div class="stack-viz panel fx" id="stack-viz">
-          <div class="sk">한 층씩 내려온 길 — 화면에서 데이터까지</div>
-          <div class="lane">
-            <div class="lay"><b>화면 UI</b><span>React · JavaScript</span></div>
-            <div class="lay"><b>서버 · 백엔드</b><span>Spring · Python</span></div>
-            <div class="lay"><b>인프라 · 클라우드</b><span>AWS · Kubernetes · Docker · Linux</span></div>
-            <div class="lay now"><b>데이터</b><span>Kafka · MySQL · PostgreSQL · Redis</span><i class="tag">지금 여기</i></div>
-          </div>
-        </div>
       </div>
-      <!-- 소개 + 사실 -->
+      <!-- 소개 + 성장 경로 -->
       <div id="land-bio">
         <div class="bio panel fx">
           <p>
@@ -590,10 +566,31 @@
             이 페이지도 직접 설계·구현했습니다.
           </p>
         </div>
+        <div class="stack-viz panel fx" id="stack-viz">
+          <div class="sk">한 층씩 내려온 길 — 화면에서 데이터까지</div>
+          <div class="lane">
+            <div class="lay"><b>화면 UI</b><span>React · JavaScript</span></div>
+            <div class="lay"><b>서버 · 백엔드</b><span>Spring · Python</span></div>
+            <div class="lay"><b>인프라 · 클라우드</b><span>AWS · Kubernetes · Docker · Linux</span></div>
+            <div class="lay now"><b>데이터</b><span>Kafka · MySQL · PostgreSQL · Redis</span><i class="tag">지금 여기</i></div>
+          </div>
+        </div>
+      </div>
+      <!-- 실데이터 + 사실 -->
+      <div id="land-live">
+        <div class="live panel fx">
+          <div class="sk">GITHUB — 최근 6주 커밋</div>
+          <div id="gh-chart"></div>
+          <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
+        </div>
         <div class="facts panel fx">
           <div class="frow">
             <div class="fk">경력 — 실무</div>
             <div class="fv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사) · 현장 1인 상주</div>
+          </div>
+          <div class="frow">
+            <div class="fk">IT 자격증 — 5종</div>
+            <div class="fv"><b>CKA</b> · <b>AWS SAA</b> 외 3종</div>
           </div>
           <div class="frow">
             <div class="fk">학력</div>
@@ -601,23 +598,8 @@
           </div>
           <div class="frow">
             <div class="fk">기본 정보 · 연락처</div>
-            <div class="fv">1996년생 · 서울<br /><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
+            <div class="fv">1996년생 · 서울 · <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
           </div>
-        </div>
-      </div>
-      <!-- 실데이터 — 직접 그린 차트 -->
-      <div id="land-live">
-        <div class="live panel fx">
-          <div class="sk">GITHUB — 최근 6주 커밋</div>
-          <div id="gh-chart"></div>
-          <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
-        </div>
-        <div class="certs panel fx">
-          <div class="sk">IT 자격증 — 5종</div>
-          <div class="cert"><b>CKA</b><span>Certified Kubernetes Administrator</span></div>
-          <div class="cert"><b>AWS SAA</b><span>Solutions Architect – Associate</span></div>
-          <div class="cert"><b>+3</b><span>그 외 3종</span></div>
-          <span class="dim">깊은 이야기는 기술 포트폴리오에</span>
         </div>
       </div>
       <!-- 세 개의 문 -->
