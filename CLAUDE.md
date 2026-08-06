@@ -20,3 +20,6 @@ Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agent
 
 - **작성**: `write-jaso` 스킬 — 리서치(직무/기업 분기) → 인물 판단 → 작성.
 - **검증**: `review-jaso` 스킬 — 독자 심리 시뮬레이션 + 글쓰기 감사.
+
+
+**점검: 모든 글은 모든 사람이 같은 방향으로 해석이 가능하도록 명확하게 작성**
