@@ -132,33 +132,69 @@
     .hero-kpis .kpi .v { display: block; font-size: clamp(1.4rem, 2vw, 1.8rem); font-weight: 700; line-height: 1.15; }
     .hero-kpis .kpi .v small { font-size: 0.55em; font-weight: 500; color: rgba(22,48,60,0.55); margin-left: 1px; }
     .hero-kpis .kpi .k { display: block; font-size: 12px; color: rgba(22,48,60,0.55); margin-top: 3px; word-break: keep-all; }
-    /* 히어로 우측 — 회전 텍스트 배지 (클릭 = 걷기 시작) */
-    .hero-badge {
-      position: relative;
-      width: clamp(150px, 19vh, 195px);
-      aspect-ratio: 1;
+    /* 히어로 우측 — 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
+    .stack-viz {
       flex: none;
-      cursor: pointer;
-      animation: badge-bob 5.5s ease-in-out infinite;
+      width: min(29rem, 40vw);
+      padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
+      align-self: center;
     }
-    @keyframes badge-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-    .hero-badge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: badge-spin 22s linear infinite; }
-    @keyframes badge-spin { to { transform: rotate(360deg); } }
-    .hero-badge text {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.32em;
-      fill: rgba(22, 48, 60, 0.6);
+    .stack-viz .lane { position: relative; }
+    .stack-viz .lane::before {
+      content: '';
+      position: absolute; left: 4px; top: 14px; bottom: 14px;
+      width: 2px; border-radius: 2px;
+      background: linear-gradient(180deg, var(--accent), #6fd8e4);
+      transform: scaleY(0); transform-origin: top;
+      transition: transform 1.1s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    .badge-core {
-      position: absolute; inset: 27%;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, var(--accent), #22c4d4);
-      color: #fff;
-      font-size: 1.7rem; font-weight: 700;
-      box-shadow: -8px 14px 30px rgba(14, 110, 140, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      transition: transform 0.25s;
+    .stack-viz.go .lane::before { transform: scaleY(1); }
+    .lay {
+      position: relative;
+      display: flex; align-items: baseline; gap: 0.7em;
+      padding: 0.44rem 0 0.44rem 24px;
+      opacity: 0.22; transform: translateX(-6px);
+      transition: opacity 0.5s, transform 0.5s;
     }
-    .hero-badge:hover .badge-core { transform: scale(1.08); }
+    .lay.on { opacity: 1; transform: none; }
+    .lay::before {
+      content: '';
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #fff; border: 2px solid rgba(22, 48, 60, 0.25);
+      transition: border-color 0.4s, background 0.4s, box-shadow 0.4s;
+      z-index: 1;
+    }
+    .lay.on::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 8px rgba(14, 168, 184, 0.6); }
+    .lay b { font-size: 14px; font-weight: 700; flex: none; }
+    .lay span { font-size: 12px; color: rgba(22, 48, 60, 0.55); word-break: keep-all; }
+    .lay.now.on b { color: var(--accent); }
+    .lay.now.on::before { border-color: var(--coral); background: var(--coral); box-shadow: 0 0 10px rgba(255, 122, 89, 0.7); }
+    .lay .tag {
+      font-style: normal;
+      font-size: 10px; font-weight: 700; color: #fff;
+      background: var(--coral); border-radius: 999px;
+      padding: 2px 9px;
+      margin-left: auto; flex: none;
+      align-self: center;
+      opacity: 0;
+      transition: opacity 0.5s 0.2s;
+    }
+    .lay.on .tag { opacity: 1; }
+
+    /* 자격증 — 개수가 아니라 이름이 정보다 */
+    .certs { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .cert { display: flex; align-items: center; gap: 0.75em; }
+    .cert b {
+      font-size: 12px; font-weight: 700; color: var(--accent);
+      border: 1px solid rgba(14, 168, 184, 0.45);
+      background: rgba(14, 168, 184, 0.07);
+      border-radius: 6px;
+      padding: 3px 8px;
+      flex: none; min-width: 5em; text-align: center;
+    }
+    .cert span { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
+    .certs .dim { margin-top: 0.2rem; }
 
     /* 랜딩 카드 — 진짜 유리: 뒤의 세계를 블러하고, 그림자는 좌하단(광원 우상단) */
     #landing .panel {
@@ -221,13 +257,6 @@
     #land-live .live { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; }
     #gh-chart { width: 100%; height: clamp(120px, 16vh, 168px); }
     .chart-cap { font-size: 11px; color: rgba(22, 48, 60, 0.45); margin-top: 2px; }
-    #land-live .skills {
-      width: 100%; max-width: 19rem; display: block; margin-top: 0.45rem;
-      filter: grayscale(1) opacity(0.62);
-      transition: filter 0.35s;
-    }
-    #land-live .tools:hover .skills { filter: none; }
-    #land-live .tools .dim { margin-top: 0.5rem; display: block; }
 
     /* 세 개의 문 */
     #land-doors { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: var(--gap); }
@@ -275,7 +304,8 @@
     @media (prefers-reduced-motion: reduce) {
       .fx { opacity: 1; transform: none; }
       .fx.in { transition: none; }
-      .hero-badge, .hero-badge svg, .door.walk::after { animation: none; }
+      .door.walk::after { animation: none; }
+      .lay, .stack-viz .lane::before { transition: none; }
     }
 
     @media (max-width: 900px) {
@@ -537,17 +567,16 @@
           <div class="hero-kpis">
             <div class="kpi"><span class="v">1<small>년</small> 2<small>개월</small></span><span class="k">플랫폼 실무</span></div>
             <div class="kpi"><span class="v"><span data-count="191">191</span><small>명</small></span><span class="k">서비스 구축·오픈</span></div>
-            <div class="kpi"><span class="v"><span data-count="5">5</span><small>개</small></span><span class="k">IT 자격증 — CKA · AWS SAA</span></div>
           </div>
         </div>
-        <div class="hero-badge" id="hero-badge" title="함께 걸어보세요">
-          <svg viewBox="0 0 200 200" aria-hidden="true">
-            <defs>
-              <path id="badge-circle" d="M 100,100 m -78,0 a 78,78 0 1,1 156,0 a 78,78 0 1,1 -156,0" />
-            </defs>
-            <text><textPath href="#badge-circle">WALKING WITH HAN · DATA ENGINEER · SEOUL ·</textPath></text>
-          </svg>
-          <div class="badge-core">↓</div>
+        <div class="stack-viz panel fx" id="stack-viz">
+          <div class="sk">한 층씩 내려온 길 — 화면에서 데이터까지</div>
+          <div class="lane">
+            <div class="lay"><b>화면 UI</b><span>React · JavaScript</span></div>
+            <div class="lay"><b>서버 · 백엔드</b><span>Spring · Python</span></div>
+            <div class="lay"><b>인프라 · 클라우드</b><span>AWS · Kubernetes · Docker · Linux</span></div>
+            <div class="lay now"><b>데이터</b><span>Kafka · MySQL · PostgreSQL · Redis</span><i class="tag">지금 여기</i></div>
+          </div>
         </div>
       </div>
       <!-- 소개 + 사실 -->
@@ -583,9 +612,11 @@
           <div id="gh-chart"></div>
           <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
         </div>
-        <div class="live panel tools fx">
-          <div class="sk">다루는 도구들</div>
-          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=6&theme=light" alt="기술 아이콘" loading="lazy" />
+        <div class="certs panel fx">
+          <div class="sk">IT 자격증 — 5종</div>
+          <div class="cert"><b>CKA</b><span>Certified Kubernetes Administrator</span></div>
+          <div class="cert"><b>AWS SAA</b><span>Solutions Architect – Associate</span></div>
+          <div class="cert"><b>+3</b><span>그 외 3종</span></div>
           <span class="dim">깊은 이야기는 기술 포트폴리오에</span>
         </div>
       </div>

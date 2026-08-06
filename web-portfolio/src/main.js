@@ -62,6 +62,21 @@ document.querySelectorAll('#landing .fx').forEach((el, i) => {
   setTimeout(() => el.classList.add('in'), reduceMotion ? 0 : 250 + i * 90)
 })
 
+// 성장 경로 다이어그램 — 레일이 내려오며 층이 하나씩 켜진다
+const stackViz = document.getElementById('stack-viz')
+if (stackViz) {
+  const lays = stackViz.querySelectorAll('.lay')
+  if (reduceMotion) {
+    stackViz.classList.add('go')
+    lays.forEach((el) => el.classList.add('on'))
+  } else {
+    setTimeout(() => {
+      stackViz.classList.add('go')
+      lays.forEach((el, i) => setTimeout(() => el.classList.add('on'), 320 + i * 300))
+    }, 700)
+  }
+}
+
 // 숫자 카운트업
 document.querySelectorAll('[data-count]').forEach((el) => {
   const to = Number(el.dataset.count)
@@ -385,7 +400,6 @@ if (!webglAvailable()) {
     window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
-  document.getElementById('hero-badge')?.addEventListener('click', startWalk)
 
   // 랜딩에서는 마우스가 카메라를 미세하게 움직인다 — 유리 뒤 세계가 패럴랙스로 살아난다
   let mouseX = 0
