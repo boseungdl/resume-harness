@@ -15,7 +15,9 @@ import { buildWorld } from './world.js'
 const spacer = document.getElementById('spacer')
 spacer.style.height = `${(STORY.length + 2.4) * 120}vh`
 
-const introEl = document.getElementById('intro')
+const landingEl = document.getElementById('landing')
+const dashEl = document.getElementById('dash')
+const journeyEl = document.getElementById('journey')
 const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
@@ -254,10 +256,20 @@ if (!webglAvailable()) {
 
   let walked = 0
 
-  function scrollProgress() {
-    const max = document.documentElement.scrollHeight - window.innerHeight
-    return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0
+  // 랜딩을 다 지나야 여정이 시작된다
+  function journeyBase() {
+    return Math.max(0, landingEl.offsetHeight - window.innerHeight * 0.15)
   }
+
+  function scrollProgress() {
+    const base = journeyBase()
+    const span = document.documentElement.scrollHeight - window.innerHeight - base
+    return span > 0 ? Math.min(1, Math.max(0, (window.scrollY - base) / span)) : 0
+  }
+
+  document.getElementById('start-walk').addEventListener('click', () => {
+    window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+  })
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight
@@ -320,13 +332,16 @@ if (!webglAvailable()) {
     // 만남 게이트 — 수집 전에는 그 앞에서 스크롤이 멈춘다
     const gi = collected.findIndex((done) => !done)
     if (gi >= 0) {
-      const maxS = document.documentElement.scrollHeight - window.innerHeight
-      const gY = (world.npcs[gi].dist / world.TOTAL) * maxS
+      const base = journeyBase()
+      const span = document.documentElement.scrollHeight - window.innerHeight - base
+      const gY = base + (world.npcs[gi].dist / world.TOTAL) * span
       if (window.scrollY > gY + 1) window.scrollTo(0, gY)
     }
 
-    // 인트로: 출발 전에만
-    introEl.classList.toggle('hidden-panel', progress > 0.035)
+    // 계기판·여정 바는 여정에 들어선 뒤에만
+    const inJourney = window.scrollY > journeyBase() * 0.72
+    dashEl.classList.toggle('hidden-panel', !inJourney)
+    journeyEl.classList.toggle('hidden-panel', !inJourney)
 
     // 엔딩
     const atEnd = progress > 0.955

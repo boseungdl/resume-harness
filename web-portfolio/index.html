@@ -53,22 +53,100 @@
     .hud::before { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
     .hud::after { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
-    /* 인트로 */
-    #intro {
-      position: fixed;
-      left: clamp(1.5rem, 6vw, 7rem);
-      top: 50%;
-      transform: translateY(-50%);
-      max-width: 27em;
-      padding: 2.4rem 2.6rem;
-      z-index: 3;
-    }
-    #intro.hidden-panel { transform: translateY(calc(-50% + 18px)); }
-    #intro h1 { font-size: clamp(2rem, 3.8vw, 3rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.1rem; }
-    #intro .rule { font-size: clamp(0.98rem, 1.2vw, 1.14rem); line-height: 1.95; word-break: keep-all; font-weight: 300; color: var(--ink-soft); }
-    #intro .rule em { font-style: normal; color: var(--accent); font-weight: 600; }
-    #intro .hint { margin-top: 2.2rem; font-size: 0.74rem; letter-spacing: 0.4em; color: rgba(22,48,60,0.45); animation: nod 2.6s ease-in-out infinite; }
     @keyframes nod { 0%,100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(6px); opacity: 1; } }
+
+    /* ===== 랜딩 — 기본 정보는 즉시, 사람은 걸어서 ===== */
+    #landing {
+      position: relative;
+      z-index: 2;
+      background: linear-gradient(180deg, #cfe9f8 0%, #d8eef6 62%, rgba(216, 238, 246, 0) 100%);
+      padding: clamp(1.6rem, 4vh, 3rem) 0 30vh;
+    }
+    .land-wrap {
+      width: min(1120px, 93vw);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    /* 1. 가로형 헤더 계기판 */
+    #land-head {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 1.6rem 2.2rem;
+    }
+    #land-head .led {
+      width: 0.6em; height: 0.6em; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: blink 1.8s ease-in-out infinite;
+      flex: none;
+    }
+    #land-head .idbox { min-width: 0; }
+    #land-head h1 { font-size: clamp(1.7rem, 3vw, 2.4rem); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+    #land-head .role { font-size: clamp(0.9rem, 1.2vw, 1.05rem); color: var(--ink-soft); font-weight: 300; margin-top: 0.35rem; word-break: keep-all; }
+    #land-head .lh-kpis {
+      margin-left: auto;
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: clamp(0.8rem, 2vw, 2rem);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    #land-head .lh-kpis .kpi .v { display: block; font-size: clamp(1.25rem, 2vw, 1.7rem); font-weight: 700; color: var(--ink); line-height: 1.15; }
+    #land-head .lh-kpis .kpi .v small { font-size: 0.6em; font-weight: 400; color: rgba(22,48,60,0.5); margin-left: 1px; }
+    #land-head .lh-kpis .kpi .k { display: block; font-size: 0.66rem; letter-spacing: 0.22em; color: rgba(22,48,60,0.48); margin-top: 0.25rem; }
+    /* 2. 스펙 카드 그리드 */
+    #land-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    #land-grid .spec { padding: 1.15rem 1.3rem; }
+    #land-grid .spec .sk {
+      font-size: 0.66rem; letter-spacing: 0.3em; font-weight: 700;
+      color: var(--accent); margin-bottom: 0.7rem;
+    }
+    #land-grid .spec .sv { font-size: 0.86rem; line-height: 1.85; color: var(--ink-soft); word-break: keep-all; }
+    #land-grid .spec .sv b { color: var(--ink); font-weight: 600; }
+    #land-grid .spec .sv a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    #land-grid .spec .sv a:hover { text-decoration: underline; }
+    /* 3. 세 개의 문 */
+    #land-doors {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.35fr;
+      gap: 1rem;
+      margin-top: 0.4rem;
+    }
+    .door {
+      display: block;
+      padding: 1.35rem 1.5rem;
+      text-decoration: none;
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .door:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(20, 80, 110, 0.2); }
+    .door .dq { font-size: 0.82rem; color: rgba(22,48,60,0.55); font-weight: 300; margin-bottom: 0.45rem; word-break: keep-all; }
+    .door .dl { font-size: 1.02rem; font-weight: 700; word-break: keep-all; }
+    .door .dl::after { content: ' →'; color: var(--accent); }
+    .door.walk {
+      border: none;
+      background: linear-gradient(120deg, var(--accent), #22c4d4);
+      color: #fff;
+      box-shadow: 0 8px 28px rgba(14,168,184,0.45);
+    }
+    .door.walk .dq { color: rgba(255,255,255,0.85); }
+    .door.walk .dl { color: #fff; }
+    .door.walk .dl::after { content: ' ↓'; color: #fff; }
+    @media (max-width: 900px) {
+      #land-grid { grid-template-columns: 1fr 1fr; }
+      #land-doors { grid-template-columns: 1fr; }
+      #land-head { flex-wrap: wrap; }
+    }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
     #popup {
@@ -311,16 +389,59 @@
 </head>
 <body>
   <canvas id="bg"></canvas>
+  <header id="landing">
+    <div class="land-wrap">
+      <!-- 1. 가로형 헤더 계기판 -->
+      <div id="land-head" class="panel hud">
+        <span class="led"></span>
+        <div class="idbox">
+          <h1>한승보</h1>
+          <p class="role">신뢰할 수 있는 데이터 흐름을 설계하는 데이터 엔지니어</p>
+        </div>
+        <div class="lh-kpis">
+          <div class="kpi"><span class="v">1<small>년</small>2<small>개월</small></span><span class="k">실무</span></div>
+          <div class="kpi"><span class="v">5<small>개</small></span><span class="k">IT 자격증</span></div>
+          <div class="kpi"><span class="v">7<small>개</small></span><span class="k">프로젝트</span></div>
+          <div class="kpi"><span class="v">4<small>회</small></span><span class="k">수상</span></div>
+        </div>
+      </div>
+      <!-- 2. 기본 스펙 -->
+      <div id="land-grid">
+        <div class="spec panel">
+          <div class="sk">CAREER</div>
+          <div class="sv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사)<br />사용자 191명 서비스 구축·오픈</div>
+        </div>
+        <div class="spec panel">
+          <div class="sk">CERTIFICATES</div>
+          <div class="sv"><b>CKA</b> · <b>AWS SAA</b> · 정보처리기사<br />SQLD · RHCSA</div>
+        </div>
+        <div class="spec panel">
+          <div class="sk">TECH</div>
+          <div class="sv">데이터 — Kafka · Spark · Iceberg · Airflow<br />인프라 — K8s · AWS · Docker<br />백엔드 — Spring · FastAPI</div>
+        </div>
+        <div class="spec panel">
+          <div class="sk">CONTACT</div>
+          <div class="sv"><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a><br /><a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a><br />서울</div>
+        </div>
+      </div>
+      <!-- 3. 세 개의 문 -->
+      <div id="land-doors">
+        <a class="door panel" href="#" target="_blank" rel="noreferrer">
+          <div class="dq">기술과 프로젝트 경험이 궁금하시다면</div>
+          <div class="dl">기술 포트폴리오</div>
+        </a>
+        <a class="door panel" href="#" target="_blank" rel="noreferrer">
+          <div class="dq">한눈에 요약이 필요하시다면</div>
+          <div class="dl">이력서</div>
+        </a>
+        <button class="door walk" id="start-walk">
+          <div class="dq">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</div>
+          <div class="dl">함께 걸어보세요</div>
+        </button>
+      </div>
+    </div>
+  </header>
   <div id="spacer"></div>
-  <section id="intro" class="panel hud">
-    <h1>한승보</h1>
-    <p class="rule">
-      길이 늘 보였던 것은 아닙니다. 그래도 계속 걸었습니다.<br />
-      <em>스크롤은 걸음이 됩니다.</em> 길에서 만나는 질문들에 대신 답해 두었습니다.<br />
-      끝까지 걷는 데 3분이면 충분합니다.
-    </p>
-    <div class="hint">SCROLL</div>
-  </section>
   <section id="popup" class="panel hud hidden-panel">
     <div class="who">길에서 만난 질문</div>
     <div class="q"></div>
