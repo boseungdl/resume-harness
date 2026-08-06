@@ -41,16 +41,16 @@ certChart.setOption({
   tooltip: {
     trigger: 'axis',
     formatter: (p) => `<b>${p[0].name}</b> — 누적 ${p[0].value}개`,
-    backgroundColor: 'rgba(13,26,40,0.95)',
-    borderColor: 'rgba(63,212,224,0.45)',
-    textStyle: { color: '#e8f2f6', fontSize: 12 },
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderColor: 'rgba(14,168,184,0.4)',
+    textStyle: { color: '#16303c', fontSize: 12 },
   },
   xAxis: {
     type: 'category',
     data: ['RHCSA', 'SQLD', '정처기', 'AWS SAA', 'CKA'],
-    axisLine: { lineStyle: { color: 'rgba(232,242,246,0.25)' } },
+    axisLine: { lineStyle: { color: 'rgba(22,48,60,0.22)' } },
     axisTick: { show: false },
-    axisLabel: { color: 'rgba(232,242,246,0.6)', fontSize: 10, fontWeight: 600 },
+    axisLabel: { color: 'rgba(22,48,60,0.6)', fontSize: 10, fontWeight: 600 },
   },
   yAxis: { show: false, max: 5.6 },
   series: [
@@ -60,20 +60,20 @@ certChart.setOption({
       smooth: 0.45,
       symbol: 'circle',
       symbolSize: 8,
-      lineStyle: { width: 3, color: '#3fd4e0' },
-      itemStyle: { color: '#3fd4e0', borderColor: '#0d1e30', borderWidth: 2 },
+      lineStyle: { width: 3, color: '#0ea8b8' },
+      itemStyle: { color: '#0ea8b8', borderColor: '#fff', borderWidth: 2 },
       areaStyle: {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(63,212,224,0.4)' },
-            { offset: 1, color: 'rgba(63,212,224,0.03)' },
+            { offset: 0, color: 'rgba(14,168,184,0.35)' },
+            { offset: 1, color: 'rgba(14,168,184,0.02)' },
           ],
         },
       },
       label: {
         show: true, position: 'top',
-        color: '#3fd4e0', fontWeight: 700, fontSize: 11,
+        color: '#0ea8b8', fontWeight: 700, fontSize: 11,
         formatter: (p) => (p.dataIndex === 4 ? '5개' : ''),
       },
       animationDuration: 1400,
@@ -325,7 +325,6 @@ if (!webglAvailable()) {
     window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
-  document.getElementById('viz-map').addEventListener('click', startWalk)
 
   // 입체감 — 랜딩 카드가 마우스를 따라 기운다
   landingEl.querySelectorAll('.panel').forEach((card) => {
