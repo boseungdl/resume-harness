@@ -105,10 +105,68 @@
     #land-head .lh-kpis .kpi .v { display: block; font-size: clamp(1.25rem, 2vw, 1.7rem); font-weight: 700; color: var(--ink); line-height: 1.15; }
     #land-head .lh-kpis .kpi .v small { font-size: 0.6em; font-weight: 400; color: rgba(22,48,60,0.5); margin-left: 1px; }
     #land-head .lh-kpis .kpi .k { display: block; font-size: 0.66rem; letter-spacing: 0.22em; color: rgba(22,48,60,0.48); margin-top: 0.25rem; }
+    /* 공통 카드 제목 */
+    #landing .sk {
+      display: flex; align-items: center; gap: 0.55em;
+      font-size: 0.68rem; letter-spacing: 0.22em; font-weight: 700;
+      color: var(--ink); margin-bottom: 0.7rem;
+    }
+    #landing .sk::before {
+      content: ''; width: 3px; height: 0.95em;
+      background: var(--accent); border-radius: 2px;
+      flex: none;
+    }
+    /* 소개 + 큰 숫자 */
+    #land-bio { display: grid; grid-template-columns: 2.1fr 1fr; gap: 1rem; }
+    #land-bio .bio { padding: 1.4rem 1.6rem; }
+    #land-bio .bio p {
+      font-size: clamp(0.92rem, 1.15vw, 1.04rem);
+      line-height: 2.0; word-break: keep-all;
+      color: var(--ink-soft);
+    }
+    #land-bio .bigs { display: grid; grid-template-rows: 1fr 1fr; gap: 1rem; }
+    .bignum {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 1rem 1.5rem;
+    }
+    .bignum .n {
+      font-size: clamp(1.7rem, 2.6vw, 2.3rem); font-weight: 800;
+      color: var(--accent); line-height: 1.15;
+      letter-spacing: -0.01em;
+    }
+    .bignum .n i { font-style: normal; font-size: 0.5em; font-weight: 600; color: rgba(22,48,60,0.5); margin: 0 0.08em; }
+    .bignum .t { font-size: 0.78rem; letter-spacing: 0.14em; color: rgba(22,48,60,0.55); font-weight: 600; margin-top: 0.3rem; }
+    /* Stats 카드 */
+    #stats-card { padding: 1.4rem 1.7rem; }
+    .stats-flex { display: flex; align-items: center; gap: clamp(1.5rem, 5vw, 4.5rem); }
+    .stat-rows { flex: 1; }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 0.5em 0.1em;
+      border-bottom: 1px dashed rgba(14, 168, 184, 0.18);
+      font-size: 0.92rem;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row span { color: rgba(22,48,60,0.6); }
+    .stat-row b { color: var(--ink); font-weight: 700; }
+    .ringwrap { position: relative; width: clamp(120px, 13vw, 158px); aspect-ratio: 1; flex: none; }
+    .ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(from -50deg, #0ea8b8 0deg, #22c4d4 150deg, #6fd8e4 235deg, #ff7a59 275deg, rgba(22, 48, 60, 0.1) 275deg);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px));
+      animation: ring-spin 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    }
+    @keyframes ring-spin { from { transform: rotate(-140deg); opacity: 0; } to { transform: rotate(0); opacity: 1; } }
+    .ring-label {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(1.8rem, 2.6vw, 2.4rem); font-weight: 800; color: var(--ink);
+    }
     /* 2. 스펙 카드 그리드 */
     #land-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 1rem;
     }
     #land-grid .spec { padding: 1.15rem 1.3rem 1.25rem; }
@@ -235,8 +293,9 @@
     .door.walk .dl { color: #fff; }
     .door.walk .dl::after { content: ' ↓'; color: #fff; }
     @media (max-width: 900px) {
-      #land-grid { grid-template-columns: 1fr 1fr; }
-      #land-viz { grid-template-columns: 1fr; }
+      #land-grid { grid-template-columns: 1fr; }
+      #land-bio { grid-template-columns: 1fr; }
+      .stats-flex { flex-direction: column; }
       #land-doors { grid-template-columns: 1fr; }
       #land-head { flex-wrap: wrap; }
     }
@@ -273,8 +332,8 @@
     #land-head { background: linear-gradient(150deg, rgba(255, 255, 255, 0.97), rgba(226, 246, 250, 0.86)); }
     #land-head h1 { text-shadow: 0 2px 22px rgba(14, 168, 184, 0.22); }
     /* 실데이터 행 */
-    #land-live { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    #land-viz .skills { width: 100%; max-width: 19rem; margin-top: 0.35rem; display: block; }
+    #land-live { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1rem; }
+    #land-live .skills { width: 100%; max-width: 15rem; margin-top: 0.35rem; display: block; }
     #land-live .live { padding: 1.15rem 1.3rem 1.1rem; }
     #land-live .live .sk {
       display: flex; align-items: center; gap: 0.55em;
@@ -543,22 +602,46 @@
           <h1>한승보</h1>
           <p class="role">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
         </div>
-        <div class="lh-kpis">
-          <div class="kpi"><span class="v">1<small>년</small> 2<small>개월</small></span><span class="k">플랫폼 실무</span></div>
-          <div class="kpi"><span class="v">191<small>명</small></span><span class="k">서비스 오픈</span></div>
-          <div class="kpi"><span class="v">5<small>개</small></span><span class="k">IT 자격증</span></div>
-          <div class="kpi"><span class="v">4<small>회</small></span><span class="k">수상</span></div>
+      </div>
+      <!-- 소개 + 큰 숫자 (CodeBucks 구성) -->
+      <div id="land-bio">
+        <div class="bio panel">
+          <div class="sk">신뢰할 수 있는 데이터 흐름을 설계하는 사람</div>
+          <p>
+            화면에서 시작해 서버와 인프라를 지나 데이터까지 — 하나를 배우면 그 아래층이 궁금해,
+            한 층씩 내려오며 성장했습니다. VDI 플랫폼 현장에 1인 상주하며 191명이 쓰는 서비스를
+            구축해 열었고, 어떤 결정이든 설명할 수 있을 때까지 준비하는 것을 일의 원칙으로 삼습니다.
+            퇴사한 회사가 1년 뒤 다시 연락해 현장을 맡길 만큼의 신뢰가 제 자산입니다.
+            이 페이지도 직접 설계·구현했습니다.
+          </p>
+        </div>
+        <div class="bigs">
+          <div class="bignum panel"><span class="n">1<i>년</i> 2<i>개월</i></span><span class="t">플랫폼 실무</span></div>
+          <div class="bignum panel"><span class="n">191<i>명</i></span><span class="t">서비스 구축·오픈</span></div>
         </div>
       </div>
-      <!-- 2. 기본 스펙 -->
+      <!-- Stats 카드 (label : value + 링) -->
+      <div id="stats-card" class="panel hud">
+        <div class="sk">한승보 — STATS</div>
+        <div class="stats-flex">
+          <div class="stat-rows">
+            <div class="stat-row"><span>플랫폼 실무</span><b>1년 2개월</b></div>
+            <div class="stat-row"><span>서비스 구축·오픈</span><b>191명 규모</b></div>
+            <div class="stat-row"><span>IT 자격증</span><b>5개 — CKA · AWS SAA 외</b></div>
+            <div class="stat-row"><span>팀 프로젝트</span><b>7개</b></div>
+            <div class="stat-row"><span>수상</span><b>4회</b></div>
+          </div>
+          <div class="ringwrap">
+            <div class="ring"></div>
+            <b class="ring-label">한</b>
+          </div>
+        </div>
+      </div>
+      <!-- 기본 사실 -->
       <div id="land-grid">
         <div class="spec panel">
           <div class="sk">경력 — 실무</div>
           <div class="sv"><b>SK브로드밴드 CloudPC/CloudX</b><br />VDI 플랫폼 운영·구축 (파트너사)<br />현장 1인 상주 — <b>191명 서비스 오픈</b></div>
-        </div>
-        <div class="spec panel">
-          <div class="sk">자격증</div>
-          <div class="sv"><b>CKA</b> · <b>AWS SAA</b><br />정보처리기사 · SQLD · RHCSA</div>
         </div>
         <div class="spec panel">
           <div class="sk">학력</div>
@@ -569,38 +652,17 @@
           <div class="sv">1996년생 · 서울<br /><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a><br /><a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
         </div>
       </div>
-      <!-- 시각화 행 -->
-      <div id="land-viz">
-        <div class="viz panel">
-          <div class="sk">성장 경로</div>
-          <div class="growth">
-            <span class="g-step">화면</span><span class="g-arrow">→</span><span class="g-step">서버</span><span class="g-arrow">→</span><span class="g-step">인프라</span><span class="g-arrow">→</span><span class="g-step on">데이터</span>
-          </div>
-          <div class="sv"><span class="dim">하나를 배우면 그 아래층이 궁금해, 한 층씩 내려왔습니다.<br />이 페이지도 직접 설계·구현했습니다.</span></div>
-        </div>
-        <div class="viz panel">
-          <div class="sk">기록의 축적 — 약속 대신 기록으로</div>
-          <div id="cert-chart"></div>
-          <div class="sv"><span class="dim">공백기가 생길 때마다, 시험 날짜부터 잡았습니다</span></div>
-        </div>
-        <div class="viz panel">
-          <div class="sk">다루는 도구들</div>
-          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=6&theme=light" alt="기술 아이콘" loading="lazy" />
-          <div class="sv"><span class="dim">깊은 이야기는 기술 포트폴리오에 있습니다</span></div>
-        </div>
-      </div>
       <!-- 실데이터 — 주장이 아니라 기록 -->
       <div id="land-live">
         <div class="live panel">
           <div class="sk">GITHUB — 실시간 커밋 기록</div>
           <img class="ghchart" src="https://github-readme-activity-graph.vercel.app/graph?username=boseungdl&bg_color=00000000&color=5a7a8a&line=0ea8b8&point=ff7a59&area=true&area_color=0ea8b8&hide_border=true&hide_title=true&days=60" alt="GitHub 커밋 그래프" loading="lazy" />
-          <div class="sv"><span class="dim">꾸준함은 말이 아니라, 오늘도 쌓이는 기록으로</span></div>
         </div>
-      </div>
-      <!-- 예고편 — 스펙이 말해주지 않는 것 -->
-      <div id="land-teaser" class="panel">
-        <span class="tq">“퇴사한 회사가 1년 뒤 다시 연락해, 혼자 현장을 맡겼습니다.”</span>
-        <span class="tn">— 이런 이야기는 스펙 칸에 안 들어가서, 길 위에 두었습니다</span>
+        <div class="live panel">
+          <div class="sk">다루는 도구들</div>
+          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=4&theme=light" alt="기술 아이콘" loading="lazy" />
+          <div class="sv"><span class="dim">깊은 이야기는 기술 포트폴리오에</span></div>
+        </div>
       </div>
       <!-- 3. 세 개의 문 -->
       <div id="land-doors">

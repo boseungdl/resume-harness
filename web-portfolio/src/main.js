@@ -4,10 +4,6 @@
 
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import * as echarts from 'echarts/core'
-import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
@@ -32,56 +28,6 @@ const kpiMeet = document.getElementById('kpi-meet')
 const kpiDist = document.getElementById('kpi-dist')
 const kpiTime = document.getElementById('kpi-time')
 const resumeBtn = document.getElementById('resume-walk')
-
-// 기록의 축적 차트 — 자격증 취득 누적 (순서만, 연도 없음)
-echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
-const certChart = echarts.init(document.getElementById('cert-chart'))
-certChart.setOption({
-  grid: { left: 8, right: 14, top: 18, bottom: 24 },
-  tooltip: {
-    trigger: 'axis',
-    formatter: (p) => `<b>${p[0].name}</b> — 누적 ${p[0].value}개`,
-    backgroundColor: 'rgba(255,255,255,0.97)',
-    borderColor: 'rgba(14,168,184,0.4)',
-    textStyle: { color: '#16303c', fontSize: 12 },
-  },
-  xAxis: {
-    type: 'category',
-    data: ['RHCSA', 'SQLD', '정처기', 'AWS SAA', 'CKA'],
-    axisLine: { lineStyle: { color: 'rgba(22,48,60,0.22)' } },
-    axisTick: { show: false },
-    axisLabel: { color: 'rgba(22,48,60,0.6)', fontSize: 10, fontWeight: 600 },
-  },
-  yAxis: { show: false, max: 5.6 },
-  series: [
-    {
-      type: 'line',
-      data: [1, 2, 3, 4, 5],
-      smooth: 0.45,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: { width: 3, color: '#0ea8b8' },
-      itemStyle: { color: '#0ea8b8', borderColor: '#fff', borderWidth: 2 },
-      areaStyle: {
-        color: {
-          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(14,168,184,0.35)' },
-            { offset: 1, color: 'rgba(14,168,184,0.02)' },
-          ],
-        },
-      },
-      label: {
-        show: true, position: 'top',
-        color: '#0ea8b8', fontWeight: 700, fontSize: 11,
-        formatter: (p) => (p.dataIndex === 4 ? '5개' : ''),
-      },
-      animationDuration: 1400,
-      animationEasing: 'cubicOut',
-    },
-  ],
-})
-window.addEventListener('resize', () => certChart.resize())
 
 const veil = document.getElementById('veil')
 function liftVeil() {
