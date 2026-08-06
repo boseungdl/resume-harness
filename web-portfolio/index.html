@@ -226,22 +226,28 @@
       word-break: keep-all;
     }
     .facts {
-      padding: clamp(0.9rem, 2vh, 1.3rem) 1.4rem;
+      padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.4rem;
       display: flex; flex-direction: column; justify-content: center;
-      gap: 0.6rem;
+      gap: 0.45rem;
     }
-    .facts .frow + .frow { border-top: 1px dashed rgba(14, 168, 184, 0.22); padding-top: 0.6rem; }
+    .facts .frow + .frow { border-top: 1px dashed rgba(14, 168, 184, 0.22); padding-top: 0.45rem; }
     .facts .fk { font-size: 11px; letter-spacing: 0.05em; font-weight: 700; color: rgba(22,48,60,0.5); margin-bottom: 3px; }
     .facts .fv { font-size: 13px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
     .facts .fv b { color: var(--ink); font-weight: 700; }
     .facts .fv a { color: var(--accent); text-decoration: none; font-weight: 500; }
     .facts .fv a:hover { text-decoration: underline; }
 
-    /* 실데이터 — 직접 그린 차트 */
-    #land-live { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--gap); }
+    /* 실데이터 — 차트 · 도구 · 사실 */
+    #land-live { display: grid; grid-template-columns: 1.5fr 0.9fr 1.1fr; gap: var(--gap); }
     #land-live .live { padding: clamp(0.8rem, 1.8vh, 1.2rem) 1.3rem; }
-    #gh-chart { width: 100%; height: clamp(120px, 16vh, 168px); }
+    #gh-chart { width: 100%; height: clamp(112px, 15vh, 160px); }
     .chart-cap { font-size: 11px; color: rgba(22, 48, 60, 0.45); margin-top: 2px; }
+    #land-live .skills {
+      width: 100%; max-width: 12.5rem; display: block; margin: 0.4rem auto 0;
+      filter: saturate(0.6) opacity(0.9);
+      transition: filter 0.35s;
+    }
+    #land-live .tools:hover .skills { filter: none; }
 
     /* 세 개의 문 */
     #land-doors { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: var(--gap); }
@@ -297,6 +303,22 @@
       #landing { height: auto; min-height: 100vh; }
       #hero { flex-direction: column; align-items: flex-start; }
       #land-bio, #land-live, #land-doors { grid-template-columns: 1fr; }
+    }
+    /* 낮은 화면(노트북·OS 배율)에서도 90% 안에 전부 */
+    @media (max-height: 920px) {
+      #hero h1 { font-size: clamp(2.5rem, 4.4vw, 3.4rem); }
+      #hero .role { margin-top: 0.45rem; }
+      .hero-kpis { margin-top: 0.7rem; }
+      .hero-kpis .kpi .v { font-size: 1.25rem; }
+      .bio p { font-size: 14px; line-height: 1.62; }
+      .lay { padding: 0.28rem 0 0.28rem 24px; }
+      .lay b { font-size: 13px; }
+      #gh-chart { height: 104px; }
+      #land-live .skills { max-width: 10.5rem; }
+      .facts .fv { font-size: 12px; line-height: 1.5; }
+      .facts .fk { margin-bottom: 1px; }
+      .door { padding: 0.65rem 1.3rem; }
+      .door .dl { font-size: 15px; }
     }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
@@ -583,6 +605,10 @@
           <div id="gh-chart"></div>
           <div class="chart-cap" id="gh-cap">주 단위 합계 · 출처: GitHub API</div>
         </div>
+        <div class="live panel tools fx">
+          <div class="sk">다루는 도구들</div>
+          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=4&theme=light" alt="기술 아이콘" loading="lazy" />
+        </div>
         <div class="facts panel fx">
           <div class="frow">
             <div class="fk">경력 — 실무</div>
@@ -598,7 +624,7 @@
           </div>
           <div class="frow">
             <div class="fk">기본 정보 · 연락처</div>
-            <div class="fv">1996년생 · 서울 · <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
+            <div class="fv">1996년생 · 서울<br /><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a></div>
           </div>
         </div>
       </div>
