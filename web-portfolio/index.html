@@ -132,19 +132,33 @@
     .hero-kpis .kpi .v { display: block; font-size: clamp(1.4rem, 2vw, 1.8rem); font-weight: 700; line-height: 1.15; }
     .hero-kpis .kpi .v small { font-size: 0.55em; font-weight: 500; color: rgba(22,48,60,0.55); margin-left: 1px; }
     .hero-kpis .kpi .k { display: block; font-size: 12px; color: rgba(22,48,60,0.55); margin-top: 3px; word-break: keep-all; }
-    .walk-cta {
-      border: none; cursor: pointer; font-family: inherit; text-align: left;
-      background: linear-gradient(120deg, var(--accent), #22c4d4);
-      color: #fff;
-      border-radius: 14px;
-      padding: 1.05rem 1.5rem;
+    /* 히어로 우측 — 회전 텍스트 배지 (클릭 = 걷기 시작) */
+    .hero-badge {
+      position: relative;
+      width: clamp(150px, 19vh, 195px);
+      aspect-ratio: 1;
       flex: none;
-      box-shadow: -10px 18px 40px rgba(14, 110, 140, 0.28), -1px 2px 4px rgba(23, 76, 110, 0.12);
-      transition: box-shadow 0.25s;
+      cursor: pointer;
+      animation: badge-bob 5.5s ease-in-out infinite;
     }
-    .walk-cta:hover { box-shadow: -12px 24px 54px rgba(14, 110, 140, 0.38), -1px 2px 4px rgba(23, 76, 110, 0.12); }
-    .walk-cta .big { display: block; font-size: 1.15rem; font-weight: 700; }
-    .walk-cta .sub { display: block; font-size: 12px; color: rgba(255,255,255,0.88); margin-top: 4px; word-break: keep-all; }
+    @keyframes badge-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .hero-badge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: badge-spin 22s linear infinite; }
+    @keyframes badge-spin { to { transform: rotate(360deg); } }
+    .hero-badge text {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.32em;
+      fill: rgba(22, 48, 60, 0.6);
+    }
+    .badge-core {
+      position: absolute; inset: 27%;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--accent), #22c4d4);
+      color: #fff;
+      font-size: 1.7rem; font-weight: 700;
+      box-shadow: -8px 14px 30px rgba(14, 110, 140, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.25s;
+    }
+    .hero-badge:hover .badge-core { transform: scale(1.08); }
 
     /* 랜딩 카드 — 진짜 유리: 뒤의 세계를 블러하고, 그림자는 좌하단(광원 우상단) */
     #landing .panel {
@@ -215,8 +229,8 @@
     #land-live .tools:hover .skills { filter: none; }
     #land-live .tools .dim { margin-top: 0.5rem; display: block; }
 
-    /* 두 개의 문 (걷기는 히어로 CTA) */
-    #land-doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    /* 세 개의 문 */
+    #land-doors { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: var(--gap); }
     .door {
       display: block;
       padding: clamp(0.8rem, 1.8vh, 1.1rem) 1.5rem;
@@ -229,7 +243,31 @@
     .door .dq { font-size: 12px; color: rgba(22,48,60,0.55); margin-bottom: 0.35rem; word-break: keep-all; }
     .door .dl { font-size: 17px; font-weight: 700; word-break: keep-all; }
     .door .dl::after { content: ' →'; color: var(--accent); }
-    .door:hover .dl { color: var(--accent); }
+    .door:not(.walk):hover .dl { color: var(--accent); }
+    #landing .door.walk {
+      border: none;
+      background: linear-gradient(120deg, var(--accent), #22c4d4);
+      position: relative;
+      overflow: hidden;
+      box-shadow: -8px 16px 36px rgba(14, 110, 140, 0.30), -1px 2px 3px rgba(23, 76, 110, 0.10);
+    }
+    .door.walk .dq { color: rgba(255,255,255,0.88); }
+    .door.walk .dl { color: #fff; }
+    .door.walk .dl::after { content: ' ↓'; color: #fff; }
+    /* 샤인 스윕 — 시선을 끄는 유일한 상시 모션 */
+    .door.walk::after {
+      content: '';
+      position: absolute; top: -40%; bottom: -40%; left: -60%;
+      width: 34%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.34), transparent);
+      transform: skewX(-18deg);
+      animation: door-shine 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes door-shine { 0%, 55% { left: -60%; } 85%, 100% { left: 135%; } }
+    /* 대형 카드 호버 리프트 (틸트 카드는 자체 모션이 있어 제외) */
+    .bio, .facts { transition: transform 0.3s, box-shadow 0.3s; }
+    .bio:hover, .facts:hover { transform: translateY(-3px); }
 
     /* 로드 스태거 등장 */
     .fx { opacity: 0; transform: translateY(14px); }
@@ -237,6 +275,7 @@
     @media (prefers-reduced-motion: reduce) {
       .fx { opacity: 1; transform: none; }
       .fx.in { transition: none; }
+      .hero-badge, .hero-badge svg, .door.walk::after { animation: none; }
     }
 
     @media (max-width: 900px) {
@@ -501,10 +540,15 @@
             <div class="kpi"><span class="v"><span data-count="5">5</span><small>개</small></span><span class="k">IT 자격증 — CKA · AWS SAA</span></div>
           </div>
         </div>
-        <button class="walk-cta" id="start-walk">
-          <span class="big">함께 걸어보세요 ↓</span>
-          <span class="sub">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</span>
-        </button>
+        <div class="hero-badge" id="hero-badge" title="함께 걸어보세요">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+              <path id="badge-circle" d="M 100,100 m -78,0 a 78,78 0 1,1 156,0 a 78,78 0 1,1 -156,0" />
+            </defs>
+            <text><textPath href="#badge-circle">WALKING WITH HAN · DATA ENGINEER · SEOUL ·</textPath></text>
+          </svg>
+          <div class="badge-core">↓</div>
+        </div>
       </div>
       <!-- 소개 + 사실 -->
       <div id="land-bio">
@@ -545,7 +589,7 @@
           <span class="dim">깊은 이야기는 기술 포트폴리오에</span>
         </div>
       </div>
-      <!-- 두 개의 문 -->
+      <!-- 세 개의 문 -->
       <div id="land-doors">
         <a class="door panel fx" href="#">
           <div class="dq">기술과 프로젝트 경험이 궁금하시다면</div>
@@ -555,6 +599,10 @@
           <div class="dq">한눈에 요약이 필요하시다면</div>
           <div class="dl">이력서</div>
         </a>
+        <button class="door walk panel fx" id="start-walk">
+          <div class="dq">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</div>
+          <div class="dl">함께 걸어보세요</div>
+        </button>
       </div>
     </div>
   </header>

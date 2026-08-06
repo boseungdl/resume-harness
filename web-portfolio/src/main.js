@@ -154,6 +154,8 @@ async function commitChart() {
       })),
     }],
     animationDuration: reduceMotion ? 0 : 700,
+    animationDelay: (i) => (reduceMotion ? 0 : 350 + i * 90),
+    animationEasing: 'cubicOut',
   })
   window.addEventListener('resize', () => chart.resize())
 }
@@ -383,6 +385,7 @@ if (!webglAvailable()) {
     window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
+  document.getElementById('hero-badge')?.addEventListener('click', startWalk)
 
   // 랜딩에서는 마우스가 카메라를 미세하게 움직인다 — 유리 뒤 세계가 패럴랙스로 살아난다
   let mouseX = 0
