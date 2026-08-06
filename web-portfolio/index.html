@@ -75,17 +75,14 @@
         rgba(214, 237, 246, 0.55) 86%,
         rgba(216, 238, 246, 0) 100%);
     }
-    /* 광원 우상단 웜 글로우 + 초미세 설계도 그리드 */
+    /* 광원 우상단 웜 글로우 하나 + 쿨 반사광 하나 */
     #landing::before {
       content: '';
       position: absolute; inset: 0;
       pointer-events: none;
       background:
         radial-gradient(720px 420px at 82% 4%, rgba(255, 214, 160, 0.14), transparent 70%),
-        radial-gradient(640px 400px at 22% 88%, rgba(14, 168, 184, 0.06), transparent 72%),
-        linear-gradient(rgba(22, 48, 60, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(22, 48, 60, 0.035) 1px, transparent 1px);
-      background-size: auto, auto, 100% 52px, 52px 100%;
+        radial-gradient(640px 400px at 22% 88%, rgba(14, 168, 184, 0.06), transparent 72%);
     }
     .land-wrap {
       width: min(1200px, 94vw);
@@ -188,20 +185,36 @@
     .hero-stats .n i { font-style: normal; font-family: 'IBM Plex Sans KR', sans-serif; font-size: 0.44em; font-weight: 700; }
     .hero-stats .k { display: block; font-size: 12px; color: rgba(22, 48, 60, 0.6); margin-top: 5px; word-break: keep-all; text-shadow: 0 1px 10px rgba(255,255,255,0.85); }
 
-    /* 존 — 박스가 아니라 구획: 헤어라인 + 라벨 + 옅은 베일 */
+    /* 존 — 깊이 있는 반투명 홀로 패널: 세계가 비치는 유리 + 부유 그림자 */
     .zone {
       position: relative;
-      border-top: 1px solid var(--hair);
-      padding: 0.8rem 1rem 0.7rem;
-      background: rgba(255, 255, 255, 0.24);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      border-radius: 8px;
+      padding: 0.85rem 1.05rem 0.75rem;
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14));
+      backdrop-filter: blur(10px) saturate(1.25);
+      -webkit-backdrop-filter: blur(10px) saturate(1.25);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-bottom-color: rgba(255, 255, 255, 0.22);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        -8px 16px 32px -14px rgba(23, 76, 110, 0.30),
+        -16px 34px 70px -24px rgba(14, 110, 140, 0.20);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .zone:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        -10px 20px 40px -14px rgba(23, 76, 110, 0.36),
+        -20px 42px 84px -24px rgba(14, 110, 140, 0.24);
     }
     .zone::before {
       content: '';
-      position: absolute; top: -1px; left: 0;
+      position: absolute; top: -1px; left: 14px;
       width: 34px; height: 2px;
       background: var(--accent);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(14, 168, 184, 0.6);
     }
     #landing .sk {
       display: flex; align-items: center; gap: 0.7em;
@@ -306,35 +319,51 @@
     .door {
       display: block;
       position: relative;
-      border-top: 1px solid var(--hair);
-      padding: 0.7rem 1rem 0.65rem;
+      border-radius: 8px;
+      padding: 0.7rem 1.05rem 0.65rem;
       text-decoration: none;
       color: var(--ink);
       cursor: pointer;
       font-family: inherit;
       text-align: left;
-      background: rgba(255, 255, 255, 0.24);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      transition: background 0.3s;
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14));
+      backdrop-filter: blur(10px) saturate(1.25);
+      -webkit-backdrop-filter: blur(10px) saturate(1.25);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-bottom-color: rgba(255, 255, 255, 0.22);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        -8px 16px 32px -14px rgba(23, 76, 110, 0.30);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .door:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        -10px 22px 44px -14px rgba(23, 76, 110, 0.38);
     }
     .door::before {
       content: '';
-      position: absolute; top: -1px; left: 0;
+      position: absolute; top: -1px; left: 14px;
       width: 34px; height: 2px;
       background: var(--accent);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(14, 168, 184, 0.6);
       transition: width 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    .door:hover::before { width: 100%; }
+    .door:hover::before { width: calc(100% - 28px); }
     .door .dq { font-size: 11.5px; color: rgba(22,48,60,0.55); margin-bottom: 0.3rem; word-break: keep-all; }
     .door .dl { font-size: 16px; font-weight: 700; word-break: keep-all; }
     .door .dl::after { content: ' →'; color: var(--accent); }
     .door:not(.walk):hover .dl { color: var(--accent); }
     #landing .door.walk {
-      border-top: 1px solid var(--accent);
-      background: linear-gradient(120deg, rgba(14, 168, 184, 0.14), rgba(34, 196, 212, 0.10));
+      border-color: rgba(14, 168, 184, 0.55);
+      background: linear-gradient(120deg, rgba(14, 168, 184, 0.18), rgba(34, 196, 212, 0.10));
       overflow: hidden;
-      box-shadow: 0 0 22px rgba(14, 168, 184, 0.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 0 26px rgba(14, 168, 184, 0.22),
+        -8px 16px 32px -14px rgba(23, 76, 110, 0.30);
     }
     #landing .door.walk::before { background: var(--coral); }
     .door.walk .dq { color: rgba(22,48,60,0.6); }
