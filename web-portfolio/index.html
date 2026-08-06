@@ -108,30 +108,40 @@
     }
     #hero .led { width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; flex: none; }
     #hero h1 {
-      font-size: clamp(3rem, 5vw, 4.4rem);
+      font-size: clamp(3.2rem, 5.4vw, 4.8rem);
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.05;
       text-shadow: 0 2px 28px rgba(255,255,255,0.9);
     }
     #hero .role {
-      font-size: clamp(1rem, 1.4vw, 1.25rem);
+      font-size: clamp(1.05rem, 1.5vw, 1.3rem);
       color: var(--ink-soft);
       margin-top: 0.7rem;
       word-break: keep-all;
       text-shadow: 0 1px 18px rgba(255,255,255,0.9);
     }
     #hero .role b { color: var(--ink); font-weight: 700; }
-    .hero-kpis {
-      display: flex;
-      gap: clamp(1.3rem, 2.8vw, 2.4rem);
-      margin-top: clamp(0.9rem, 2.2vh, 1.6rem);
-      font-variant-numeric: tabular-nums;
+    /* 히어로 우측 — 빅넘버 타일 */
+    .hero-stats { display: flex; gap: var(--gap); flex: none; align-self: center; }
+    #landing .stat {
+      min-width: clamp(11rem, 13vw, 13.5rem);
+      padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
     }
-    .hero-kpis .kpi + .kpi { border-left: 1px solid rgba(22,48,60,0.14); padding-left: clamp(1.3rem, 2.8vw, 2.4rem); }
-    .hero-kpis .kpi .v { display: block; font-size: clamp(1.4rem, 2vw, 1.8rem); font-weight: 700; line-height: 1.15; }
-    .hero-kpis .kpi .v small { font-size: 0.55em; font-weight: 500; color: rgba(22,48,60,0.55); margin-left: 1px; }
-    .hero-kpis .kpi .k { display: block; font-size: 12px; color: rgba(22,48,60,0.55); margin-top: 3px; word-break: keep-all; }
+    .stat .n {
+      display: block;
+      font-size: clamp(1.9rem, 2.6vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(120deg, #0a8fa0, #0ea8b8 55%, #22c4d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .stat .n i { font-style: normal; font-size: 0.46em; font-weight: 700; }
+    .stat .k { display: block; font-size: 12px; color: rgba(22, 48, 60, 0.55); margin-top: 6px; word-break: keep-all; }
     /* 성장 경로 다이어그램 (실제 서사·실제 기술의 시각화) */
     .stack-viz {
       padding: clamp(0.9rem, 2vh, 1.2rem) 1.4rem;
@@ -308,8 +318,8 @@
     @media (max-height: 920px) {
       #hero h1 { font-size: clamp(2.5rem, 4.4vw, 3.4rem); }
       #hero .role { margin-top: 0.45rem; }
-      .hero-kpis { margin-top: 0.7rem; }
-      .hero-kpis .kpi .v { font-size: 1.25rem; }
+      .stat .n { font-size: 1.6rem; }
+      #landing .stat { padding: 0.75rem 1.2rem; min-width: 10rem; }
       .bio p { font-size: 14px; line-height: 1.62; }
       .lay { padding: 0.28rem 0 0.28rem 24px; }
       .lay b { font-size: 13px; }
@@ -571,9 +581,15 @@
           <div class="status"><span class="led"></span>OPEN TO WORK</div>
           <h1>한승보</h1>
           <p class="role">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
-          <div class="hero-kpis">
-            <div class="kpi"><span class="v">1<small>년</small> 2<small>개월</small></span><span class="k">플랫폼 실무</span></div>
-            <div class="kpi"><span class="v"><span data-count="191">191</span><small>명</small></span><span class="k">서비스 구축·오픈</span></div>
+        </div>
+        <div class="hero-stats">
+          <div class="stat panel fx">
+            <span class="n">1<i>년</i> 2<i>개월</i></span>
+            <span class="k">플랫폼 실무</span>
+          </div>
+          <div class="stat panel fx">
+            <span class="n"><span data-count="191">191</span><i>명</i></span>
+            <span class="k">서비스 구축·오픈</span>
           </div>
         </div>
       </div>
