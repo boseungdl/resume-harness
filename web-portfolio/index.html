@@ -243,6 +243,70 @@
     /* 입체감 — 랜딩 카드 틸트 */
     #landing .panel { transition: transform 0.16s ease-out, box-shadow 0.3s; will-change: transform; }
 
+    /* ===== 랜딩 다크 리치 테마 — 어둠에서 시작해 여명으로 ===== */
+    #landing {
+      background: linear-gradient(180deg, #0a1322 0%, #0d1e30 52%, #14506a 82%, rgba(207, 233, 248, 0) 100%);
+      color: #e8f2f6;
+    }
+    #landing .panel {
+      background: linear-gradient(150deg, rgba(22, 40, 58, 0.92), rgba(12, 24, 38, 0.88));
+      border: 1px solid rgba(63, 212, 224, 0.26);
+      box-shadow: 0 16px 44px rgba(0, 8, 18, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    #landing .hud::before, #landing .hud::after { border-color: #3fd4e0; }
+    #land-head h1 { color: #fff; text-shadow: 0 0 30px rgba(63, 212, 224, 0.35); }
+    #land-head .role { color: rgba(232, 242, 246, 0.68); }
+    #land-head .role b { color: #3fd4e0; }
+    #land-head .status { color: rgba(232, 242, 246, 0.55); }
+    #land-head .lh-kpis .kpi .v { color: #fff; }
+    #land-head .lh-kpis .kpi .v small { color: rgba(232, 242, 246, 0.45); }
+    #land-head .lh-kpis .kpi .k { color: rgba(63, 212, 224, 0.75); }
+    #landing .spec .sk, #land-viz .viz .sk { color: #cfeef4; }
+    #landing .spec .sk::before, #land-viz .viz .sk::before { background: #3fd4e0; }
+    #landing .spec .sv, #land-viz .sv { color: rgba(232, 242, 246, 0.72); }
+    #landing .spec .sv b { color: #fff; }
+    #landing .spec .sv a { color: #3fd4e0; }
+    #landing .spec .sv .dim, #land-viz .dim { color: rgba(232, 242, 246, 0.42); }
+    .growth .g-step { background: rgba(63, 212, 224, 0.08); border-color: rgba(63, 212, 224, 0.4); color: rgba(232, 242, 246, 0.85); }
+    .growth .g-step.on { background: linear-gradient(120deg, #0ea8b8, #22c4d4); color: #fff; }
+    .growth .g-arrow { color: rgba(63, 212, 224, 0.6); }
+    .minimap .stops circle { fill: #0d1e30; stroke: #3fd4e0; }
+    .minimap .stops .goal { fill: var(--coral); stroke: #0d1e30; }
+    .map-caption { color: rgba(232, 242, 246, 0.5); }
+    #land-teaser { border-left-color: #3fd4e0; }
+    #land-teaser .tq { color: #fff; }
+    #land-teaser .tn { color: rgba(232, 242, 246, 0.5); }
+    .door:not(.walk) { background: linear-gradient(150deg, rgba(22, 40, 58, 0.95), rgba(12, 24, 38, 0.9)); }
+    .door .dq { color: rgba(232, 242, 246, 0.6); }
+    .door:not(.walk) .dl { color: #fff; }
+    .door:not(.walk):hover .dl { color: #3fd4e0; }
+    #land-below { color: rgba(232, 242, 246, 0.75); text-shadow: 0 0 12px rgba(20, 80, 106, 0.8); }
+    /* 실데이터 행 */
+    #land-live {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 1rem;
+    }
+    #land-live .live { padding: 1.15rem 1.3rem 1.1rem; }
+    #land-live .live .sk {
+      display: flex; align-items: center; gap: 0.55em;
+      font-size: 0.68rem; letter-spacing: 0.22em; font-weight: 700;
+      color: #cfeef4; margin-bottom: 0.6rem;
+    }
+    #land-live .live .sk::before {
+      content: ''; width: 3px; height: 0.95em;
+      background: #3fd4e0; border-radius: 2px;
+    }
+    #land-live .sv { font-size: 0.8rem; margin-top: 0.5rem; }
+    #land-live .dim { color: rgba(232, 242, 246, 0.42); font-size: 0.8rem; }
+    #land-live .ghchart { width: 100%; margin-top: 0.3rem; opacity: 0.95; }
+    #land-live .skills { width: 100%; max-width: 22rem; margin-top: 0.35rem; display: block; }
+    @media (max-width: 900px) { #land-live { grid-template-columns: 1fr; } }
+    /* 로딩 베일도 어둠에서 */
+    #veil { background: #0a1322; color: rgba(232, 242, 246, 0.6); }
+
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
     #popup {
       position: fixed;
@@ -545,6 +609,19 @@
             </g>
           </svg>
           <div class="map-caption">첫인상에서 출발해, 일곱 번의 질문을 지나 도착합니다</div>
+        </div>
+      </div>
+      <!-- 실데이터 — 주장이 아니라 기록 -->
+      <div id="land-live">
+        <div class="live panel">
+          <div class="sk">GITHUB — 실시간 커밋 기록</div>
+          <img class="ghchart" src="https://github-readme-activity-graph.vercel.app/graph?username=boseungdl&bg_color=0d1e30&color=a8c4d0&line=3fd4e0&point=ff8a66&area=true&area_color=3fd4e0&hide_border=true&hide_title=true&days=60" alt="GitHub 커밋 그래프" loading="lazy" />
+          <div class="sv"><span class="dim">꾸준함은 말이 아니라, 오늘도 쌓이는 기록으로</span></div>
+        </div>
+        <div class="live panel">
+          <div class="sk">다루는 도구들</div>
+          <img class="skills" src="https://skillicons.dev/icons?i=aws,kubernetes,docker,linux,py,spring,react,mysql,postgres,redis,kafka,git&perline=6&theme=dark" alt="기술 아이콘" loading="lazy" />
+          <div class="sv"><span class="dim">깊은 이야기는 기술 포트폴리오에 있습니다</span></div>
         </div>
       </div>
       <!-- 예고편 — 스펙이 말해주지 않는 것 -->
