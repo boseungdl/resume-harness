@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한승보 — 걷는 사람</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2240%22 r=%2226%22 fill=%22%230ea8b8%22/><circle cx=%2242%22 cy=%2238%22 r=%224%22 fill=%22%23122430%22/><circle cx=%2258%22 cy=%2238%22 r=%224%22 fill=%22%23122430%22/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <style>
+    :root {
+      --ink: #16303c;
+      --ink-soft: rgba(22, 48, 60, 0.76);
+      --accent: #0ea8b8;
+      --coral: #ff7a59;
+      --glass: rgba(255, 255, 255, 0.58);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #cfe9f8;
+      color: var(--ink);
+      font-family: 'IBM Plex Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      overflow-x: hidden;
+    }
+    #bg { position: fixed; inset: 0; z-index: 0; display: block; }
+    #spacer { position: relative; z-index: -1; }
+
+    .panel {
+      background: linear-gradient(150deg, rgba(255,255,255,0.72), rgba(226,248,252,0.5));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(14, 168, 184, 0.35);
+      border-radius: 10px;
+      box-shadow:
+        0 10px 40px rgba(20, 80, 110, 0.16),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+        0 0 26px rgba(14, 168, 184, 0.1);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 1.1, 0.35, 1);
+    }
+    .hidden-panel { opacity: 0; pointer-events: none; }
+
+    /* HUD 코너 브래킷 */
+    .hud { position: relative; }
+    .hud::before, .hud::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--accent);
+      opacity: 0.85;
+    }
+    .hud::before { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+    .hud::after { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+    /* 인트로 */
+    #intro {
+      position: fixed;
+      left: clamp(1.5rem, 6vw, 7rem);
+      top: 50%;
+      transform: translateY(-50%);
+      max-width: 27em;
+      padding: 2.4rem 2.6rem;
+      z-index: 3;
+    }
+    #intro.hidden-panel { transform: translateY(calc(-50% + 18px)); }
+    #intro h1 { font-size: clamp(2rem, 3.8vw, 3rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.1rem; }
+    #intro .rule { font-size: clamp(0.98rem, 1.2vw, 1.14rem); line-height: 1.95; word-break: keep-all; font-weight: 300; color: var(--ink-soft); }
+    #intro .rule em { font-style: normal; color: var(--accent); font-weight: 600; }
+    #intro .hint { margin-top: 2.2rem; font-size: 0.74rem; letter-spacing: 0.4em; color: rgba(22,48,60,0.45); animation: nod 2.6s ease-in-out infinite; }
+    @keyframes nod { 0%,100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(6px); opacity: 1; } }
+
+    /* 만남 팝업 — 떠 있는 홀로그램 패널 */
+    #popup {
+      position: fixed;
+      left: clamp(1.5rem, 5vw, 6rem);
+      top: 50%;
+      max-width: 26em;
+      padding: 1.9rem 2.2rem;
+      z-index: 3;
+      animation: hover-float 4.5s ease-in-out infinite;
+    }
+    @keyframes hover-float {
+      0%, 100% { transform: translateY(-50%); }
+      50% { transform: translateY(calc(-50% - 8px)); }
+    }
+    #popup.hidden-panel { animation: none; transform: translateY(calc(-50% + 22px)) scale(0.97); }
+    /* 게이트 활성(버튼 대기) 중엔 흔들리지 않는다 — 클릭 타깃은 정지 */
+    #popup.gated { animation: none; transform: translateY(-50%); }
+    #popup .who {
+      display: flex; align-items: center; gap: 0.6em;
+      font-size: 0.7rem; letter-spacing: 0.32em; color: var(--accent);
+      font-weight: 600; margin-bottom: 0.9rem;
+    }
+    #popup .who::before {
+      content: ''; width: 0.55em; height: 0.55em; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 1.6s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    #popup .q {
+      font-size: clamp(1.05rem, 1.35vw, 1.26rem);
+      font-weight: 700;
+      line-height: 1.65;
+      word-break: keep-all;
+      margin-bottom: 1rem;
+      min-height: 1.6em;
+    }
+    #popup .q .caret {
+      display: inline-block; width: 2px; height: 1em; background: var(--accent);
+      vertical-align: -0.12em; margin-left: 2px;
+      animation: blink 0.8s step-end infinite;
+    }
+    #popup .a {
+      font-size: clamp(0.95rem, 1.12vw, 1.08rem);
+      line-height: 1.95; word-break: keep-all; font-weight: 300; color: var(--ink-soft);
+      border-top: 1px dashed rgba(14, 168, 184, 0.3);
+      padding-top: 0.9rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    #popup .a.on { opacity: 1; transform: none; }
+    #popup .go {
+      margin-top: 1.1rem;
+      font-family: inherit;
+      font-size: 0.9rem; font-weight: 700;
+      color: #fff;
+      background: linear-gradient(120deg, var(--accent), #22c4d4);
+      border: none; border-radius: 999px;
+      padding: 0.62em 1.5em;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(14,168,184,0.4);
+      animation: pulse-go 1.8s ease-in-out infinite;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    #popup .go.on { opacity: 1; pointer-events: auto; }
+    #popup .go:hover { box-shadow: 0 4px 26px rgba(14,168,184,0.75); }
+    @keyframes pulse-go {
+      0%, 100% { box-shadow: 0 4px 14px rgba(14,168,184,0.35); }
+      50% { box-shadow: 0 4px 26px rgba(14,168,184,0.7); }
+    }
+
+    /* 우상단 — 프로필 수집 계기판 */
+    #dash {
+      position: fixed;
+      right: clamp(1rem, 2.5vw, 2.4rem);
+      top: clamp(1rem, 2.5vh, 1.8rem);
+      z-index: 3;
+      padding: 1.1rem 1.25rem 1rem;
+      width: 17.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+    #dash .dash-head {
+      display: flex; align-items: center; gap: 0.55em;
+      font-size: 0.68rem; letter-spacing: 0.3em; font-weight: 700;
+      color: rgba(22,48,60,0.55);
+      margin-bottom: 0.8rem;
+    }
+    #dash .dash-head .led {
+      width: 0.55em; height: 0.55em; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 1.8s ease-in-out infinite;
+    }
+    #dash .dash-head b { margin-left: auto; font-size: 1.05rem; color: var(--accent); letter-spacing: 0.02em; }
+    #dash .kpis {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+    #dash .kpi {
+      background: rgba(255,255,255,0.5);
+      border: 1px solid rgba(14,168,184,0.22);
+      border-radius: 6px;
+      padding: 0.45rem 0.2rem 0.4rem;
+      text-align: center;
+    }
+    #dash .kpi .v { display: block; font-size: 1.02rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
+    #dash .kpi .v small { font-size: 0.62rem; font-weight: 400; color: rgba(22,48,60,0.45); margin-left: 1px; }
+    #dash .kpi .k { display: block; font-size: 0.62rem; letter-spacing: 0.18em; color: rgba(22,48,60,0.45); margin-top: 0.15rem; }
+    #dash .chip {
+      padding: 0.3em 0.1em 0.42em;
+      font-size: 0.8rem;
+      color: rgba(22,48,60,0.32);
+      transition: color 0.5s;
+    }
+    #dash .chip .row { display: flex; align-items: center; gap: 0.5em; }
+    #dash .chip .dot {
+      width: 0.5em; height: 0.5em; border-radius: 50%;
+      border: 1px solid rgba(22,48,60,0.3);
+      transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+      flex: none;
+    }
+    #dash .chip .label .val { display: none; font-weight: 700; color: var(--ink); }
+    #dash .chip .bar {
+      margin-top: 0.28em; margin-left: 1.05em;
+      height: 2.5px; border-radius: 2px;
+      background: rgba(22,48,60,0.1);
+      overflow: hidden;
+    }
+    #dash .chip .bar i {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #6fd8e4);
+      transition: width 0.8s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+    #dash .chip.filled { color: var(--ink-soft); }
+    #dash .chip.filled .dot {
+      background: var(--accent); border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(14, 168, 184, 0.8);
+    }
+    #dash .chip.filled .label .val { display: inline; }
+    #dash .chip.filled .label .key::after { content: ' — '; color: rgba(22,48,60,0.35); font-weight: 300; }
+    #dash .chip.filled .bar i { width: 100%; }
+
+    /* 엔딩 */
+    #outro-panel {
+      position: fixed;
+      left: clamp(1.5rem, 6vw, 7rem);
+      top: 50%;
+      transform: translateY(-50%);
+      max-width: 27em;
+      padding: 2.3rem 2.5rem;
+      z-index: 3;
+    }
+    #outro-panel.hidden-panel { transform: translateY(calc(-50% + 18px)); }
+    #outro-panel .verdict { font-size: clamp(1.05rem, 1.4vw, 1.3rem); line-height: 1.95; word-break: keep-all; margin-bottom: 1.5rem; font-weight: 600; }
+    #outro-panel .links { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+    #outro-panel a {
+      font-size: 0.87rem; color: var(--ink); text-decoration: none; font-weight: 600;
+      padding: 0.55em 1.3em; border: 1px solid rgba(14,168,184,0.45); border-radius: 999px;
+      transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
+    }
+    #outro-panel a:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 14px rgba(14,168,184,0.35); }
+
+    body.no-webgl #bg { display: none; }
+
+    /* 로딩 베일 */
+    #veil {
+      position: fixed; inset: 0; z-index: 9;
+      background: #cfe9f8;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; letter-spacing: 0.4em; color: rgba(22,48,60,0.5);
+      transition: opacity 0.9s ease;
+    }
+    #veil.off { opacity: 0; pointer-events: none; }
+
+    /* 챕터 진입 타이틀 카드 */
+    #chapter-card {
+      position: fixed;
+      left: 50%; top: 24%;
+      transform: translate(-50%, 14px);
+      z-index: 2;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+    }
+    #chapter-card.show { opacity: 1; transform: translate(-50%, 0); }
+    #chapter-card .num {
+      display: block;
+      font-size: 0.85rem; letter-spacing: 0.55em; font-weight: 600;
+      color: var(--accent);
+      text-shadow: 0 0 14px rgba(14,168,184,0.5);
+      margin-bottom: 0.4rem;
+    }
+    #chapter-card .t {
+      font-size: clamp(1.5rem, 2.6vw, 2.2rem); font-weight: 700;
+      letter-spacing: 0.14em;
+      color: rgba(22, 48, 60, 0.82);
+      text-shadow: 0 2px 18px rgba(255,255,255,0.8);
+    }
+
+    /* 하단 여정 진행 바 */
+    #journey {
+      position: fixed;
+      left: 50%; bottom: clamp(0.9rem, 2.4vh, 1.6rem);
+      transform: translateX(-50%);
+      z-index: 3;
+      width: min(42vw, 34rem);
+      padding: 0.55rem 1rem;
+    }
+    #journey .track { position: relative; height: 3px; background: rgba(22,48,60,0.14); border-radius: 2px; }
+    #journey .fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #6fd8e4);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(14,168,184,0.55);
+    }
+    #journey .node {
+      position: absolute; top: 50%;
+      width: 7px; height: 7px; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 1.5px solid rgba(22,48,60,0.3);
+      transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+    }
+    #journey .node.lit { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 7px rgba(14,168,184,0.8); }
+    #journey .runner {
+      position: absolute; top: 50%;
+      width: 11px; height: 11px; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--coral);
+      border: 2px solid #fff;
+      box-shadow: 0 1px 6px rgba(20,60,80,0.35);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div id="spacer"></div>
+  <section id="intro" class="panel hud">
+    <h1>한승보</h1>
+    <p class="rule">
+      길이 늘 보였던 것은 아닙니다. 그래도 계속 걸었습니다.<br />
+      <em>스크롤은 걸음이 됩니다.</em> 길에서 만나는 질문들에 대신 답해 두었습니다.<br />
+      끝까지 걷는 데 3분이면 충분합니다.
+    </p>
+    <div class="hint">SCROLL</div>
+  </section>
+  <section id="popup" class="panel hud hidden-panel">
+    <div class="who">길에서 만난 질문</div>
+    <div class="q"></div>
+    <div class="a"></div>
+    <button class="go" id="resume-walk">알겠습니다 — 계속 걷기 →</button>
+  </section>
+  <aside id="dash" class="panel">
+    <div class="dash-head"><span class="led"></span>PROFILE SYNC<b id="dash-pct">0%</b></div>
+    <div class="kpis">
+      <div class="kpi"><span class="v"><span id="kpi-meet">0</span><small>/7</small></span><span class="k">만남</span></div>
+      <div class="kpi"><span class="v"><span id="kpi-dist">0</span><small>m</small></span><span class="k">걸은 거리</span></div>
+      <div class="kpi"><span class="v" id="kpi-time">0:00</span><span class="k">여정 시간</span></div>
+    </div>
+    <div id="dash-chips"></div>
+  </aside>
+  <section id="outro-panel" class="panel hud hidden-panel">
+    <div class="verdict">여기까지 함께 걸어주셨습니다.<br />다음 구간은 만나서 걷고 싶습니다.</div>
+    <div class="links">
+      <a href="#" target="_blank" rel="noreferrer">기술 포트폴리오</a>
+      <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">GitHub</a>
+      <a href="mailto:96tmdtmd@gmail.com">이메일</a>
+    </div>
+  </section>
+  <div id="chapter-card"><span class="num"></span><span class="t"></span></div>
+  <nav id="journey" class="panel">
+    <div class="track">
+      <div class="fill"></div>
+      <div class="runner"></div>
+    </div>
+  </nav>
+  <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
