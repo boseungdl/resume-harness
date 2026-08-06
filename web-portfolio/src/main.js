@@ -267,8 +267,23 @@ if (!webglAvailable()) {
     return span > 0 ? Math.min(1, Math.max(0, (window.scrollY - base) / span)) : 0
   }
 
-  document.getElementById('start-walk').addEventListener('click', () => {
+  function startWalk() {
     window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+  }
+  document.getElementById('start-walk').addEventListener('click', startWalk)
+  document.getElementById('viz-map').addEventListener('click', startWalk)
+
+  // 입체감 — 랜딩 카드가 마우스를 따라 기운다
+  landingEl.querySelectorAll('.panel').forEach((card) => {
+    card.addEventListener('mousemove', (e) => {
+      const r = card.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width - 0.5
+      const y = (e.clientY - r.top) / r.height - 0.5
+      card.style.transform = `perspective(800px) rotateY(${(x * 4).toFixed(2)}deg) rotateX(${(-y * 4).toFixed(2)}deg) translateY(-2px)`
+    })
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = ''
+    })
   })
 
   window.addEventListener('resize', () => {
