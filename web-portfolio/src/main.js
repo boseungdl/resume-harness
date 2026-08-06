@@ -90,6 +90,32 @@ document.querySelectorAll('[data-count]').forEach((el) => {
   requestAnimationFrame(step)
 })
 
+// 레이어 패럴랙스 리그 — 행마다 다른 깊이(z)로 마우스에 반응, 대시보드 전체가 미세하게 기운다
+if (!reduceMotion) {
+  const rig = [
+    [document.getElementById('hero'), 6, 34],
+    [document.getElementById('land-bio'), 10, 24],
+    [document.getElementById('land-live'), 14, 14],
+    [document.getElementById('land-doors'), 18, 6],
+  ].filter(([el]) => el)
+  const wrapEl = document.querySelector('.land-wrap')
+  let rx = 0, ry = 0, rcx = 0, rcy = 0
+  window.addEventListener('pointermove', (e) => {
+    rx = e.clientX / window.innerWidth - 0.5
+    ry = e.clientY / window.innerHeight - 0.5
+  })
+  const rigLoop = () => {
+    rcx += (rx - rcx) * 0.055
+    rcy += (ry - rcy) * 0.055
+    rig.forEach(([el, d, z]) => {
+      el.style.transform = `translate3d(${(-rcx * d).toFixed(2)}px, ${(-rcy * d * 0.6).toFixed(2)}px, ${z}px)`
+    })
+    if (wrapEl) wrapEl.style.transform = `rotateY(${(rcx * 1.1).toFixed(3)}deg) rotateX(${(-rcy * 0.8).toFixed(3)}deg)`
+    requestAnimationFrame(rigLoop)
+  }
+  setTimeout(() => requestAnimationFrame(rigLoop), 1500) // 등장 연출이 끝난 뒤에
+}
+
 // 우상단 라이브 시계 — 관제화면은 시간이 흐른다
 const hudClock = document.getElementById('hud-clock')
 if (hudClock) {
@@ -149,13 +175,22 @@ async function commitChart() {
       data: weeks.map((w, i) => ({
         value: w[1],
         itemStyle: i === weeks.length - 1
-          ? { color: '#ff7a59', borderRadius: [2, 2, 0, 0] }
+          ? {
+              color: '#ff7a59',
+              borderRadius: [2, 2, 0, 0],
+              shadowBlur: 12,
+              shadowColor: 'rgba(255,122,89,0.45)',
+              shadowOffsetY: 4,
+            }
           : {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: '#22c4d4' },
                 { offset: 1, color: '#0ea8b8' },
               ]),
               borderRadius: [2, 2, 0, 0],
+              shadowBlur: 12,
+              shadowColor: 'rgba(14,168,184,0.40)',
+              shadowOffsetY: 4,
             },
       })),
     }],
@@ -467,8 +502,9 @@ if (!webglAvailable()) {
       if (window.scrollY > gY + 1) window.scrollTo(0, gY)
     }
 
-    // 계기판·여정 바는 여정에 들어선 뒤에만
+    // 계기판·여정 바는 여정에 들어선 뒤에만 · 랜딩에서는 세계에 심도 블러
     const inJourney = window.scrollY > journeyBase() * 0.72
+    document.body.classList.toggle('on-landing', window.scrollY < journeyBase() * 0.4)
     dashEl.classList.toggle('hidden-panel', !inJourney)
     journeyEl.classList.toggle('hidden-panel', !inJourney)
 
