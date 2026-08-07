@@ -90,13 +90,13 @@
       justify-content: center;
       gap: clamp(18px, 3.2vh, 36px);
     }
-    .status {
-      display: flex; align-items: center; gap: 0.6em;
-      font-family: var(--mono);
-      font-size: 11px; letter-spacing: 0.16em;
-      color: var(--ink-45);
+    .face {
+      width: 88px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 8px 20px -8px rgba(23, 76, 110, 0.35);
+      display: block;
     }
-    .status .led { width: 7px; height: 7px; border-radius: 50%; background: #2ec27e; flex: none; }
     .land-col h1 {
       font-size: clamp(56px, 6vw, 88px);
       font-weight: 700;
@@ -145,13 +145,13 @@
     }
     /* 도구 — 단색 아이콘 한 줄 (잉크 톤, 브랜드색 금지) */
     .meta .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 3px; }
-    .meta .tools img { width: 17px; height: 17px; display: block; opacity: 0.75; transition: opacity 0.2s; }
+    .meta .tools img { width: 17px; height: 17px; display: block; opacity: 0.9; transition: opacity 0.2s; }
     .meta .tools img:hover { opacity: 1; }
     .meta .tools .chip {
       font-family: var(--mono);
       font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
-      color: #486070;
-      border: 1px solid rgba(22, 48, 60, 0.28);
+      color: #e8850c;
+      border: 1px solid rgba(232, 133, 12, 0.5);
       border-radius: 3px;
       padding: 1px 5px;
       line-height: 1.4;
@@ -491,25 +491,27 @@
   <canvas id="bg"></canvas>
   <header id="landing">
     <div class="land-col land-fade">
-      <div class="status"><span class="led"></span>OPEN TO WORK</div>
+      <img class="face" src="/han2.png" alt="한승보" />
       <h1>한승보</h1>
+      <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
       <p class="lead">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
       <p class="nums">
-        <span class="num">5종</span><span class="unit">IT 자격증</span>
+        <span class="num">8회</span><span class="unit">협업 경험</span>
         <span class="sep">|</span>
         <span class="num">4회</span><span class="unit">수상</span>
       </p>
+      <!-- [지원처별 수정 지점 ②] 소개 문단도 직무·회사에 맞춰 갈아끼운다 -->
       <p class="intro">
         화면에서 데이터까지 — 하나를 배우면 그 아래층이 궁금해, 한 층씩 내려오며 성장했습니다.
         퇴사한 회사가 1년 뒤 다시 연락해 현장을 맡길 만큼의 신뢰가 제 자산입니다.
       </p>
       <dl class="meta">
-        <div><dt>경력</dt><dd><b>SK브로드밴드 CloudPC/CloudX</b> — 1년 · 현장 1인 상주 · <b>191명</b> 서비스 오픈</dd></div>
+        <div><dt>경력</dt><dd><b>CloudPC/CloudX 운영팀</b> — 1년 · 현장 1인 상주 · <b>191명</b> 서비스 오픈</dd></div>
         <div><dt>경로</dt><dd>UI <i>→</i> 서버 <i>→</i> 인프라 <i>→</i> <span class="now"><em></em>데이터</span></dd></div>
         <div><dt>자격</dt><dd><b>CKA</b> · <b>AWS SAA</b> · <b>RHCSA</b> · 정보처리기사 · SQLD</dd></div>
         <div><dt>학력</dt><dd>국립한경대학교 졸업</dd></div>
         <div><dt>도구</dt><dd class="tools">
-          <span class="chip" title="Amazon Web Services">AWS</span><img src="https://cdn.simpleicons.org/kubernetes/486070" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker/486070" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux/486070" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python/486070" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring/486070" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react/486070" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql/486070" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql/486070" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis/486070" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka/486070" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git/486070" alt="Git" title="Git" />
+          <span class="chip" title="Amazon Web Services">AWS</span><img src="https://cdn.simpleicons.org/kubernetes" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git" alt="Git" title="Git" />
         </dd></div>
         <div><dt>연락</dt><dd><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a> · 서울</dd></div>
       </dl>
@@ -523,7 +525,7 @@
       <button id="start-walk">함께 걸어보세요 ↓</button>
     </div>
     <div class="footline land-fade">
-      <span class="cap" id="gh-cap">최근 6주 — GITHUB API</span>
+      <span class="cap" id="gh-cap">최근 6주 커밋</span>
       <div id="gh-chart"></div>
       <span class="cap right">SEOUL · KR</span>
     </div>

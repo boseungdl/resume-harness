@@ -84,7 +84,7 @@ async function commitChart() {
   } catch { /* 오프라인이면 마지막 확인값으로 그린다 */ }
   const total = weeks.reduce((s, w) => s + w[1], 0)
   const cap = document.getElementById('gh-cap')
-  if (cap) cap.textContent = `최근 6주 ${total}커밋 — GITHUB API`
+  if (cap) cap.textContent = `최근 6주 ${total}커밋`
   const chart = echarts.init(el)
   chart.setOption({
     grid: { left: 0, right: 0, top: 2, bottom: 0 },
