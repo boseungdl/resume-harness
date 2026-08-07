@@ -351,10 +351,10 @@ if (!webglAvailable()) {
   function placeCta() {
     if (!ctaWrap || window.scrollY > window.innerHeight * 0.3) return
     camera.updateMatrixWorld()
-    // 트랙 오른편 모래 위 — 발광 엣지 라인과 겹치지 않는 지점
-    const v = new THREE.Vector3(2.3, 0, 1.6).project(camera)
+    // 로봇 발 앞, 트랙 정중앙 — 낮게 앉혀 데크가 넓은 구간에서 라인과 비겹침
+    const v = new THREE.Vector3(0, 0, 1.2).project(camera)
     const xPct = (v.x * 0.5 + 0.5) * 100
-    ctaWrap.style.left = `${Math.min(86, Math.max(60, xPct)).toFixed(1)}%`
+    ctaWrap.style.left = `${Math.min(80, Math.max(55, xPct)).toFixed(1)}%`
   }
   setTimeout(placeCta, 150)
 
