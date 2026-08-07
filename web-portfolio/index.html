@@ -87,10 +87,11 @@
       height: 100%;
       width: min(640px, 47vw);
       padding-left: clamp(48px, 6vw, 96px);
-      padding-bottom: calc(3vh + 72px); /* 풋라인 예약 — 컬럼이 길어져도 침범하지 않는다 */
+      padding-top: clamp(56px, 8.5vh, 104px);
+      padding-bottom: calc(3vh + 76px); /* 풋라인 예약 — 컬럼이 길어져도 침범하지 않는다 */
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: space-between; /* 남는 높이를 섹션 사이로 분배 — 아래 빈 공간 없음 */
     }
     .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 18px; }
     .face {
