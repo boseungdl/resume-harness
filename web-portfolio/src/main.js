@@ -262,12 +262,15 @@ if (!webglAvailable()) {
     signCtx.fillRect(0, 0, W, 344)
     signCtx.textAlign = 'center'
     if (mode === 'thanks') {
-      signCtx.fillStyle = '#f4552b'
-      signCtx.font = '700 60px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('감사합니다', W / 2, 150)
       signCtx.fillStyle = 'rgba(22, 48, 60, 0.78)'
-      signCtx.font = '600 32px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('내어주신 시간, 아껴 쓰겠습니다', W / 2, 226)
+      signCtx.font = '600 30px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('소중한 시간 내어주셔서', W / 2, 92)
+      signCtx.fillStyle = '#f4552b'
+      signCtx.font = '700 56px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('감사합니다', W / 2, 168)
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.78)'
+      signCtx.font = '600 28px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('한 걸음씩 소개하겠습니다', W / 2, 240)
     } else {
       signCtx.fillStyle = '#16303c'
       signCtx.font = '700 46px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
