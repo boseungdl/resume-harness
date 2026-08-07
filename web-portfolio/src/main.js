@@ -270,19 +270,16 @@ if (!webglAvailable()) {
       signCtx.fillText('3분, 아껴 쓰겠습니다', W / 2, 226)
     } else {
       signCtx.fillStyle = '#16303c'
-      signCtx.font = '700 58px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      const title = '함께 걸어보세요'
-      const tw = signCtx.measureText(title).width
-      signCtx.fillText(title, W / 2 - 22, 132)
-      signCtx.fillStyle = '#f4552b'
-      signCtx.fillText('↓', W / 2 + tw / 2 + 18, 132)
+      signCtx.font = '700 50px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      const title = '3분만 내어주시겠어요?'
+      signCtx.fillText(title, W / 2, 126)
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
-      signCtx.roundRect(W / 2 - 90, 160, 180, 7, 4)
+      signCtx.roundRect(W / 2 - 90, 152, 180, 7, 4)
       signCtx.fill()
       signCtx.fillStyle = 'rgba(22, 48, 60, 0.62)'
       signCtx.font = '500 26px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('어떤 사람인지 궁금하시다면 — 3분이면 됩니다', W / 2, 218)
+      signCtx.fillText('함께 걸으며, 어떤 사람인지 보여드리겠습니다', W / 2, 214)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
