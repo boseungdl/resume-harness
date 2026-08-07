@@ -87,11 +87,12 @@
       height: 100%;
       width: min(640px, 47vw);
       padding-left: clamp(48px, 6vw, 96px);
+      padding-bottom: calc(3vh + 72px); /* 풋라인 예약 — 컬럼이 길어져도 침범하지 않는다 */
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
-    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 18px; }
+    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 16px; }
     .face {
       height: clamp(58px, 6.1vw, 90px);
       width: auto;
@@ -114,7 +115,7 @@
       line-height: 1.55;
       color: var(--ink-70);
       word-break: keep-all;
-      margin-bottom: 34px;
+      margin-bottom: 26px;
     }
     .lead b { color: var(--ink); font-weight: 700; }
     .nums {
@@ -130,13 +131,13 @@
       color: var(--ink-70);
       word-break: keep-all;
       max-width: 46ch;
-      margin-bottom: 36px;
+      margin-bottom: 24px;
     }
     .meta {
       border-top: 1px solid var(--hair);
-      padding-top: clamp(12px, 2vh, 20px);
+      padding-top: 14px;
       display: flex; flex-direction: column; gap: 8px;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
     .meta > div { display: flex; font-size: 13px; line-height: 1.65; }
     .meta dt { width: 64px; flex: none; color: var(--ink-45); }
@@ -321,11 +322,13 @@
     }
 
     @media (max-height: 920px) {
-      .land-col { gap: clamp(14px, 2.4vh, 24px); }
       .land-col h1 { font-size: clamp(48px, 5.4vw, 64px); }
-      .lead { font-size: 18px; }
-      .intro { font-size: 14px; line-height: 1.7; }
-      .cta-wrap { bottom: 9vh; }
+      .name-row { margin-bottom: 12px; }
+      .lead { font-size: 18px; margin-bottom: 18px; }
+      .nums { margin-bottom: 10px; }
+      .intro { font-size: 14px; line-height: 1.7; margin-bottom: 18px; }
+      .meta { padding-top: 11px; gap: 6px; margin-bottom: 18px; }
+      .links a { height: 40px; padding: 0 16px; }
     }
     @media (max-width: 900px) {
       .land-col { width: 100%; padding: 0 24px; }
