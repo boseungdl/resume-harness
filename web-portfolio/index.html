@@ -139,11 +139,11 @@
     .meta dd a { color: var(--accent); text-decoration: none; }
     .meta dd a:hover { text-decoration: underline; }
     .meta dd i { font-style: normal; color: var(--ink-45); }
-    /* 코랄은 화면 전체에서 이 점 하나 */
+    /* 현재 위치 점 — 코랄은 CTA 전용이므로 여기는 청록 */
     .meta .now { color: var(--ink); font-weight: 600; white-space: nowrap; }
     .meta .now em {
       display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-      background: var(--coral); margin-right: 5px; vertical-align: 1px;
+      background: var(--accent); margin-right: 5px; vertical-align: 1px;
     }
     /* 도구 — 단색 아이콘 한 줄 (잉크 톤, 브랜드색 금지) */
     .meta .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 3px; }
@@ -155,67 +155,78 @@
     .links a i { font-style: normal; color: var(--accent); }
     .links a:hover { color: var(--accent); }
 
-    /* CTA — 로봇 머리 위 말풍선: 로봇이 직접 말을 건다 */
+    /* CTA — 코랄은 이 버튼 하나. 3D 키캡: 압출된 아랫면 + 기운 윗면 + 부유 */
     .cta-wrap {
       position: absolute;
       left: 65.5%;
-      top: 29vh;
+      bottom: 8.5vh;
       transform: translateX(-50%);
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
       z-index: 1;
     }
-    /* 뭉게구름 말풍선 — 그림자는 drop-shadow로 실루엣 전체를 따라간다 */
-    .cta-wrap { filter: drop-shadow(0 14px 26px rgba(23, 76, 110, 0.30)); }
-    .bubble {
-      position: relative;
-      background: #fff;
-      border-radius: 36px;
-      padding: 18px 26px 20px;
+    #start-walk {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 58px;
+      padding: 0 36px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ff9a70 0%, #ff7a52 55%, #ff6a45 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      box-shadow:
+        0 7px 0 #d14f2e,
+        0 8px 2px rgba(163, 56, 28, 0.25),
+        0 24px 36px -12px rgba(214, 80, 47, 0.55),
+        inset 0 2px 0 rgba(255, 255, 255, 0.45);
+      animation: cta-float 2.8s ease-in-out infinite;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    .bubble .puff {
-      position: absolute;
-      background: #fff;
-      border-radius: 50%;
-      z-index: -1;
+    @keyframes cta-float {
+      0%, 100% { transform: perspective(700px) rotateX(9deg) translateY(0); }
+      50% { transform: perspective(700px) rotateX(9deg) translateY(-5px); }
     }
-    .bubble .p1 { width: 52px; height: 52px; top: -16px; left: 12%; }
-    .bubble .p2 { width: 74px; height: 74px; top: -26px; left: 36%; }
-    .bubble .p3 { width: 56px; height: 56px; top: -18px; right: 14%; }
-    .bubble .p4 { width: 40px; height: 40px; top: -8px; right: 4%; }
-    .bubble .tail {
-      position: absolute;
-      background: #fff;
-      border-radius: 50%;
+    #start-walk:hover {
+      animation: none;
+      transform: perspective(700px) rotateX(5deg) translateY(-6px);
+      box-shadow:
+        0 12px 0 #d14f2e,
+        0 13px 3px rgba(163, 56, 28, 0.22),
+        0 30px 46px -12px rgba(214, 80, 47, 0.6),
+        inset 0 2px 0 rgba(255, 255, 255, 0.45);
     }
-    .bubble .t1 { width: 18px; height: 18px; bottom: -24px; left: 47%; }
-    .bubble .t2 { width: 10px; height: 10px; bottom: -42px; left: 52%; }
-    .bubble p {
-      font-size: 12.5px;
+    #start-walk:active {
+      animation: none;
+      transform: perspective(700px) rotateX(11deg) translateY(4px);
+      box-shadow:
+        0 2px 0 #d14f2e,
+        0 3px 2px rgba(163, 56, 28, 0.3),
+        0 12px 20px -10px rgba(214, 80, 47, 0.5),
+        inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    }
+    #start-walk .arr { font-size: 18px; animation: arr-bob 1.9s ease-in-out infinite; }
+    @keyframes arr-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+    .cta-sub {
+      font-size: 12px;
       color: var(--ink-70);
-      margin-bottom: 10px;
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border-radius: 999px;
+      padding: 4px 14px;
       word-break: keep-all;
       white-space: nowrap;
     }
-    #start-walk {
-      display: block;
-      margin: 0 auto;
-      height: 46px;
-      padding: 0 28px;
-      border: none;
-      border-radius: 999px;
-      background: var(--accent);
-      color: #fff;
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 10px 24px -8px rgba(10, 127, 141, 0.5);
-      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-    }
-    #start-walk:hover {
-      background: #0b98a7;
-      transform: translateY(-1px);
-      box-shadow: 0 14px 30px -8px rgba(10, 127, 141, 0.55);
+    @media (prefers-reduced-motion: reduce) {
+      #start-walk, #start-walk .arr { animation: none; }
     }
 
     /* 풋라인 — 실데이터 스파크라인 */
@@ -539,12 +550,8 @@
       </div>
     </div>
     <div class="cta-wrap land-fade">
-      <div class="bubble">
-        <span class="puff p1"></span><span class="puff p2"></span><span class="puff p3"></span><span class="puff p4"></span>
-        <p>어떤 사람인지 궁금하시다면 — 3분이면 됩니다</p>
-        <button id="start-walk">함께 걸어보세요 ↓</button>
-        <span class="tail t1"></span><span class="tail t2"></span>
-      </div>
+      <button id="start-walk">함께 걸어보세요<span class="arr">↓</span></button>
+      <p class="cta-sub">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</p>
     </div>
     <div class="footline land-fade">
       <span class="cap" id="gh-cap">최근 6주 커밋</span>
