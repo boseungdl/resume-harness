@@ -92,7 +92,7 @@
       flex-direction: column;
       justify-content: center;
     }
-    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 16px; }
+    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 18px; }
     .face {
       height: clamp(58px, 6.1vw, 90px);
       width: auto;
@@ -115,13 +115,13 @@
       line-height: 1.55;
       color: var(--ink-70);
       word-break: keep-all;
-      margin-bottom: 26px;
+      margin-bottom: 30px;
     }
     .lead b { color: var(--ink); font-weight: 700; }
     .nums {
       display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap;
       font-variant-numeric: tabular-nums;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .nums .kpi { font-size: 13px; color: var(--ink-45); word-break: keep-all; }
     .nums .kpi b { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent-ink); letter-spacing: -0.01em; margin-right: 4px; }
@@ -131,13 +131,13 @@
       color: var(--ink-70);
       word-break: keep-all;
       max-width: 46ch;
-      margin-bottom: 24px;
+      margin-bottom: 30px;
     }
     .meta {
       border-top: 1px solid var(--hair);
-      padding-top: 14px;
-      display: flex; flex-direction: column; gap: 8px;
-      margin-bottom: 24px;
+      padding-top: 16px;
+      display: flex; flex-direction: column; gap: 9px;
+      margin-bottom: 28px;
     }
     .meta > div { display: flex; font-size: 13px; line-height: 1.65; }
     .meta dt { width: 64px; flex: none; color: var(--ink-45); }
@@ -323,11 +323,11 @@
 
     @media (max-height: 920px) {
       .land-col h1 { font-size: clamp(48px, 5.4vw, 64px); }
-      .name-row { margin-bottom: 12px; }
-      .lead { font-size: 18px; margin-bottom: 18px; }
-      .nums { margin-bottom: 10px; }
-      .intro { font-size: 14px; line-height: 1.7; margin-bottom: 18px; }
-      .meta { padding-top: 11px; gap: 6px; margin-bottom: 18px; }
+      .name-row { margin-bottom: 14px; }
+      .lead { font-size: 18px; margin-bottom: 22px; }
+      .nums { margin-bottom: 12px; }
+      .intro { font-size: 14px; line-height: 1.7; margin-bottom: 22px; }
+      .meta { padding-top: 13px; gap: 7px; margin-bottom: 22px; }
       .links a { height: 40px; padding: 0 16px; }
     }
     @media (max-width: 900px) {
