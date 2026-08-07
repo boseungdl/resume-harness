@@ -181,28 +181,17 @@
     .links a:active { transform: translateY(0); background: rgba(22, 48, 60, 0.06); box-shadow: none; }
     .links a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 
-    /* CTA — 코랄은 이 버튼 하나. 3D 키캡, 세계와 같은 중력(접지 그림자, 부유 없음) */
+    /* CTA — 코랄은 이 버튼 하나. 세계 속 입간판 위에 얹힌 3D 키캡 (위치는 JS 투영) */
     .cta-wrap {
       position: absolute;
-      left: 65.5%;
-      bottom: clamp(52px, 7vh, 92px);
-      transform: translateX(-50%);
+      left: 72%;
+      top: 62%;
+      transform: translate(-50%, -50%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       z-index: 1;
-    }
-    /* 접지 그림자 — 버튼을 세계의 물리에 세운다 */
-    .cta-wrap::before {
-      content: '';
-      position: absolute;
-      top: 60px; left: 50%;
-      transform: translateX(-50%);
-      width: 74%; height: 16px;
-      border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(23, 60, 80, 0.28), transparent 70%);
-      z-index: -1;
     }
     #start-walk {
       display: inline-flex;
@@ -315,8 +304,8 @@
     /* 모션 법칙: 로드 1회 페이드가 전부 */
     .land-fade { opacity: 0; transform: translateY(10px); }
     .land-fade.in { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); }
-    .cta-wrap.land-fade { transform: translateX(-50%) translateY(10px); }
-    .cta-wrap.land-fade.in { transform: translateX(-50%); }
+    .cta-wrap.land-fade { transform: translate(-50%, calc(-50% + 10px)); }
+    .cta-wrap.land-fade.in { transform: translate(-50%, -50%); }
     @media (prefers-reduced-motion: reduce) {
       .land-fade { opacity: 1; transform: none; }
       .land-fade.in { transition: none; }

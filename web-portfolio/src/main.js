@@ -244,6 +244,30 @@ if (!webglAvailable()) {
 
   const world = buildWorld(scene, STORY.length)
 
+  // CTA 입간판 — 버튼은 세계 속 팻말 위에 얹힌다. 걷기 시작하면 풍경과 함께 뒤로 흘러간다
+  const sign = new THREE.Group()
+  const signPostMat = new THREE.MeshStandardMaterial({ color: '#b98a5e', flatShading: true })
+  const signPostL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.15, 0.09), signPostMat)
+  signPostL.position.set(-0.76, 0.575, 0)
+  const signPostR = signPostL.clone()
+  signPostR.position.x = 0.76
+  const signBoard = new THREE.Mesh(
+    new THREE.BoxGeometry(1.82, 0.98, 0.07),
+    new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#dff2f8', emissiveIntensity: 0.42, flatShading: true })
+  )
+  signBoard.position.set(0, 1.14, 0)
+  const signEdge = new THREE.Mesh(
+    new THREE.BoxGeometry(1.86, 0.06, 0.075),
+    new THREE.MeshStandardMaterial({ color: '#3fd4e0', emissive: '#3fd4e0', emissiveIntensity: 0.9 })
+  )
+  signEdge.position.set(0, 0.62, 0.004)
+  sign.add(signPostL, signPostR, signBoard, signEdge)
+  sign.position.set(1.95, 0, 0.5)
+  sign.rotation.y = -0.5
+  sign.scale.setScalar(0.85)
+  sign.traverse((c) => { if (c.isMesh) c.castShadow = true })
+  world.group.add(sign)
+
   // 블룸 — 트랙 엣지·크리스탈·등대가 실제로 빛난다
   const composer = new EffectComposer(renderer)
   composer.addPass(new RenderPass(scene, camera))
@@ -404,10 +428,10 @@ if (!webglAvailable()) {
   function placeCta() {
     if (!ctaWrap || window.scrollY > window.innerHeight * 0.3) return
     camera.updateMatrixWorld()
-    // 로봇 발 앞, 트랙 정중앙 — 낮게 앉혀 데크가 넓은 구간에서 라인과 비겹침
-    const v = new THREE.Vector3(0, 0, 1.2).project(camera)
-    const xPct = (v.x * 0.5 + 0.5) * 100
-    ctaWrap.style.left = `${Math.min(80, Math.max(55, xPct)).toFixed(1)}%`
+    // 팻말 판 중앙에 버튼을 얹는다
+    const v = new THREE.Vector3(1.95, 0.97, 0.5).project(camera)
+    ctaWrap.style.left = `${((v.x * 0.5 + 0.5) * 100).toFixed(2)}%`
+    ctaWrap.style.top = `${((-v.y * 0.5 + 0.5) * 100).toFixed(2)}%`
   }
   setTimeout(placeCta, 150)
 
@@ -493,6 +517,14 @@ if (!webglAvailable()) {
       const span = document.documentElement.scrollHeight - window.innerHeight - base
       const gY = base + (world.npcs[gi].dist / world.TOTAL) * span
       if (window.scrollY > gY + 1) window.scrollTo(0, gY)
+    }
+
+    // 걷기 시작하면 버튼은 임무를 마치고 사라진다 (팻말은 세계와 함께 뒤로)
+    if (ctaWrap) {
+      const phUi = THREE.MathUtils.smoothstep(window.scrollY / (window.innerHeight * 0.9), 0, 1)
+      const fade = Math.max(0, 1 - phUi * 2.4)
+      ctaWrap.style.opacity = String(fade)
+      ctaWrap.style.pointerEvents = fade < 0.4 ? 'none' : ''
     }
 
     // 계기판·여정 바는 여정에 들어선 뒤에만
