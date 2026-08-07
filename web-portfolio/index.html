@@ -447,7 +447,7 @@
     }
     #dash .kpi .v { display: block; font-size: 1.02rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
     #dash .kpi .v small { font-size: 0.62rem; font-weight: 400; color: rgba(22,48,60,0.45); margin-left: 1px; }
-    #dash .kpi .k { display: block; font-size: 0.62rem; letter-spacing: 0.18em; color: rgba(22,48,60,0.45); margin-top: 0.15rem; }
+    #dash .kpi .k { display: block; font-size: 0.62rem; letter-spacing: 0.04em; color: rgba(22,48,60,0.45); margin-top: 0.15rem; word-break: keep-all; }
     #dash .chip {
       padding: 0.3em 0.1em 0.42em;
       font-size: 0.8rem;
@@ -495,6 +495,34 @@
     }
     #outro-panel.hidden-panel { transform: translateY(calc(-50% + 18px)); }
     #outro-panel .verdict { font-size: clamp(1.05rem, 1.4vw, 1.3rem); line-height: 1.95; word-break: keep-all; margin-bottom: 1.5rem; font-weight: 600; }
+    /* 엔딩 3행 스태거 — 기록 → 감사 → 제안 순서로 떠오른다 */
+    #outro-panel .verdict span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 0.5s, transform 0.5s; }
+    #outro-panel:not(.hidden-panel) .verdict span { opacity: 1; transform: none; }
+    #outro-panel:not(.hidden-panel) .verdict span:nth-child(2) { transition-delay: 0.45s; }
+    #outro-panel:not(.hidden-panel) .verdict span:nth-child(3) { transition-delay: 0.9s; }
+    #outro-record b { font-family: var(--mono); font-weight: 600; color: var(--accent-ink); }
+
+    /* 절반 지점 노트 — 개방이 깊어진다는 예고 */
+    #half-note {
+      position: fixed;
+      left: 50%;
+      bottom: clamp(4.2rem, 9vh, 6.5rem);
+      transform: translateX(-50%) translateY(8px);
+      z-index: 3;
+      font-size: 13px;
+      color: var(--ink-70);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 999px;
+      padding: 8px 20px;
+      word-break: keep-all;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s, transform 0.6s;
+    }
+    #half-note.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     #outro-panel .links { display: flex; gap: 0.85rem; flex-wrap: wrap; }
     #outro-panel a {
       font-size: 0.87rem; color: var(--ink); text-decoration: none; font-weight: 600;
@@ -624,22 +652,27 @@
   </header>
   <div id="spacer"></div>
   <section id="popup" class="panel hud hidden-panel">
-    <div class="who">길에서 만난 질문</div>
+    <div class="who">첫 번째 질문</div>
     <div class="q"></div>
     <div class="a"></div>
-    <button class="go" id="resume-walk">알겠습니다 — 계속 걷기 →</button>
+    <button class="go" id="resume-walk">계속 걷기 →</button>
   </section>
+  <div id="half-note">절반을 걸으셨습니다 — 여기부터는 조금 더 솔직한 이야기입니다</div>
   <aside id="dash" class="panel">
-    <div class="dash-head"><span class="led"></span>PROFILE SYNC<b id="dash-pct">0%</b></div>
+    <div class="dash-head"><span class="led"></span><span id="dash-title">함께 걷는 중</span><b id="dash-pct">0%</b></div>
     <div class="kpis">
-      <div class="kpi"><span class="v"><span id="kpi-meet">0</span><small>/7</small></span><span class="k">만남</span></div>
-      <div class="kpi"><span class="v"><span id="kpi-dist">0</span><small>m</small></span><span class="k">걸은 거리</span></div>
-      <div class="kpi"><span class="v" id="kpi-time">0:00</span><span class="k">여정 시간</span></div>
+      <div class="kpi"><span class="v"><span id="kpi-meet">0</span><small>/7</small></span><span class="k">나눈 질문</span></div>
+      <div class="kpi"><span class="v"><span id="kpi-dist">0</span><small>m</small></span><span class="k">같이 걸은 거리</span></div>
+      <div class="kpi"><span class="v" id="kpi-time">0:00</span><span class="k">함께한 시간</span></div>
     </div>
     <div id="dash-chips"></div>
   </aside>
   <section id="outro-panel" class="panel hud hidden-panel">
-    <div class="verdict">여기까지 함께 걸어주셨습니다.<br />다음 구간은 만나서 걷고 싶습니다.</div>
+    <div class="verdict">
+      <span id="outro-record">여기까지 함께 걸어주셨습니다.</span>
+      <span>일곱 번 멈춰 읽어주신 시간, 고맙습니다.</span>
+      <span>다음 구간은, 만나서 걷고 싶습니다.</span>
+    </div>
     <div class="links">
       <a href="#" target="_blank" rel="noreferrer">기술 포트폴리오</a>
       <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">GitHub</a>

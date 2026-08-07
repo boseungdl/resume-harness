@@ -34,6 +34,13 @@ const kpiMeet = document.getElementById('kpi-meet')
 const kpiDist = document.getElementById('kpi-dist')
 const kpiTime = document.getElementById('kpi-time')
 const resumeBtn = document.getElementById('resume-walk')
+const popupWho = popupEl.querySelector('.who')
+const dashTitle = document.getElementById('dash-title')
+const halfNote = document.getElementById('half-note')
+const outroRecord = document.getElementById('outro-record')
+
+// 만남 라벨 — 얼마나 왔고 얼마나 남았는지가 관계의 언어다
+const MEET_LABELS = ['첫 번째 질문', '두 번째 질문', '세 번째 질문', '네 번째 질문', '다섯 번째 질문', '여섯 번째 질문', '마지막 질문']
 
 const veil = document.getElementById('veil')
 function liftVeil() {
@@ -279,6 +286,7 @@ if (!webglAvailable()) {
   let walkAction = null
   let idleAction = null
   let waveAction = null
+  let yesAction = null
   let waved = false
 
   new GLTFLoader().load(
@@ -304,10 +312,22 @@ if (!webglAvailable()) {
         waveAction = mixer.clipAction(waveClip)
         waveAction.setLoop(THREE.LoopOnce)
         waveAction.clampWhenFinished = true
-        // 랜딩 인사 — 우연히 서 있는 게 아니라 기다리고 있었다
-        mixer.addEventListener('finished', (e) => {
-          if (e.action === waveAction && !waved) waveAction.fadeOut(0.5)
-        })
+      }
+      const yesClip = find('yes')
+      if (yesClip) {
+        yesAction = mixer.clipAction(yesClip)
+        yesAction.setLoop(THREE.LoopOnce)
+      }
+      // 동작의 규칙: 인사(Wave)와 끄덕임(Yes)은 1회 재생 후 일상으로 돌아간다
+      mixer.addEventListener('finished', (e) => {
+        if (e.action === waveAction && !waved) waveAction.fadeOut(0.5)
+        if (e.action === waveAction && waved && yesAction) {
+          setTimeout(() => yesAction.reset().fadeIn(0.3).play(), 400) // 인사 뒤 목례
+        }
+        if (e.action === yesAction) yesAction.fadeOut(0.4)
+      })
+      // 랜딩 인사 — 우연히 서 있는 게 아니라 기다리고 있었다
+      if (waveAction) {
         setTimeout(() => {
           if (window.scrollY < window.innerHeight * 0.3) waveAction.reset().fadeIn(0.3).play()
         }, 1400)
@@ -341,8 +361,23 @@ if (!webglAvailable()) {
     return span > 0 ? Math.min(1, Math.max(0, (window.scrollY - base) / span)) : 0
   }
 
+  let walkStarted = false
   function startWalk() {
-    window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+    const go = () => window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+    if (walkStarted || reduceMotion) { walkStarted = true; go(); return }
+    walkStarted = true
+    // 시작의 감사는 계약으로 — 비용을 정확히 고지하고, 로봇은 끄덕임으로 답한다
+    const sub = document.querySelector('.cta-sub')
+    if (sub) {
+      sub.style.transition = 'opacity 0.22s'
+      sub.style.opacity = '0'
+      setTimeout(() => {
+        sub.textContent = '3분, 아껴 쓰겠습니다. 일곱 번 멈춥니다.'
+        sub.style.opacity = '1'
+      }, 220)
+    }
+    if (yesAction) yesAction.reset().fadeIn(0.2).play()
+    setTimeout(go, 700) // 끄덕임의 정점이 지나간 뒤 세계가 움직인다
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
 
@@ -387,11 +422,14 @@ if (!webglAvailable()) {
 
   let activePopup = -1
   let typeTimer = null
+  let outroFilled = false
 
   // 질문이 타이핑되며 나타나고, 답이 뒤따라 떠오른다
   function typeQuestion(index) {
     if (typeTimer) clearInterval(typeTimer)
     const text = STORY[index].question
+    popupWho.textContent = MEET_LABELS[index] ?? '길에서 만난 질문'
+    resumeBtn.textContent = index === STORY.length - 1 ? '마지막 구간으로 →' : '계속 걷기 →'
     popupA.textContent = STORY[index].text
     popupA.classList.remove('on')
     popupQ.innerHTML = '<span class="caret"></span>'
@@ -409,7 +447,7 @@ if (!webglAvailable()) {
           popupEl.classList.add('gated')
         }
       }
-    }, 34)
+    }, 28)
   }
 
   function collect(i) {
@@ -419,6 +457,11 @@ if (!webglAvailable()) {
     kpiMeet.textContent = String(collected.filter(Boolean).length)
     resumeBtn.classList.remove('on')
     popupEl.classList.remove('gated')
+    // 절반 지점 — 감사를 말이 아니라 개방의 심화로 지불한다
+    if (i === 3 && halfNote) {
+      halfNote.classList.add('show')
+      setTimeout(() => halfNote.classList.remove('show'), 4200)
+    }
   }
   resumeBtn.addEventListener('click', () => {
     if (activePopup >= 0 && !collected[activePopup]) collect(activePopup)
@@ -439,8 +482,13 @@ if (!webglAvailable()) {
     dashEl.classList.toggle('hidden-panel', !inJourney)
     journeyEl.classList.toggle('hidden-panel', !inJourney)
 
-    // 엔딩
+    // 엔딩 — 걸은 기록을 감사에 되돌려준다
     const atEnd = progress > 0.955
+    if (atEnd && !outroFilled && outroRecord && walked / world.TOTAL > 0.95) {
+      outroFilled = true
+      const secs = Math.floor(t)
+      outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${Math.round(walked)}m, ${Math.floor(secs / 60)}분 ${secs % 60}초</b>.`
+    }
     outroEl.classList.toggle('hidden-panel', !atEnd)
 
     // 만남 팝업: 가장 가까운 NPC 가 반경 안일 때
@@ -462,9 +510,10 @@ if (!webglAvailable()) {
       }
     }
 
-    // 계기판 — 수집률·거리·시간
+    // 계기판 — 측정이 아니라 동행의 기록
     const pct = Math.min(100, (walked / world.TOTAL) * 100)
     dashPct.textContent = `${Math.round(pct)}%`
+    if (dashTitle) dashTitle.textContent = pct >= 99 ? '함께 걸었습니다' : '함께 걷는 중'
     kpiDist.textContent = String(Math.round(walked))
     const sec = Math.floor(t)
     kpiTime.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
