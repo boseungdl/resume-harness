@@ -281,9 +281,16 @@ if (!webglAvailable()) {
       signCtx.roundRect(W / 2 - 90, 160, 180, 7, 4)
       signCtx.fill()
       signCtx.fillStyle = 'rgba(22, 48, 60, 0.62)'
-      signCtx.font = '500 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('어떤 사람인지 궁금하시다면', W / 2, 226)
-      signCtx.fillText('— 3분이면 됩니다', W / 2, 268)
+      signCtx.font = '500 26px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('어떤 사람인지 궁금하시다면 — 3분이면 됩니다', W / 2, 218)
+      // 클릭 어포던스 — 코랄 필
+      signCtx.fillStyle = '#f4552b'
+      signCtx.beginPath()
+      signCtx.roundRect(W / 2 - 92, 248, 184, 52, 26)
+      signCtx.fill()
+      signCtx.fillStyle = '#ffffff'
+      signCtx.font = '700 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('눌러서 시작', W / 2, 283)
     }
   }
   drawSign()
@@ -361,6 +368,8 @@ if (!webglAvailable()) {
   let waveAction = null
   let yesAction = null
   let jumpAction = null
+  let thumbsAction = null
+  let landingFace = -0.49 // 랜딩 기본: 관람자를 본다. 간판을 가리킬 때 잠시 돌아선다
   let waved = false
 
   new GLTFLoader().load(
@@ -397,6 +406,11 @@ if (!webglAvailable()) {
         jumpAction = mixer.clipAction(jumpClip)
         jumpAction.setLoop(THREE.LoopOnce)
       }
+      const thumbsClip = find('thumbsup')
+      if (thumbsClip) {
+        thumbsAction = mixer.clipAction(thumbsClip)
+        thumbsAction.setLoop(THREE.LoopOnce)
+      }
       // 동작의 규칙: 인사(Wave)와 끄덕임(Yes)은 1회 재생 후 일상으로 돌아간다
       mixer.addEventListener('finished', (e) => {
         if (e.action === waveAction && !waved) waveAction.fadeOut(0.5)
@@ -405,12 +419,25 @@ if (!webglAvailable()) {
         }
         if (e.action === yesAction) yesAction.fadeOut(0.4)
         if (e.action === jumpAction) jumpAction.fadeOut(0.3)
+        if (e.action === thumbsAction) {
+          thumbsAction.fadeOut(0.4)
+          landingFace = -0.49 // 소개가 끝나면 다시 관람자에게
+        }
       })
       // 랜딩 인사 — 우연히 서 있는 게 아니라 기다리고 있었다
       if (waveAction) {
         setTimeout(() => {
           if (window.scrollY < window.innerHeight * 0.3) waveAction.reset().fadeIn(0.3).play()
         }, 1400)
+      }
+      // 간판 소개 — 이따금 간판 쪽으로 돌아서서 엄지척: "이거 보세요"
+      if (thumbsAction) {
+        setInterval(() => {
+          if (walkStarted || window.scrollY > window.innerHeight * 0.3) return
+          if (waveAction?.isRunning() || jumpAction?.isRunning() || thumbsAction.isRunning()) return
+          landingFace = 1.15
+          setTimeout(() => thumbsAction.reset().fadeIn(0.25).play(), 320)
+        }, 7500)
       }
       liftVeil()
     },
@@ -446,9 +473,12 @@ if (!webglAvailable()) {
     const go = () => window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
     if (walkStarted || reduceMotion) { walkStarted = true; go(); return }
     walkStarted = true
-    // 시작의 감사는 계약으로 — 간판 글씨가 바뀐다
+    landingFace = -0.49 // 간판을 보던 중이었어도 관람자를 향해 인사한다
+    // 시작의 감사는 계약으로 — 간판 글씨가 바뀌고, 클릭 유도는 임무 종료
     drawSign('thanks')
     signTex.needsUpdate = true
+    const hint = document.getElementById('click-hint')
+    if (hint) hint.style.display = 'none'
     // 클릭은 나에 대한 선택 — 로봇이 머리 위 말풍선과 함께 기뻐서 뛴다
     if (thanksBubble) {
       camera.updateMatrixWorld()
@@ -658,7 +688,7 @@ if (!webglAvailable()) {
     const atEnd = progress > 0.955
     const facing = atEnd
       ? 0
-      : THREE.MathUtils.lerp(-0.49, Math.PI, THREE.MathUtils.smoothstep(ph, 0.25, 0.8))
+      : THREE.MathUtils.lerp(landingFace, Math.PI, THREE.MathUtils.smoothstep(ph, 0.25, 0.8))
     walker.rotation.y += (facing - walker.rotation.y) * Math.min(1, dt * 3)
     if (atEnd && !waved && waveAction) {
       waved = true
