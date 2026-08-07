@@ -12,9 +12,10 @@
     :root {
       --ink: #16303c;
       --ink-70: rgba(22, 48, 60, 0.72);
-      --ink-45: rgba(22, 48, 60, 0.45);
+      --ink-45: rgba(22, 48, 60, 0.66); /* 라벨용 — WCAG AA 대비 확보 */
       --hair: rgba(22, 48, 60, 0.16);
-      --accent: #0ea8b8;
+      --accent: #0ea8b8;       /* 점·발광·장식용 */
+      --accent-ink: #087280;   /* 텍스트용 청록 — AA 대비 */
       --coral: #ff7a59;
       --mono: 'IBM Plex Mono', 'Consolas', monospace;
     }
@@ -80,6 +81,7 @@
         rgba(240, 249, 253, 0.36) 52%,
         transparent 68%);
     }
+    /* 리듬: 균일 gap이 아니라 단락 — [이름·역할][숫자·소개][사실][행동] */
     .land-col {
       position: relative;
       height: 100%;
@@ -88,14 +90,14 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: clamp(18px, 3.2vh, 36px);
     }
-    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); }
+    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); margin-bottom: 18px; }
     .face {
-      width: clamp(76px, 5.6vw, 94px);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 8px 20px -8px rgba(23, 76, 110, 0.35);
+      height: clamp(58px, 6.1vw, 90px);
+      width: auto;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px -8px rgba(23, 76, 110, 0.35), inset 0 0 0 1px rgba(22, 48, 60, 0.08);
+      filter: saturate(0.85);
       display: block;
       flex: none;
     }
@@ -104,6 +106,7 @@
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.02;
+      margin-left: -0.035em; /* 광학 정렬 */
     }
     .lead {
       font-size: 20px;
@@ -111,32 +114,35 @@
       line-height: 1.55;
       color: var(--ink-70);
       word-break: keep-all;
+      margin-bottom: 34px;
     }
     .lead b { color: var(--ink); font-weight: 700; }
     .nums {
-      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap;
       font-variant-numeric: tabular-nums;
+      margin-bottom: 12px;
     }
-    .nums .num { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent); letter-spacing: -0.01em; }
-    .nums .unit { font-size: 13px; color: var(--ink-45); }
-    .nums .sep { color: var(--hair); font-size: 13px; margin: 0 4px; }
+    .nums .kpi { font-size: 13px; color: var(--ink-45); word-break: keep-all; }
+    .nums .kpi b { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent-ink); letter-spacing: -0.01em; margin-right: 4px; }
     .intro {
       font-size: 15px;
       line-height: 1.8;
       color: var(--ink-70);
       word-break: keep-all;
       max-width: 46ch;
+      margin-bottom: 36px;
     }
     .meta {
       border-top: 1px solid var(--hair);
       padding-top: clamp(12px, 2vh, 20px);
       display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 30px;
     }
     .meta > div { display: flex; font-size: 13px; line-height: 1.65; }
     .meta dt { width: 64px; flex: none; color: var(--ink-45); }
     .meta dd { color: var(--ink-70); word-break: keep-all; }
     .meta dd b { color: var(--ink); font-weight: 600; }
-    .meta dd a { color: var(--accent); text-decoration: none; }
+    .meta dd a { color: var(--accent-ink); text-decoration: none; }
     .meta dd a:hover { text-decoration: underline; }
     .meta dd i { font-style: normal; color: var(--ink-45); }
     /* 현재 위치 점 — 코랄은 CTA 전용이므로 여기는 청록 */
@@ -145,79 +151,103 @@
       display: inline-block; width: 7px; height: 7px; border-radius: 50%;
       background: var(--accent); margin-right: 5px; vertical-align: 1px;
     }
-    /* 도구 — 단색 아이콘 한 줄 (잉크 톤, 브랜드색 금지) */
+    /* 도구 — 잉크 단색 아이콘 한 줄 (브랜드색 금지, 이 행은 속삭인다) */
     .meta .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 3px; }
-    .meta .tools img { width: 17px; height: 17px; display: block; opacity: 0.9; transition: opacity 0.2s; }
-    .meta .tools img:hover { opacity: 1; }
-    .meta .tools img.aws { width: auto; height: 22px; margin-top: -3px; }
-    .links { display: flex; gap: 28px; font-size: 13px; }
-    .links a { color: var(--ink); font-weight: 600; text-decoration: none; transition: color 0.2s; }
-    .links a i { font-style: normal; color: var(--accent); }
-    .links a:hover { color: var(--accent); }
+    .meta .tools img { width: 20px; height: 20px; display: block; opacity: 0.75; }
+    .meta .tools img.aws { width: auto; height: 20px; filter: grayscale(1) opacity(0.85); }
+    /* 문서 버튼 — secondary: 종이 카드 필. 코랄 primary와 시선을 다투지 않는다 */
+    .links { display: flex; gap: 12px; flex-wrap: wrap; }
+    .links a {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 44px;
+      padding: 0 20px;
+      font-size: 14px; font-weight: 600;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(22, 48, 60, 0.30);
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 1px 2px rgba(23, 76, 110, 0.08);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .links a:hover {
+      background: #fff;
+      border-color: rgba(22, 48, 60, 0.55);
+      box-shadow: 0 3px 10px -2px rgba(23, 76, 110, 0.2);
+      transform: translateY(-1px);
+    }
+    .links a:active { transform: translateY(0); background: rgba(22, 48, 60, 0.06); box-shadow: none; }
+    .links a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 
-    /* CTA — 코랄은 이 버튼 하나. 3D 키캡: 압출된 아랫면 + 기운 윗면 + 부유 */
+    /* CTA — 코랄은 이 버튼 하나. 3D 키캡, 세계와 같은 중력(접지 그림자, 부유 없음) */
     .cta-wrap {
       position: absolute;
       left: 65.5%;
-      bottom: 8.5vh;
+      bottom: clamp(80px, 11vh, 128px);
       transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
       z-index: 1;
+    }
+    /* 접지 그림자 — 버튼을 세계의 물리에 세운다 */
+    .cta-wrap::before {
+      content: '';
+      position: absolute;
+      top: 60px; left: 50%;
+      transform: translateX(-50%);
+      width: 74%; height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(23, 60, 80, 0.28), transparent 70%);
+      z-index: -1;
     }
     #start-walk {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      height: 58px;
-      padding: 0 36px;
+      height: 56px;
+      padding: 0 34px;
       border: none;
-      border-radius: 20px;
-      background: linear-gradient(180deg, #ff9a70 0%, #ff7a52 55%, #ff6a45 100%);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ff8a5e 0%, #f4552b 55%, #e84a20 100%);
       color: #fff;
       font-family: inherit;
-      font-size: 17px;
+      font-size: 19px;
       font-weight: 700;
       letter-spacing: -0.01em;
       cursor: pointer;
+      transform: perspective(700px) rotateX(8deg);
       box-shadow:
-        0 7px 0 #d14f2e,
-        0 8px 2px rgba(163, 56, 28, 0.25),
-        0 24px 36px -12px rgba(214, 80, 47, 0.55),
-        inset 0 2px 0 rgba(255, 255, 255, 0.45);
-      animation: cta-float 2.8s ease-in-out infinite;
+        0 5px 0 #c2431f,
+        0 6px 2px rgba(150, 48, 20, 0.28),
+        0 22px 32px -12px rgba(200, 70, 35, 0.5),
+        inset 0 2px 0 rgba(255, 255, 255, 0.4);
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    @keyframes cta-float {
-      0%, 100% { transform: perspective(700px) rotateX(9deg) translateY(0); }
-      50% { transform: perspective(700px) rotateX(9deg) translateY(-5px); }
-    }
     #start-walk:hover {
-      animation: none;
-      transform: perspective(700px) rotateX(5deg) translateY(-6px);
+      transform: perspective(700px) rotateX(5deg) translateY(-4px);
       box-shadow:
-        0 12px 0 #d14f2e,
-        0 13px 3px rgba(163, 56, 28, 0.22),
-        0 30px 46px -12px rgba(214, 80, 47, 0.6),
-        inset 0 2px 0 rgba(255, 255, 255, 0.45);
+        0 9px 0 #c2431f,
+        0 10px 3px rgba(150, 48, 20, 0.24),
+        0 28px 42px -12px rgba(200, 70, 35, 0.55),
+        inset 0 2px 0 rgba(255, 255, 255, 0.4);
     }
     #start-walk:active {
-      animation: none;
-      transform: perspective(700px) rotateX(11deg) translateY(4px);
+      transform: perspective(700px) rotateX(10deg) translateY(3px);
       box-shadow:
-        0 2px 0 #d14f2e,
-        0 3px 2px rgba(163, 56, 28, 0.3),
-        0 12px 20px -10px rgba(214, 80, 47, 0.5),
-        inset 0 2px 0 rgba(255, 255, 255, 0.45);
+        0 2px 0 #c2431f,
+        0 3px 2px rgba(150, 48, 20, 0.3),
+        0 12px 18px -10px rgba(200, 70, 35, 0.45),
+        inset 0 2px 0 rgba(255, 255, 255, 0.4);
     }
-    #start-walk .arr { font-size: 18px; animation: arr-bob 1.9s ease-in-out infinite; }
+    #start-walk:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+    #start-walk .arr { font-size: 19px; animation: arr-bob 1.9s ease-in-out infinite; }
     @keyframes arr-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
     .cta-sub {
       font-size: 12px;
       color: var(--ink-70);
-      background: rgba(255, 255, 255, 0.62);
+      background: rgba(255, 255, 255, 0.82);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       border-radius: 999px;
@@ -226,17 +256,17 @@
       white-space: nowrap;
     }
     @media (prefers-reduced-motion: reduce) {
-      #start-walk, #start-walk .arr { animation: none; }
+      #start-walk .arr { animation: none; }
     }
 
     /* 풋라인 — 실데이터 스파크라인 */
     .footline {
       position: absolute;
       left: clamp(48px, 6vw, 96px);
-      right: clamp(48px, 6vw, 96px);
+      width: calc(min(640px, 47vw) - clamp(48px, 6vw, 96px));
       bottom: 3vh;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       gap: 16px;
       border-top: 1px solid var(--hair);
       padding-top: 12px;
@@ -520,14 +550,13 @@
     <div class="land-col land-fade">
       <div class="name-row">
         <h1>한승보</h1>
-        <img class="face" src="/han2.png" alt="한승보" />
+        <img class="face" src="/han2.png" alt="한승보 증명사진" />
       </div>
       <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
       <p class="lead">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
       <p class="nums">
-        <span class="num">8회</span><span class="unit">협업 경험</span>
-        <span class="sep">|</span>
-        <span class="num">4회</span><span class="unit">수상</span>
+        <span class="kpi"><b>8</b>회 협업 경험</span>
+        <span class="kpi"><b>4</b>회 수상</span>
       </p>
       <!-- [지원처별 수정 지점 ②] 소개 문단도 직무·회사에 맞춰 갈아끼운다 -->
       <p class="intro">
@@ -540,13 +569,14 @@
         <div><dt>자격</dt><dd><b>CKA</b> · <b>AWS SAA</b> · <b>RHCSA</b> · 정보처리기사 · SQLD</dd></div>
         <div><dt>학력</dt><dd>국립한경대학교 졸업</dd></div>
         <div><dt>도구</dt><dd class="tools">
-          <img class="aws" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/amazonwebservices/amazonwebservices-original-wordmark.svg" alt="AWS" title="Amazon Web Services" /><img src="https://cdn.simpleicons.org/kubernetes" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git" alt="Git" title="Git" />
+          <img class="aws" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/amazonwebservices/amazonwebservices-original-wordmark.svg" alt="AWS" title="Amazon Web Services" /><img src="https://cdn.simpleicons.org/kubernetes/16303C" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker/16303C" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux/16303C" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python/16303C" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring/16303C" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react/16303C" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql/16303C" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql/16303C" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis/16303C" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka/16303C" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git/16303C" alt="Git" title="Git" />
         </dd></div>
         <div><dt>연락</dt><dd><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a> · 서울</dd></div>
       </dl>
       <div class="links">
-        <a href="#">기술 포트폴리오 <i>→</i></a>
-        <a href="#">이력서 <i>→</i></a>
+        <a href="#">기술 포트폴리오</a>
+        <a href="#">이력서</a>
+        <a href="#">경력 기술서</a>
       </div>
     </div>
     <div class="cta-wrap land-fade">

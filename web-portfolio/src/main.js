@@ -98,6 +98,7 @@ async function commitChart() {
     series: [{
       type: 'bar',
       barWidth: '52%',
+      barMinHeight: 2,
       data: weeks.map((w, i) => ({
         value: w[1],
         itemStyle: {
@@ -345,6 +346,17 @@ if (!webglAvailable()) {
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
 
+  // CTA를 로봇 발 앞 월드 좌표에 앵커 — 뷰포트 비율이 바뀌어도 '발밑' 관계 유지
+  const ctaWrap = document.querySelector('.cta-wrap')
+  function placeCta() {
+    if (!ctaWrap || window.scrollY > window.innerHeight * 0.3) return
+    camera.updateMatrixWorld()
+    const v = new THREE.Vector3(0, 0, 1.2).project(camera)
+    const xPct = (v.x * 0.5 + 0.5) * 100
+    ctaWrap.style.left = `${Math.min(80, Math.max(55, xPct)).toFixed(1)}%`
+  }
+  setTimeout(placeCta, 150)
+
   // 랜딩에서는 마우스가 카메라를 미세하게 움직인다 — 유리 뒤 세계가 패럴랙스로 살아난다
   let mouseX = 0
   let mouseY = 0
@@ -358,6 +370,7 @@ if (!webglAvailable()) {
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
     composer.setSize(window.innerWidth, window.innerHeight)
+    placeCta()
   })
 
   function skyAt(t) {
