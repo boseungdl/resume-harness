@@ -38,6 +38,7 @@ const popupWho = popupEl.querySelector('.who')
 const dashTitle = document.getElementById('dash-title')
 const halfNote = document.getElementById('half-note')
 const outroRecord = document.getElementById('outro-record')
+const thanksBubble = document.getElementById('thanks-bubble')
 
 // 만남 라벨 — 얼마나 왔고 얼마나 남았는지가 관계의 언어다
 const MEET_LABELS = ['첫 번째 질문', '두 번째 질문', '세 번째 질문', '네 번째 질문', '다섯 번째 질문', '여섯 번째 질문', '마지막 질문']
@@ -287,6 +288,7 @@ if (!webglAvailable()) {
   let idleAction = null
   let waveAction = null
   let yesAction = null
+  let jumpAction = null
   let waved = false
 
   new GLTFLoader().load(
@@ -318,6 +320,11 @@ if (!webglAvailable()) {
         yesAction = mixer.clipAction(yesClip)
         yesAction.setLoop(THREE.LoopOnce)
       }
+      const jumpClip = find('jump')
+      if (jumpClip) {
+        jumpAction = mixer.clipAction(jumpClip)
+        jumpAction.setLoop(THREE.LoopOnce)
+      }
       // 동작의 규칙: 인사(Wave)와 끄덕임(Yes)은 1회 재생 후 일상으로 돌아간다
       mixer.addEventListener('finished', (e) => {
         if (e.action === waveAction && !waved) waveAction.fadeOut(0.5)
@@ -325,6 +332,7 @@ if (!webglAvailable()) {
           setTimeout(() => yesAction.reset().fadeIn(0.3).play(), 400) // 인사 뒤 목례
         }
         if (e.action === yesAction) yesAction.fadeOut(0.4)
+        if (e.action === jumpAction) jumpAction.fadeOut(0.3)
       })
       // 랜딩 인사 — 우연히 서 있는 게 아니라 기다리고 있었다
       if (waveAction) {
@@ -376,8 +384,18 @@ if (!webglAvailable()) {
         sub.style.opacity = '1'
       }, 220)
     }
-    if (yesAction) yesAction.reset().fadeIn(0.2).play()
-    setTimeout(go, 700) // 끄덕임의 정점이 지나간 뒤 세계가 움직인다
+    // 클릭은 나에 대한 선택 — 로봇이 머리 위 말풍선과 함께 기뻐서 뛴다
+    if (thanksBubble) {
+      camera.updateMatrixWorld()
+      const p = new THREE.Vector3(0, 2.5, 0).project(camera)
+      thanksBubble.style.left = `${((p.x * 0.5 + 0.5) * 100).toFixed(1)}%`
+      thanksBubble.style.top = `${((-p.y * 0.5 + 0.5) * 100).toFixed(1)}%`
+      thanksBubble.classList.add('show')
+      setTimeout(() => thanksBubble.classList.remove('show'), 2600)
+    }
+    if (jumpAction) jumpAction.reset().fadeIn(0.15).play()
+    else if (yesAction) yesAction.reset().fadeIn(0.2).play()
+    setTimeout(go, 1050) // 점프가 착지한 뒤 세계가 움직인다
   }
   document.getElementById('start-walk').addEventListener('click', startWalk)
 
