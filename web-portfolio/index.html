@@ -524,23 +524,23 @@
     }
     #half-note.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* 클릭의 보답 — 로봇 머리 위 감사 말풍선 (위치는 JS가 3D 투영으로 잡는다) */
+    /* 클릭의 보답 — 로봇 머리 위 이모트 버블(하트). 말 대신 게임의 문법으로 */
     #thanks-bubble {
       position: fixed;
       z-index: 3;
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--ink);
+      width: 54px;
+      height: 50px;
       background: #fff;
-      border-radius: 14px;
-      padding: 9px 18px;
-      box-shadow: 0 10px 26px -10px rgba(23, 76, 110, 0.4);
-      white-space: nowrap;
+      border-radius: 16px;
+      box-shadow: 0 8px 22px -8px rgba(23, 76, 110, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transform: translate(-50%, calc(-100% - 14px)) scale(0.85);
+      transform: translate(-50%, calc(-100% - 16px)) scale(0.4);
       transform-origin: 50% 100%;
-      transition: opacity 0.25s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: opacity 0.16s, transform 0.28s cubic-bezier(0.34, 1.8, 0.64, 1);
     }
     #thanks-bubble::after {
       content: '';
@@ -553,7 +553,16 @@
       border-right: 7px solid transparent;
       border-top: 9px solid #fff;
     }
-    #thanks-bubble.show { opacity: 1; transform: translate(-50%, calc(-100% - 14px)) scale(1); }
+    #thanks-bubble svg { width: 26px; height: 26px; fill: #ff5f43; }
+    #thanks-bubble.show { opacity: 1; transform: translate(-50%, calc(-100% - 16px)) scale(1); }
+    #thanks-bubble.show svg { animation: heart-beat 0.85s ease-in-out; }
+    @keyframes heart-beat {
+      0% { transform: scale(0.3); }
+      35% { transform: scale(1.25); }
+      55% { transform: scale(0.92); }
+      75% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
     #outro-panel .links { display: flex; gap: 0.85rem; flex-wrap: wrap; }
     #outro-panel a {
       font-size: 0.87rem; color: var(--ink); text-decoration: none; font-weight: 600;
@@ -689,7 +698,7 @@
     <button class="go" id="resume-walk">계속 걷기 →</button>
   </section>
   <div id="half-note">절반을 걸으셨습니다 — 여기부터는 조금 더 솔직한 이야기입니다</div>
-  <div id="thanks-bubble">고맙습니다 — 같이 걸어요</div>
+  <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
   <aside id="dash" class="panel">
     <div class="dash-head"><span class="led"></span><span id="dash-title">함께 걷는 중</span><b id="dash-pct">0%</b></div>
     <div class="kpis">

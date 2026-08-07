@@ -391,7 +391,7 @@ if (!webglAvailable()) {
       thanksBubble.style.left = `${((p.x * 0.5 + 0.5) * 100).toFixed(1)}%`
       thanksBubble.style.top = `${((-p.y * 0.5 + 0.5) * 100).toFixed(1)}%`
       thanksBubble.classList.add('show')
-      setTimeout(() => thanksBubble.classList.remove('show'), 2600)
+      setTimeout(() => thanksBubble.classList.remove('show'), 1200) // 세계가 움직이기 전에 사라진다
     }
     if (jumpAction) jumpAction.reset().fadeIn(0.15).play()
     else if (yesAction) yesAction.reset().fadeIn(0.2).play()
