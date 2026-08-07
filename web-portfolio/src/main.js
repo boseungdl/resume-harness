@@ -28,6 +28,7 @@ const journeyEl = document.getElementById('journey')
 const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
+const popupExp = popupEl.querySelector('.exp')
 const outroEl = document.getElementById('outro-panel')
 const dashChips = document.getElementById('dash-chips')
 const dashPct = document.getElementById('dash-pct')
@@ -550,7 +551,72 @@ if (!webglAvailable()) {
   let typeTimer = null
   let outroFilled = false
 
-  // 질문이 타이핑되며 나타나고, 답이 뒤따라 떠오른다
+  // 질문이 타이핑되며 나타나고, (체험이 있으면 독자가 먼저 답해 본 뒤) 답이 뒤따라 떠오른다
+  const expDone = STORY.map(() => false)
+
+  function revealAnswer(index) {
+    popupA.classList.add('on')
+    if (!collected[index]) {
+      resumeBtn.classList.add('on')
+      popupEl.classList.add('gated')
+    }
+  }
+
+  function renderExp(index) {
+    const exp = STORY[index].exp
+    popupExp.innerHTML = ''
+    popupEl.classList.add('gated') // 체험 중엔 팝업이 흔들리지 않는다 — 클릭 타깃 정지
+    const ask = document.createElement('div')
+    ask.className = 'exp-ask'
+    ask.textContent = exp.ask
+    popupExp.appendChild(ask)
+
+    if (exp.type === 'poll') {
+      const wrap = document.createElement('div')
+      wrap.className = 'exp-btns'
+      const reveal = document.createElement('div')
+      reveal.className = 'exp-reveal'
+      reveal.textContent = exp.reveal
+      exp.options.forEach((label) => {
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.textContent = label
+        b.addEventListener('click', () => {
+          wrap.querySelectorAll('button').forEach((x) => { x.disabled = true })
+          b.classList.add('picked')
+          reveal.classList.add('on')
+          expDone[index] = true
+          setTimeout(() => revealAnswer(index), 600)
+        })
+        wrap.appendChild(b)
+      })
+      popupExp.appendChild(wrap)
+      popupExp.appendChild(reveal)
+    } else if (exp.type === 'toggle') {
+      const draft = document.createElement('div')
+      draft.className = 'exp-draft'
+      const tag = document.createElement('span')
+      tag.className = 'tag'
+      tag.textContent = 'AI 초안'
+      draft.appendChild(tag)
+      draft.appendChild(document.createTextNode(exp.draft))
+      const wrap = document.createElement('div')
+      wrap.className = 'exp-btns'
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.textContent = exp.button
+      b.addEventListener('click', () => {
+        b.disabled = true
+        draft.classList.add('dimmed')
+        expDone[index] = true
+        revealAnswer(index)
+      })
+      wrap.appendChild(b)
+      popupExp.appendChild(draft)
+      popupExp.appendChild(wrap)
+    }
+  }
+
   function typeQuestion(index) {
     if (typeTimer) clearInterval(typeTimer)
     const text = STORY[index].question
@@ -558,6 +624,7 @@ if (!webglAvailable()) {
     resumeBtn.textContent = index === STORY.length - 1 ? '마지막 구간으로 →' : '계속 걷기 →'
     popupA.textContent = STORY[index].text
     popupA.classList.remove('on')
+    popupExp.innerHTML = ''
     popupQ.innerHTML = '<span class="caret"></span>'
     let k = 0
     typeTimer = setInterval(() => {
@@ -567,10 +634,10 @@ if (!webglAvailable()) {
         clearInterval(typeTimer)
         typeTimer = null
         popupQ.innerHTML = `“${text}”`
-        popupA.classList.add('on')
-        if (!collected[index]) {
-          resumeBtn.classList.add('on')
-          popupEl.classList.add('gated')
+        if (STORY[index].exp && !expDone[index] && !collected[index]) {
+          renderExp(index)
+        } else {
+          revealAnswer(index)
         }
       }
     }, 28)
@@ -594,14 +661,8 @@ if (!webglAvailable()) {
   })
 
   function updateUi(progress, t) {
-    // 만남 게이트 — 수집 전에는 그 앞에서 스크롤이 멈춘다
-    const gi = collected.findIndex((done) => !done)
-    if (gi >= 0) {
-      const base = journeyBase()
-      const span = document.documentElement.scrollHeight - window.innerHeight - base
-      const gY = base + (world.npcs[gi].dist / world.TOTAL) * span
-      if (window.scrollY > gY + 1) window.scrollTo(0, gY)
-    }
+    // v2: 스크롤 락 없음 — 세계는 걸음을 멈추지 않는다.
+    // 칩은 존 진입 시 자동 축적되어, 빨리 걸어도 요지는 남는다.
 
     // 걷기 시작하면 버튼은 임무를 마치고 사라진다 (팻말은 세계와 함께 뒤로)
     if (ctaWrap) {
@@ -637,6 +698,7 @@ if (!webglAvailable()) {
         popupEl.classList.remove('hidden-panel')
         typeQuestion(near)
         flashChapterCard(near)
+        if (!collected[near]) collect(near)
       } else {
         popupEl.classList.add('hidden-panel')
         popupEl.classList.remove('gated')
