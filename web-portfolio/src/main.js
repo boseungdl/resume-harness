@@ -271,15 +271,14 @@ if (!webglAvailable()) {
     } else {
       signCtx.fillStyle = '#16303c'
       signCtx.font = '700 50px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      const title = '3분만 내어주시겠어요?'
-      signCtx.fillText(title, W / 2, 126)
+      signCtx.fillText('준비한 이야기가 있습니다', W / 2, 126)
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
       signCtx.roundRect(W / 2 - 90, 152, 180, 7, 4)
       signCtx.fill()
       signCtx.fillStyle = 'rgba(22, 48, 60, 0.62)'
-      signCtx.font = '500 26px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('함께 걸으며, 어떤 사람인지 보여드리겠습니다', W / 2, 214)
+      signCtx.font = '500 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('잠깐, 시간을 내어주시겠어요?', W / 2, 214)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
