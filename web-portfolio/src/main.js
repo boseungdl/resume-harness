@@ -270,15 +270,16 @@ if (!webglAvailable()) {
       signCtx.fillText('내어주신 시간, 아껴 쓰겠습니다', W / 2, 226)
     } else {
       signCtx.fillStyle = '#16303c'
-      signCtx.font = '700 44px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('저라는 사람을 짧게 담았습니다', W / 2, 116)
+      signCtx.font = '700 46px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('저라는 사람을', W / 2, 96)
+      signCtx.fillText('한 걸음씩 담았습니다', W / 2, 152)
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
-      signCtx.roundRect(W / 2 - 90, 144, 180, 7, 4)
+      signCtx.roundRect(W / 2 - 90, 174, 180, 7, 4)
       signCtx.fill()
       signCtx.fillStyle = 'rgba(22, 48, 60, 0.8)'
       signCtx.font = '600 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('바쁘시겠지만, 한 번 걸어봐 주시겠어요?', W / 2, 210)
+      signCtx.fillText('바쁘시겠지만, 잠깐 걸으며 알아가요', W / 2, 222)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
