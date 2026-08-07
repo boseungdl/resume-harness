@@ -354,6 +354,18 @@ export function buildWorld(scene, chapterCount) {
   )
   group.add(motes)
 
+  // 시작 데크 — 로봇은 처음부터 길 위에 서 있다 (랜딩 프레임에서 길이 소실점으로 뻗는다)
+  const introLen = 38
+  const introDeck = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.08, introLen), deckMaterialFor(introLen))
+  introDeck.position.set(0, 0.04, -(introLen / 2 - 7))
+  introDeck.receiveShadow = true
+  group.add(introDeck)
+  const introEdgeL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, introLen), glowMat(GLOW, 0.85))
+  introEdgeL.position.set(-1.18, 0.05, introDeck.position.z)
+  const introEdgeR = introEdgeL.clone()
+  introEdgeR.position.x = 1.18
+  group.add(introEdgeL, introEdgeR)
+
   for (let z = 0; z < chapterCount; z++) {
     const zoneStart = INTRO_LEN + z * ZONE_LEN
     const palette = ZONE_COLORS[z % ZONE_COLORS.length]

@@ -57,77 +57,10 @@ const collected = STORY.map(() => false)
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-// 로드 스태거 등장 — 위에서 아래로
-document.querySelectorAll('#landing .fx').forEach((el, i) => {
-  setTimeout(() => el.classList.add('in'), reduceMotion ? 0 : 250 + i * 90)
+// 모션 법칙: 로드 시 1회 페이드, 이후 UI는 정지 — 움직임은 세계의 것
+document.querySelectorAll('.land-fade').forEach((el, i) => {
+  setTimeout(() => el.classList.add('in'), reduceMotion ? 0 : 200 + i * 140)
 })
-
-// 성장 경로 다이어그램 — 레일이 내려오며 층이 하나씩 켜진다
-const stackViz = document.getElementById('stack-viz')
-if (stackViz) {
-  const lays = stackViz.querySelectorAll('.lay')
-  if (reduceMotion) {
-    stackViz.classList.add('go')
-    lays.forEach((el) => el.classList.add('on'))
-  } else {
-    setTimeout(() => {
-      stackViz.classList.add('go')
-      lays.forEach((el, i) => setTimeout(() => el.classList.add('on'), 320 + i * 300))
-    }, 700)
-  }
-}
-
-// 숫자 카운트업
-document.querySelectorAll('[data-count]').forEach((el) => {
-  const to = Number(el.dataset.count)
-  if (reduceMotion || !Number.isFinite(to)) return
-  const t0 = performance.now()
-  const step = (now) => {
-    const p = Math.min(1, (now - t0) / 900)
-    el.textContent = String(Math.round(to * (1 - Math.pow(1 - p, 3))))
-    if (p < 1) requestAnimationFrame(step)
-  }
-  requestAnimationFrame(step)
-})
-
-// 레이어 패럴랙스 리그 — 행마다 다른 깊이(z)로 마우스에 반응, 대시보드 전체가 미세하게 기운다
-if (!reduceMotion) {
-  const rig = [
-    [document.getElementById('hero'), 6, 34],
-    [document.getElementById('land-bio'), 10, 24],
-    [document.getElementById('land-live'), 14, 14],
-    [document.getElementById('land-doors'), 18, 6],
-  ].filter(([el]) => el)
-  const wrapEl = document.querySelector('.land-wrap')
-  let rx = 0, ry = 0, rcx = 0, rcy = 0
-  window.addEventListener('pointermove', (e) => {
-    rx = e.clientX / window.innerWidth - 0.5
-    ry = e.clientY / window.innerHeight - 0.5
-  })
-  const rigLoop = () => {
-    rcx += (rx - rcx) * 0.055
-    rcy += (ry - rcy) * 0.055
-    rig.forEach(([el, d, z]) => {
-      el.style.transform = `translate3d(${(-rcx * d).toFixed(2)}px, ${(-rcy * d * 0.6).toFixed(2)}px, ${z}px)`
-    })
-    if (wrapEl) wrapEl.style.transform = `rotateY(${(rcx * 1.1).toFixed(3)}deg) rotateX(${(-rcy * 0.8).toFixed(3)}deg)`
-    requestAnimationFrame(rigLoop)
-  }
-  setTimeout(() => requestAnimationFrame(rigLoop), 1500) // 등장 연출이 끝난 뒤에
-}
-
-// 우상단 라이브 시계 — 관제화면은 시간이 흐른다
-const hudClock = document.getElementById('hud-clock')
-if (hudClock) {
-  const tick = () => {
-    const d = new Date()
-    hudClock.textContent = [d.getHours(), d.getMinutes(), d.getSeconds()]
-      .map((v) => String(v).padStart(2, '0'))
-      .join(':')
-  }
-  tick()
-  setInterval(tick, 1000)
-}
 
 // 커밋 차트 — 외주 위젯 대신 직접 그린다. 주 단위 합계는 0일들을 왜곡 없이 흡수한다.
 const FALLBACK_WEEKS = [
@@ -151,52 +84,29 @@ async function commitChart() {
   } catch { /* 오프라인이면 마지막 확인값으로 그린다 */ }
   const total = weeks.reduce((s, w) => s + w[1], 0)
   const cap = document.getElementById('gh-cap')
-  if (cap) cap.textContent = `주 단위 합계 ${total}커밋 · 출처: GitHub API`
+  if (cap) cap.textContent = `최근 6주 ${total}커밋 — GITHUB API`
   const chart = echarts.init(el)
   chart.setOption({
-    grid: { left: 26, right: 8, top: 10, bottom: 22 },
-    xAxis: {
-      type: 'category',
-      data: weeks.map((w) => w[0]),
-      axisLine: { lineStyle: { color: 'rgba(22,48,60,0.22)' } },
-      axisTick: { show: false },
-      axisLabel: { color: 'rgba(22,48,60,0.5)', fontSize: 10, fontFamily: 'IBM Plex Mono' },
+    grid: { left: 0, right: 0, top: 2, bottom: 0 },
+    xAxis: { type: 'category', show: false, data: weeks.map((w) => w[0]) },
+    yAxis: { type: 'value', show: false },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (p) => `${p[0].name} 주 — ${p[0].value}커밋`,
+      textStyle: { fontSize: 11 },
     },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      splitLine: { lineStyle: { color: 'rgba(22,48,60,0.10)', type: [2, 4] } },
-      axisLabel: { color: 'rgba(22,48,60,0.45)', fontSize: 10, fontFamily: 'IBM Plex Mono' },
-    },
-    tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name} 주 — ${p[0].value}커밋` },
     series: [{
       type: 'bar',
-      barWidth: '42%',
+      barWidth: '52%',
       data: weeks.map((w, i) => ({
         value: w[1],
-        itemStyle: i === weeks.length - 1
-          ? {
-              color: '#ff7a59',
-              borderRadius: [2, 2, 0, 0],
-              shadowBlur: 12,
-              shadowColor: 'rgba(255,122,89,0.45)',
-              shadowOffsetY: 4,
-            }
-          : {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#22c4d4' },
-                { offset: 1, color: '#0ea8b8' },
-              ]),
-              borderRadius: [2, 2, 0, 0],
-              shadowBlur: 12,
-              shadowColor: 'rgba(14,168,184,0.40)',
-              shadowOffsetY: 4,
-            },
+        itemStyle: {
+          color: i === weeks.length - 1 ? '#0b7c8c' : 'rgba(14,168,184,0.55)',
+          borderRadius: [1, 1, 0, 0],
+        },
       })),
     }],
-    animationDuration: reduceMotion ? 0 : 700,
-    animationDelay: (i) => (reduceMotion ? 0 : 350 + i * 90),
-    animationEasing: 'cubicOut',
+    animationDuration: reduceMotion ? 0 : 500,
   })
   window.addEventListener('resize', () => chart.resize())
 }
@@ -238,9 +148,10 @@ if (!webglAvailable()) {
   scene.background = skyNow
   scene.fog = new THREE.Fog(skyNow, 22, 78)
 
+  // 카메라 A(랜딩): 로봇 눈높이에서 마주 보기 / B(여정): 높은 동행 샷 — 스크롤로 스크럽
   const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500)
-  camera.position.set(-2.1, 3.1, 8.8)
-  camera.lookAt(0.35, 1.15, -2.5)
+  camera.position.set(-2.8, 2.0, 6.6)
+  camera.lookAt(-0.5, 1.05, -9)
 
   // ----- 하늘 돔 (그라데이션) · 태양 · 구름 -----
   const skyUniforms = {
@@ -360,7 +271,7 @@ if (!webglAvailable()) {
 
   const walker = new THREE.Group()
   walker.position.set(0, 0, 0)
-  walker.rotation.y = Math.PI
+  walker.rotation.y = -0.49 // 랜딩에서는 관람자를 바라본다
   scene.add(walker)
 
   let mixer = null
@@ -392,6 +303,13 @@ if (!webglAvailable()) {
         waveAction = mixer.clipAction(waveClip)
         waveAction.setLoop(THREE.LoopOnce)
         waveAction.clampWhenFinished = true
+        // 랜딩 인사 — 우연히 서 있는 게 아니라 기다리고 있었다
+        mixer.addEventListener('finished', (e) => {
+          if (e.action === waveAction && !waved) waveAction.fadeOut(0.5)
+        })
+        setTimeout(() => {
+          if (window.scrollY < window.innerHeight * 0.3) waveAction.reset().fadeIn(0.3).play()
+        }, 1400)
       }
       liftVeil()
     },
@@ -502,9 +420,8 @@ if (!webglAvailable()) {
       if (window.scrollY > gY + 1) window.scrollTo(0, gY)
     }
 
-    // 계기판·여정 바는 여정에 들어선 뒤에만 · 랜딩에서는 세계에 심도 블러
+    // 계기판·여정 바는 여정에 들어선 뒤에만
     const inJourney = window.scrollY > journeyBase() * 0.72
-    document.body.classList.toggle('on-landing', window.scrollY < journeyBase() * 0.4)
     dashEl.classList.toggle('hidden-panel', !inJourney)
     journeyEl.classList.toggle('hidden-panel', !inJourney)
 
@@ -544,7 +461,7 @@ if (!webglAvailable()) {
   }
 
   const clock = new THREE.Clock()
-  const lookTarget = new THREE.Vector3(0.35, 1.15, -2.5)
+  const lookTarget = new THREE.Vector3(-0.5, 1.05, -9)
   const lookNow = lookTarget.clone()
   let prevWalked = 0
 
@@ -552,6 +469,8 @@ if (!webglAvailable()) {
     const dt = Math.min(0.06, clock.getDelta())
     const t = clock.elapsedTime
     const progress = scrollProgress()
+    // 랜딩→여정 위상 (0=마주 보기, 1=동행) — 스크롤 첫 0.9화면 구간을 스크럽
+    const ph = THREE.MathUtils.smoothstep(window.scrollY / (window.innerHeight * 0.9), 0, 1)
     const walkedTarget = progress * world.TOTAL
     const speed = walkedTarget - walked
     walked += speed * Math.min(1, dt * 4.5)
@@ -571,26 +490,33 @@ if (!webglAvailable()) {
       mixer.update(dt)
     }
 
-    // 여정 끝 — 돌아서서 손을 흔든다
+    // 랜딩에선 관람자를 보고, 걷기 시작하면 길을 향해 돌아서고, 끝에서 다시 마주 본다
     const atEnd = progress > 0.955
-    const facing = atEnd ? 0 : Math.PI
+    const facing = atEnd
+      ? 0
+      : THREE.MathUtils.lerp(-0.49, Math.PI, THREE.MathUtils.smoothstep(ph, 0.25, 0.8))
     walker.rotation.y += (facing - walker.rotation.y) * Math.min(1, dt * 3)
     if (atEnd && !waved && waveAction) {
       waved = true
       waveAction.reset().play()
     }
 
-    // 살아있는 카메라 — 바닷바람 스웨이 + 랜딩 마우스 패럴랙스 + 만남 때 NPC 쪽으로 시선
-    const onLanding = window.scrollY < journeyBase() * 0.5
-    const px = onLanding && !reduceMotion ? mouseX * 0.6 : 0
-    const py = onLanding && !reduceMotion ? -mouseY * 0.3 : 0
-    camera.position.x = -2.1 + Math.sin(t * 0.32) * 0.18 + px
-    camera.position.y = 3.1 + Math.sin(t * 0.45) * 0.08 + py
+    // 카메라 리그 — 랜딩 A(마주 보기) → 여정 B(동행)를 스크롤로 스크럽 + 바닷바람 스웨이
+    const onLanding = ph < 0.5
+    const px = onLanding && !reduceMotion ? mouseX * 0.5 : 0
+    const py = onLanding && !reduceMotion ? -mouseY * 0.25 : 0
+    camera.position.x = THREE.MathUtils.lerp(-2.8, -2.1, ph) + Math.sin(t * 0.32) * 0.18 + px
+    camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + Math.sin(t * 0.45) * 0.08 + py
+    camera.position.z = THREE.MathUtils.lerp(6.6, 8.8, ph)
     if (activePopup >= 0) {
       const npc = world.npcs[activePopup]
       lookTarget.set(npc.group.position.x * 0.55, 1.05, -2.5)
     } else {
-      lookTarget.set(0.35, 1.15, -2.5)
+      lookTarget.set(
+        THREE.MathUtils.lerp(-0.5, 0.35, ph),
+        THREE.MathUtils.lerp(1.05, 1.15, ph),
+        THREE.MathUtils.lerp(-9, -2.5, ph)
+      )
     }
     lookNow.lerp(lookTarget, Math.min(1, dt * 2.2))
     camera.lookAt(lookNow)
@@ -599,6 +525,7 @@ if (!webglAvailable()) {
     const c = skyAt(progress)
     skyNow.copy(c)
     scene.fog.color.copy(c)
+    scene.fog.near = 18 + 4 * ph // 랜딩에선 원경이 살짝 물러나 로봇만 또렷하다
     skyUniforms.bottom.value.copy(c)
     for (let i = 0; i < SKY_TOP.length - 1; i++) {
       const [t0, c0] = SKY_TOP[i]
