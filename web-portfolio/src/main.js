@@ -264,21 +264,22 @@ if (!webglAvailable()) {
     if (mode === 'thanks') {
       signCtx.fillStyle = '#f4552b'
       signCtx.font = '700 60px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('고맙습니다', W / 2, 150)
-      signCtx.fillStyle = 'rgba(22, 48, 60, 0.72)'
-      signCtx.font = '600 34px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('3분, 아껴 쓰겠습니다', W / 2, 226)
+      signCtx.fillText('감사합니다', W / 2, 150)
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.78)'
+      signCtx.font = '600 32px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('내어주신 시간, 아껴 쓰겠습니다', W / 2, 226)
     } else {
       signCtx.fillStyle = '#16303c'
-      signCtx.font = '700 50px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('준비한 이야기가 있습니다', W / 2, 126)
+      signCtx.font = '700 46px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('저라는 사람의 소개를', W / 2, 96)
+      signCtx.fillText('준비했습니다', W / 2, 152)
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
-      signCtx.roundRect(W / 2 - 90, 152, 180, 7, 4)
+      signCtx.roundRect(W / 2 - 90, 174, 180, 7, 4)
       signCtx.fill()
-      signCtx.fillStyle = 'rgba(22, 48, 60, 0.62)'
-      signCtx.font = '500 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('잠깐, 시간을 내어주시겠어요?', W / 2, 214)
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.8)'
+      signCtx.font = '600 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('바쁘시겠지만, 잠깐만 내어주시겠어요?', W / 2, 222)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
