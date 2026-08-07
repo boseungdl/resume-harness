@@ -13,6 +13,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { STORY } from './story.js'
 import { buildWorld } from './world.js'
+import { createQualityGovernor } from './quality.js'
 
 echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
@@ -322,9 +323,15 @@ if (!webglAvailable()) {
   // 블룸 — 트랙 엣지·크리스탈·등대가 실제로 빛난다
   const composer = new EffectComposer(renderer)
   composer.addPass(new RenderPass(scene, camera))
-  composer.addPass(
-    new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3, 0.5, 0.92)
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3, 0.5, 0.92
   )
+  // composer.addPass(bloomPass)
+  const quality = createQualityGovernor({
+    renderer,
+    composer,
+    onDisableBloom: () => composer.removePass(bloomPass),
+  })
 
   // 하단 여정 바 — 7개 노드와 달리는 점
   const journeyTrack = document.querySelector('#journey .track')
@@ -729,6 +736,7 @@ if (!webglAvailable()) {
       cl.position.x += Math.sin(t * 0.08 + i) * 0.004
     })
 
+    // quality.tick()
     composer.render()
   })
 }
