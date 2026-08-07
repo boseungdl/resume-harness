@@ -251,9 +251,57 @@ if (!webglAvailable()) {
   signPostL.position.set(-0.76, 0.575, 0)
   const signPostR = signPostL.clone()
   signPostR.position.x = 0.76
+  // 간판 글씨 — 버튼 DOM 대신 판에 직접 그린다 (클릭하면 문구가 바뀐다)
+  const signCv = document.createElement('canvas')
+  signCv.width = 640
+  signCv.height = 344
+  const signCtx = signCv.getContext('2d')
+  function drawSign(mode) {
+    const W = 640
+    signCtx.fillStyle = '#ffffff'
+    signCtx.fillRect(0, 0, W, 344)
+    signCtx.textAlign = 'center'
+    if (mode === 'thanks') {
+      signCtx.fillStyle = '#f4552b'
+      signCtx.font = '700 60px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('고맙습니다', W / 2, 150)
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.72)'
+      signCtx.font = '600 34px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('3분, 아껴 쓰겠습니다', W / 2, 226)
+    } else {
+      signCtx.fillStyle = '#16303c'
+      signCtx.font = '700 58px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      const title = '함께 걸어보세요'
+      const tw = signCtx.measureText(title).width
+      signCtx.fillText(title, W / 2 - 22, 132)
+      signCtx.fillStyle = '#f4552b'
+      signCtx.fillText('↓', W / 2 + tw / 2 + 18, 132)
+      signCtx.fillStyle = '#f4552b'
+      signCtx.beginPath()
+      signCtx.roundRect(W / 2 - 90, 160, 180, 7, 4)
+      signCtx.fill()
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.62)'
+      signCtx.font = '500 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('어떤 사람인지 궁금하시다면', W / 2, 226)
+      signCtx.fillText('— 3분이면 됩니다', W / 2, 268)
+    }
+  }
+  drawSign()
+  const signTex = new THREE.CanvasTexture(signCv)
+  signTex.colorSpace = THREE.SRGBColorSpace
+  if (document.fonts?.ready) document.fonts.ready.then(() => { drawSign(); signTex.needsUpdate = true })
+  const signSideMat = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#dff2f8', emissiveIntensity: 0.42, flatShading: true })
+  const signFaceMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    map: signTex,
+    emissive: '#ffffff',
+    emissiveMap: signTex,
+    emissiveIntensity: 0.5,
+    flatShading: true,
+  })
   const signBoard = new THREE.Mesh(
     new THREE.BoxGeometry(1.82, 0.98, 0.07),
-    new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#dff2f8', emissiveIntensity: 0.42, flatShading: true })
+    [signSideMat, signSideMat, signSideMat, signSideMat, signFaceMat, signSideMat]
   )
   signBoard.position.set(0, 1.14, 0)
   const signEdge = new THREE.Mesh(
@@ -398,16 +446,9 @@ if (!webglAvailable()) {
     const go = () => window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
     if (walkStarted || reduceMotion) { walkStarted = true; go(); return }
     walkStarted = true
-    // 시작의 감사는 계약으로 — 비용을 정확히 고지하고, 로봇은 끄덕임으로 답한다
-    const sub = document.querySelector('.cta-sub')
-    if (sub) {
-      sub.style.transition = 'opacity 0.22s'
-      sub.style.opacity = '0'
-      setTimeout(() => {
-        sub.textContent = '3분, 아껴 쓰겠습니다. 일곱 번 멈춥니다.'
-        sub.style.opacity = '1'
-      }, 220)
-    }
+    // 시작의 감사는 계약으로 — 간판 글씨가 바뀐다
+    drawSign('thanks')
+    signTex.needsUpdate = true
     // 클릭은 나에 대한 선택 — 로봇이 머리 위 말풍선과 함께 기뻐서 뛴다
     if (thanksBubble) {
       camera.updateMatrixWorld()
@@ -421,7 +462,17 @@ if (!webglAvailable()) {
     else if (yesAction) yesAction.reset().fadeIn(0.2).play()
     setTimeout(go, 1050) // 점프가 착지한 뒤 세계가 움직인다
   }
-  document.getElementById('start-walk').addEventListener('click', startWalk)
+  const startBtn = document.getElementById('start-walk')
+  startBtn.addEventListener('click', startWalk)
+  // 호버 — 간판이 반갑게 반응한다
+  startBtn.addEventListener('pointerenter', () => {
+    sign.scale.setScalar(0.89)
+    signEdge.material.emissiveIntensity = 1.6
+  })
+  startBtn.addEventListener('pointerleave', () => {
+    sign.scale.setScalar(0.85)
+    signEdge.material.emissiveIntensity = 0.9
+  })
 
   // CTA를 로봇 발 앞 월드 좌표에 앵커 — 뷰포트 비율이 바뀌어도 '발밑' 관계 유지
   const ctaWrap = document.querySelector('.cta-wrap')

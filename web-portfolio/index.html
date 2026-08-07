@@ -193,91 +193,16 @@
       gap: 12px;
       z-index: 1;
     }
-    #start-walk {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      height: 56px;
-      padding: 0 34px;
+    /* 간판 전체가 버튼 — 투명 핫스팟, 글씨는 3D 텍스처가 담당 */
+    .sign-hotspot {
+      width: clamp(250px, 20vw, 400px);
+      height: clamp(150px, 11.5vw, 225px);
+      background: transparent;
       border: none;
-      border-radius: 18px;
-      /* 스펙큘러 + 원통 곡률(양끝 어두움) + 밝은 코랄 베이스 */
-      background:
-        radial-gradient(130% 100% at 30% -20%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 55%),
-        linear-gradient(90deg, rgba(140, 40, 15, 0.18), transparent 16%, transparent 84%, rgba(140, 40, 15, 0.18)),
-        linear-gradient(180deg, #ff9a70 0%, #ff7a52 55%, #ff6a45 100%);
-      color: #fff;
-      font-family: inherit;
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      text-shadow: 0 1px 1px rgba(150, 45, 20, 0.4);
+      padding: 0;
       cursor: pointer;
-      transform: perspective(700px) rotateX(8deg);
-      /* 다단 압출 립(둥근 아랫면) + AO + 접촉 그림자 + 캐스트 + 내부 셰이딩 */
-      box-shadow:
-        0 1px 0 #e8633c,
-        0 2px 0 #de5b35,
-        0 3px 0 #d4532e,
-        0 4px 0 #ca4b28,
-        0 5px 0 #c04422,
-        0 6px 1px rgba(120, 35, 12, 0.45),
-        0 10px 6px -2px rgba(160, 50, 25, 0.35),
-        0 24px 36px -12px rgba(214, 80, 47, 0.5),
-        inset 0 2px 1px rgba(255, 255, 255, 0.55),
-        inset 0 -3px 6px rgba(190, 70, 40, 0.45),
-        inset 3px 0 6px -2px rgba(190, 70, 40, 0.25),
-        inset -3px 0 6px -2px rgba(190, 70, 40, 0.25);
-      transition: transform 0.15s, box-shadow 0.15s;
     }
-    #start-walk:hover {
-      transform: perspective(700px) rotateX(5deg) translateY(-3px);
-      box-shadow:
-        0 1px 0 #e8633c,
-        0 2px 0 #e05d36,
-        0 3px 0 #d95730,
-        0 4px 0 #d1502b,
-        0 5px 0 #ca4a27,
-        0 6px 0 #c44523,
-        0 7px 0 #c04422,
-        0 8px 1px rgba(120, 35, 12, 0.42),
-        0 13px 8px -2px rgba(160, 50, 25, 0.32),
-        0 30px 44px -12px rgba(214, 80, 47, 0.55),
-        inset 0 2px 1px rgba(255, 255, 255, 0.55),
-        inset 0 -3px 6px rgba(190, 70, 40, 0.45),
-        inset 3px 0 6px -2px rgba(190, 70, 40, 0.25),
-        inset -3px 0 6px -2px rgba(190, 70, 40, 0.25);
-    }
-    #start-walk:active {
-      transform: perspective(700px) rotateX(10deg) translateY(3px);
-      box-shadow:
-        0 1px 0 #d4532e,
-        0 2px 0 #c04422,
-        0 3px 1px rgba(120, 35, 12, 0.5),
-        0 6px 4px -2px rgba(160, 50, 25, 0.35),
-        0 12px 18px -10px rgba(214, 80, 47, 0.45),
-        inset 0 2px 1px rgba(255, 255, 255, 0.5),
-        inset 0 -2px 5px rgba(190, 70, 40, 0.5),
-        inset 3px 0 6px -2px rgba(190, 70, 40, 0.25),
-        inset -3px 0 6px -2px rgba(190, 70, 40, 0.25);
-    }
-    #start-walk:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-    #start-walk .arr { font-size: 19px; animation: arr-bob 1.9s ease-in-out infinite; }
-    @keyframes arr-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
-    .cta-sub {
-      font-size: 12px;
-      color: var(--ink-70);
-      background: rgba(255, 255, 255, 0.82);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      border-radius: 999px;
-      padding: 4px 14px;
-      word-break: keep-all;
-      white-space: nowrap;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      #start-walk .arr { animation: none; }
-    }
+    .sign-hotspot:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 4px; border-radius: 12px; }
 
     /* 풋라인 — 실데이터 스파크라인 */
     .footline {
@@ -670,8 +595,7 @@
       </div>
     </div>
     <div class="cta-wrap land-fade">
-      <button id="start-walk">함께 걸어보세요<span class="arr">↓</span></button>
-      <p class="cta-sub">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</p>
+      <button id="start-walk" class="sign-hotspot" aria-label="함께 걸어보세요 — 3분 걷기 시작"></button>
     </div>
     <div class="footline land-fade">
       <span class="cap" id="gh-cap">최근 6주 커밋</span>
