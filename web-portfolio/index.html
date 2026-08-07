@@ -149,40 +149,52 @@
     .meta .tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 3px; }
     .meta .tools img { width: 17px; height: 17px; display: block; opacity: 0.9; transition: opacity 0.2s; }
     .meta .tools img:hover { opacity: 1; }
-    .meta .tools .chip {
-      font-family: var(--mono);
-      font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
-      color: #e8850c;
-      border: 1px solid rgba(232, 133, 12, 0.5);
-      border-radius: 3px;
-      padding: 1px 5px;
-      line-height: 1.4;
-    }
+    .meta .tools img.aws { width: auto; height: 22px; margin-top: -3px; }
     .links { display: flex; gap: 28px; font-size: 13px; }
     .links a { color: var(--ink); font-weight: 600; text-decoration: none; transition: color 0.2s; }
     .links a i { font-style: normal; color: var(--accent); }
     .links a:hover { color: var(--accent); }
 
-    /* CTA — 화면의 유일한 버튼, 로봇 발밑 축 위에 */
+    /* CTA — 로봇 머리 위 말풍선: 로봇이 직접 말을 건다 */
     .cta-wrap {
       position: absolute;
-      left: 70%;
-      bottom: 10vh;
+      left: 65.5%;
+      top: 29vh;
       transform: translateX(-50%);
       text-align: center;
       z-index: 1;
     }
-    .cta-note {
-      display: inline-block;
-      font-size: 12px;
+    /* 뭉게구름 말풍선 — 그림자는 drop-shadow로 실루엣 전체를 따라간다 */
+    .cta-wrap { filter: drop-shadow(0 14px 26px rgba(23, 76, 110, 0.30)); }
+    .bubble {
+      position: relative;
+      background: #fff;
+      border-radius: 36px;
+      padding: 18px 26px 20px;
+    }
+    .bubble .puff {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      z-index: -1;
+    }
+    .bubble .p1 { width: 52px; height: 52px; top: -16px; left: 12%; }
+    .bubble .p2 { width: 74px; height: 74px; top: -26px; left: 36%; }
+    .bubble .p3 { width: 56px; height: 56px; top: -18px; right: 14%; }
+    .bubble .p4 { width: 40px; height: 40px; top: -8px; right: 4%; }
+    .bubble .tail {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .bubble .t1 { width: 18px; height: 18px; bottom: -24px; left: 47%; }
+    .bubble .t2 { width: 10px; height: 10px; bottom: -42px; left: 52%; }
+    .bubble p {
+      font-size: 12.5px;
       color: var(--ink-70);
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      border-radius: 999px;
-      padding: 4px 14px;
       margin-bottom: 10px;
       word-break: keep-all;
+      white-space: nowrap;
     }
     #start-walk {
       display: block;
@@ -231,6 +243,8 @@
     /* 모션 법칙: 로드 1회 페이드가 전부 */
     .land-fade { opacity: 0; transform: translateY(10px); }
     .land-fade.in { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); }
+    .cta-wrap.land-fade { transform: translateX(-50%) translateY(10px); }
+    .cta-wrap.land-fade.in { transform: translateX(-50%); }
     @media (prefers-reduced-motion: reduce) {
       .land-fade { opacity: 1; transform: none; }
       .land-fade.in { transition: none; }
@@ -515,7 +529,7 @@
         <div><dt>자격</dt><dd><b>CKA</b> · <b>AWS SAA</b> · <b>RHCSA</b> · 정보처리기사 · SQLD</dd></div>
         <div><dt>학력</dt><dd>국립한경대학교 졸업</dd></div>
         <div><dt>도구</dt><dd class="tools">
-          <span class="chip" title="Amazon Web Services">AWS</span><img src="https://cdn.simpleicons.org/kubernetes" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git" alt="Git" title="Git" />
+          <img class="aws" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/amazonwebservices/amazonwebservices-original-wordmark.svg" alt="AWS" title="Amazon Web Services" /><img src="https://cdn.simpleicons.org/kubernetes" alt="Kubernetes" title="Kubernetes" /><img src="https://cdn.simpleicons.org/docker" alt="Docker" title="Docker" /><img src="https://cdn.simpleicons.org/linux" alt="Linux" title="Linux" /><img src="https://cdn.simpleicons.org/python" alt="Python" title="Python" /><img src="https://cdn.simpleicons.org/spring" alt="Spring" title="Spring" /><img src="https://cdn.simpleicons.org/react" alt="React" title="React" /><img src="https://cdn.simpleicons.org/mysql" alt="MySQL" title="MySQL" /><img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" title="PostgreSQL" /><img src="https://cdn.simpleicons.org/redis" alt="Redis" title="Redis" /><img src="https://cdn.simpleicons.org/apachekafka" alt="Kafka" title="Kafka" /><img src="https://cdn.simpleicons.org/git" alt="Git" title="Git" />
         </dd></div>
         <div><dt>연락</dt><dd><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a> · 서울</dd></div>
       </dl>
@@ -525,8 +539,12 @@
       </div>
     </div>
     <div class="cta-wrap land-fade">
-      <span class="cta-note">어떤 사람인지 궁금하시다면 — 3분이면 됩니다</span>
-      <button id="start-walk">함께 걸어보세요 ↓</button>
+      <div class="bubble">
+        <span class="puff p1"></span><span class="puff p2"></span><span class="puff p3"></span><span class="puff p4"></span>
+        <p>어떤 사람인지 궁금하시다면 — 3분이면 됩니다</p>
+        <button id="start-walk">함께 걸어보세요 ↓</button>
+        <span class="tail t1"></span><span class="tail t2"></span>
+      </div>
     </div>
     <div class="footline land-fade">
       <span class="cap" id="gh-cap">최근 6주 커밋</span>
