@@ -90,12 +90,14 @@
       justify-content: center;
       gap: clamp(18px, 3.2vh, 36px);
     }
+    .name-row { display: flex; align-items: center; gap: clamp(20px, 2.4vw, 34px); }
     .face {
-      width: 88px;
-      border-radius: 10px;
+      width: clamp(76px, 5.6vw, 94px);
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.85);
       box-shadow: 0 8px 20px -8px rgba(23, 76, 110, 0.35);
       display: block;
+      flex: none;
     }
     .land-col h1 {
       font-size: clamp(56px, 6vw, 88px);
@@ -491,8 +493,10 @@
   <canvas id="bg"></canvas>
   <header id="landing">
     <div class="land-col land-fade">
-      <img class="face" src="/han2.png" alt="한승보" />
-      <h1>한승보</h1>
+      <div class="name-row">
+        <h1>한승보</h1>
+        <img class="face" src="/han2.png" alt="한승보" />
+      </div>
       <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
       <p class="lead">신뢰할 수 있는 데이터 흐름을 설계하는 <b>데이터 엔지니어</b></p>
       <p class="nums">
@@ -506,7 +510,7 @@
         퇴사한 회사가 1년 뒤 다시 연락해 현장을 맡길 만큼의 신뢰가 제 자산입니다.
       </p>
       <dl class="meta">
-        <div><dt>경력</dt><dd><b>CloudPC/CloudX 운영팀</b> — 1년 · 현장 1인 상주 · <b>191명</b> 서비스 오픈</dd></div>
+        <div><dt>경력</dt><dd><b>CloudPC/VDI 솔루션</b> — 1년 · 운영팀 및 1인 상주 · <b>191명</b> 서비스 오픈</dd></div>
         <div><dt>경로</dt><dd>UI <i>→</i> 서버 <i>→</i> 인프라 <i>→</i> <span class="now"><em></em>데이터</span></dd></div>
         <div><dt>자격</dt><dd><b>CKA</b> · <b>AWS SAA</b> · <b>RHCSA</b> · 정보처리기사 · SQLD</dd></div>
         <div><dt>학력</dt><dd>국립한경대학교 졸업</dd></div>
