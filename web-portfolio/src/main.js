@@ -276,9 +276,9 @@ if (!webglAvailable()) {
       signCtx.beginPath()
       signCtx.roundRect(W / 2 - 90, 146, 180, 7, 4)
       signCtx.fill()
-      signCtx.fillStyle = 'rgba(22, 48, 60, 0.8)'
-      signCtx.font = '600 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('바쁘시겠지만, 잠깐 걸으며 알아가요', W / 2, 212)
+      signCtx.fillStyle = 'rgba(22, 48, 60, 0.82)'
+      signCtx.font = '600 32px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('바쁘시겠지만, 잠깐 걸으며 알아가요', W / 2, 214)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()

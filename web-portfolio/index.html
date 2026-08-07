@@ -208,18 +208,19 @@
       position: absolute;
       right: 4%;
       bottom: 6%;
-      width: 42px;
-      height: 42px;
-      background: #fff;
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #22c4d4, #0ea8b8);
       border-radius: 50%;
-      box-shadow: 0 6px 16px -6px rgba(23, 76, 110, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 6px 18px -4px rgba(14, 168, 184, 0.65);
       display: flex;
       align-items: center;
       justify-content: center;
       pointer-events: none;
       animation: hint-bob 1.5s ease-in-out infinite;
     }
-    .click-hint svg { width: 19px; height: 19px; fill: var(--ink); transform: translate(1px, -1px); }
+    .click-hint svg { width: 19px; height: 19px; fill: #fff; transform: translate(1px, -1px); }
     @keyframes hint-bob {
       0%, 100% { transform: translate(0, 0); }
       50% { transform: translate(-5px, -6px); }
