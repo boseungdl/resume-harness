@@ -20,7 +20,9 @@ echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 // ---------- UI 준비 ----------
 
 const spacer = document.getElementById('spacer')
-spacer.style.height = `${(STORY.length + 2.4) * 120}vh`
+// 정거장당 스크롤 분량(vh) — 값이 클수록 걸음이 느긋해진다
+const SCROLL_PER_STOP = 600
+spacer.style.height = `${(STORY.length + 2.4) * SCROLL_PER_STOP}vh`
 
 const landingEl = document.getElementById('landing')
 const dashEl = document.getElementById('dash')
@@ -686,6 +688,11 @@ if (!webglAvailable()) {
     }
     outroEl.classList.toggle('hidden-panel', !atEnd)
 
+    // 칩 적립은 팝업과 무관 — 걸어서 지나친 정거장은 무조건 쌓인다 (점프 스크롤 포함)
+    world.npcs.forEach((n, i) => {
+      if (!collected[i] && walked > n.dist - 2) collect(i)
+    })
+
     // 만남 팝업: 가장 가까운 NPC 가 반경 안일 때
     let near = -1
     world.npcs.forEach((n, i) => {
@@ -698,7 +705,6 @@ if (!webglAvailable()) {
         popupEl.classList.remove('hidden-panel')
         typeQuestion(near)
         flashChapterCard(near)
-        if (!collected[near]) collect(near)
       } else {
         popupEl.classList.add('hidden-panel')
         popupEl.classList.remove('gated')

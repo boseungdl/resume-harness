@@ -266,6 +266,22 @@ export function buildWorld(scene, chapterCount) {
   const group = new THREE.Group()
   scene.add(group)
 
+  // ----- 지형 하강 — 절벽에서 물가로 (여정 v2) -----
+  // 존 사이 끊긴 구간마다 길이 한 단씩 내려간다. 로봇은 화면 높이에 고정이고,
+  // 대신 세계 그룹을 걸음만큼 들어 올려 상대적으로 내려가는 걸음을 만든다.
+  // 바다·모래는 처음에 DROP 만큼 아래(절벽 밑)에 두고, 걸음에 맞춰 차오른다.
+  const DROP_STEP = 1.0
+  const DROP = DROP_STEP * chapterCount
+  function trackY(d) {
+    let y = 0
+    for (let z = 0; z < chapterCount; z++) {
+      const g0 = INTRO_LEN + z * ZONE_LEN + ZONE_LEN * 0.78
+      const t = Math.min(1, Math.max(0, (d - g0) / (ZONE_LEN * 0.2)))
+      y -= DROP_STEP * t * t * (3 - 2 * t)
+    }
+    return y
+  }
+
   const props = []
   const npcs = []
 
@@ -306,14 +322,14 @@ export function buildWorld(scene, chapterCount) {
     std('#38b0cc', { flatShading: true, transparent: true, opacity: 0.94 })
   )
   ocean.rotation.x = -Math.PI / 2
-  ocean.position.set(-46, -0.3, -240)
+  ocean.position.set(-46, -0.3 - DROP, -240)
   scene.add(ocean)
   const oceanBase = oceanGeo.attributes.position.array.slice()
 
   // 모래사장 — 바다와 길 사이
   const beach = new THREE.Mesh(new THREE.PlaneGeometry(13, 900), std('#eee2c4'))
   beach.rotation.x = -Math.PI / 2
-  beach.position.set(-8, 0.01, -240)
+  beach.position.set(-8, 0.01 - DROP, -240)
   beach.receiveShadow = true
   scene.add(beach)
 
@@ -325,7 +341,7 @@ export function buildWorld(scene, chapterCount) {
       new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 })
     )
     foam.rotation.x = -Math.PI / 2
-    foam.position.set(x, 0.02, -240)
+    foam.position.set(x, 0.02 - DROP, -240)
     scene.add(foam)
     foams.push({ mesh: foam, baseX: x, phase })
   })
@@ -373,12 +389,13 @@ export function buildWorld(scene, chapterCount) {
     // 빛나는 트랙 — 구간 안에서 이어지고 사이에서 끊긴다
     const stripLen = ZONE_LEN * 0.62
     const stripZ = -(zoneStart + ZONE_LEN * 0.45)
+    const zoneY = trackY(zoneStart + ZONE_LEN * 0.45)
     const strip = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.08, stripLen), deckMaterialFor(stripLen))
-    strip.position.set(0, 0.04, stripZ)
+    strip.position.set(0, 0.04 + zoneY, stripZ)
     strip.receiveShadow = true
     group.add(strip)
     const edgeL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, stripLen), glowMat(GLOW, 0.85))
-    edgeL.position.set(-1.18, 0.05, stripZ)
+    edgeL.position.set(-1.18, 0.05 + zoneY, stripZ)
     const edgeR = edgeL.clone()
     edgeR.position.x = 1.18
     group.add(edgeL, edgeR)
@@ -399,17 +416,18 @@ export function buildWorld(scene, chapterCount) {
       const postD = postC.clone(); postD.position.x = 0.8
       const bridge = new THREE.Group()
       bridge.add(deck, railL, railR, postA, postB, postC, postD)
+      bridge.position.y = trackY(gapMid)
       shadowed(bridge)
       group.add(bridge)
     } else {
       for (let k = 0; k < 3; k++) {
         const d = zoneStart + ZONE_LEN * (0.82 + k * 0.07)
         const stone = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.5), stoneMat)
-        stone.position.set((hash(z * 31 + k) - 0.5) * 1.6, 0.12, -d)
+        stone.position.set((hash(z * 31 + k) - 0.5) * 1.6, 0.12 + trackY(d), -d)
         stone.rotation.y = hash(z * 17 + k) * 1.2
         const under = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.3), glowMat(GLOW, 0.7))
         under.position.copy(stone.position)
-        under.position.y = 0.03
+        under.position.y = 0.03 + trackY(d)
         group.add(stone, under)
       }
     }
@@ -419,7 +437,7 @@ export function buildWorld(scene, chapterCount) {
     if (lmFactory) {
       const lm = lmFactory(palette)
       const side = z % 2 === 0 ? 1 : -1
-      lm.position.set(side * 3.4, 0, -(zoneStart + ZONE_LEN * 0.58))
+      lm.position.set(side * 3.4, trackY(zoneStart + ZONE_LEN * 0.58), -(zoneStart + ZONE_LEN * 0.58))
       addProp(lm, zoneStart + ZONE_LEN * 0.58)
     }
 
@@ -427,7 +445,7 @@ export function buildWorld(scene, chapterCount) {
     const npcDist = zoneStart + ZONE_LEN * 0.3
     const npc = buildNpc(palette[0])
     const nside = z % 2 === 0 ? 1 : -1
-    npc.position.set(nside * 2.05, 0, -npcDist)
+    npc.position.set(nside * 2.05, trackY(npcDist), -npcDist)
     npc.rotation.y = nside > 0 ? -0.9 : 0.9
     shadowed(npc)
     const mark = questionSprite()
@@ -449,14 +467,15 @@ export function buildWorld(scene, chapterCount) {
         const tip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.5, 0.07), glowMat('#ffe9a0', 1.2))
         tip.position.y = 0.5
         buoy.add(ball, tip)
-        buoy.position.set(-(11 + hash(n * 13) * 7), -0.15, -d)
+        // 부표는 길이 아니라 바다에 뜬다 — 바다는 그룹 기준 (-0.3 - DROP) + 들어올림이라 이 값이면 항상 수면
+        buoy.position.set(-(11 + hash(n * 13) * 7), -0.15 - DROP, -d)
         addProp(buoy, d)
       } else {
         const factory = [pine, bush, rock, pine, pylon][Math.floor(hash(n) * 5)]
         const color = palette[Math.floor(hash(n * 3) * palette.length)]
         const size = 0.8 + hash(n * 7) * 0.9
         const obj = factory(color, size)
-        obj.position.set(3.6 + hash(n * 13) * 6.5, 0, -d)
+        obj.position.set(3.6 + hash(n * 13) * 6.5, trackY(d), -d)
         addProp(obj, d)
       }
     }
@@ -464,19 +483,20 @@ export function buildWorld(scene, chapterCount) {
 
   // 아웃트로 — 여정이 멈추는 전망 광장
   const endD = TOTAL - 2
+  const endY = trackY(endD)
   const plaza = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 0.08, 24), std('#eaf0f2'))
-  plaza.position.set(0, 0.04, -endD)
+  plaza.position.set(0, 0.04 + endY, -endD)
   plaza.receiveShadow = true
   group.add(plaza)
   const plazaRing = new THREE.Mesh(new THREE.TorusGeometry(5.5, 0.05, 6, 48), glowMat(GLOW, 0.9))
   plazaRing.rotation.x = Math.PI / 2
-  plazaRing.position.set(0, 0.09, -endD)
+  plazaRing.position.set(0, 0.09 + endY, -endD)
   group.add(plazaRing)
   const warm = ZONE_COLORS[ZONE_COLORS.length - 1]
   ;[[pylon, '#fff', 1.2, 3.0, endD - 3], [pine, warm[0], 1.3, 4.6, endD + 2], [bush, warm[2], 1.1, -3.2, endD + 3]].forEach(
     ([factory, color, size, x, d]) => {
       const obj = factory(color, size)
-      obj.position.set(x, 0, -d)
+      obj.position.set(x, trackY(d), -d)
       addProp(obj, d)
     }
   )
@@ -510,10 +530,18 @@ export function buildWorld(scene, chapterCount) {
       n.group.position.y = 0.12 + hop + Math.sin(t * (near ? 4 : 1.6) + n.dist) * (near ? 0.14 : 0.06)
     }
 
+    // 지형 하강 — 로봇 밑의 길이 항상 화면 높이가 되도록 세계를 들어 올리고,
+    // 바다·모래·물거품은 걸음에 맞춰 차오른다 (절벽 → 물가)
+    const descent = -trackY(walked)
+    group.position.y = descent
+    ocean.position.y = -0.3 - DROP + descent
+    beach.position.y = 0.01 - DROP + descent
+
     // 물거품 호흡
     for (const f of foams) {
       const breathe = Math.sin(t * 0.9 + f.phase)
       f.mesh.position.x = f.baseX + breathe * 0.5
+      f.mesh.position.y = 0.02 - DROP + descent
       f.mesh.material.opacity = 0.3 + (breathe * 0.5 + 0.5) * 0.35
     }
     // 빛 입자 부유
