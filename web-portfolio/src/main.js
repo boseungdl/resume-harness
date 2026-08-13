@@ -3,13 +3,19 @@
 // 알게 된 것은 우상단 대시보드에 영구히 채워진다.
 
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import * as echarts from 'echarts/core'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { STORY } from './story.js'
+import { PREMISES, STOP_LABELS, PANEL_IN, PANEL_OUT } from './story.js'
 import { buildWorld } from './world.js'
+
+function smooth01(u) {
+  const x = Math.min(1, Math.max(0, u))
+  return x * x * (3 - 2 * x)
+}
 import { createQualityGovernor } from './quality.js'
 
 echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
@@ -19,28 +25,30 @@ echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 const spacer = document.getElementById('spacer')
 // 정거장당 스크롤 분량(vh) — 값이 클수록 걸음이 느긋해진다
 const SCROLL_PER_STOP = 600
-spacer.style.height = `${(STORY.length + 2.4) * SCROLL_PER_STOP}vh`
+spacer.style.height = `${(PREMISES.length + 2.4) * SCROLL_PER_STOP}vh`
 
 const landingEl = document.getElementById('landing')
-const dashEl = document.getElementById('dash')
-const journeyEl = document.getElementById('journey')
+const miniEl = document.getElementById('mini')
 const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
 const outroEl = document.getElementById('outro-panel')
-const dashChips = document.getElementById('dash-chips')
-const dashPct = document.getElementById('dash-pct')
-const kpiMeet = document.getElementById('kpi-meet')
-const kpiDist = document.getElementById('kpi-dist')
-const kpiTime = document.getElementById('kpi-time')
+const routeEl = document.getElementById('route')
+const routeDone = document.getElementById('route-done')
+const mapNodes = document.getElementById('map-nodes')
+const mapMe = document.getElementById('map-me')
+const qlistEl = document.getElementById('qlist')
+const stTime = document.getElementById('st-time')
+const stRead = document.getElementById('st-read')
+// 분모는 story.js 가 소유한다 — 문단을 늘리면 지표가 따라온다
+const BEATS_TOTAL = PREMISES.reduce((n, p) => n + p.beats.length, 0)
+stRead.innerHTML = `00<i> / ${BEATS_TOTAL}</i>`
 const popupWho = popupEl.querySelector('.who')
-const dashTitle = document.getElementById('dash-title')
-const halfNote = document.getElementById('half-note')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
 
-// 만남 라벨 — 얼마나 왔고 얼마나 남았는지가 관계의 언어다
-const MEET_LABELS = ['첫 번째 질문', '두 번째 질문', '세 번째 질문', '네 번째 질문', '다섯 번째 질문', '여섯 번째 질문', '마지막 질문']
+// 길목 라벨 — 몇 번째 자리인지가 진행의 언어다 (story.js 소유)
+const MEET_LABELS = STOP_LABELS
 
 const veil = document.getElementById('veil')
 function liftVeil() {
@@ -48,17 +56,17 @@ function liftVeil() {
 }
 setTimeout(liftVeil, 3200) // 로드가 늦어도 여정은 시작된다
 
-const chips = STORY.map((item) => {
-  const el = document.createElement('div')
-  el.className = 'chip'
-  el.innerHTML =
-    `<div class="row"><span class="dot"></span><span class="label"><span class="key">${item.kicker}</span><span class="val">${item.chip}</span></span></div>` +
-    `<div class="bar"><i></i></div>`
-  dashChips.appendChild(el)
-  return el
+// 우상단 요약 — 지나기 전엔 자리 이름(kicker)만 보인다. 네 전제를 미리 다 깔면
+// 문마다의 발견이 죽는다. 통과하면 그 자리에서 "무엇을 바꿨는가"(chip)가 남는다.
+const chips = PREMISES.map((item, i) => {
+  const li = document.createElement('li')
+  li.innerHTML = `<b>${i + 1}</b><span>${item.kicker}</span>`
+  qlistEl.appendChild(li)
+  return li
 })
+const chipShown = [false, false, false, false]
 // 만남 게이트 — 클릭해서 '수집'해야 걸음이 다시 열린다
-const collected = STORY.map(() => false)
+const collected = PREMISES.map(() => false)
 
 // ---------- 랜딩 인터랙션 (WebGL 여부와 무관) ----------
 
@@ -137,8 +145,7 @@ if (!webglAvailable()) {
   // 3D 가 없으면 여정도 없다 — 빈 스크롤과 유령 계기판을 남기지 않는다
   document.body.classList.add('no-webgl')
   spacer.style.height = '0'
-  dashEl.classList.add('hidden-panel')
-  journeyEl.classList.add('hidden-panel')
+  miniEl.classList.add('hidden-panel')
 } else {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -146,15 +153,17 @@ if (!webglAvailable()) {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.05
+  renderer.toneMappingExposure = 0.92 // ACES 상단 압축이 파스텔을 화이트로 밀어낸다
 
   const scene = new THREE.Scene()
 
   const SKY = [
-    [0.0, new THREE.Color('#cfe9f8')],
-    [0.35, new THREE.Color('#d9f1f4')],
-    [0.7, new THREE.Color('#ffd9b4')],
-    [1.0, new THREE.Color('#f6ac9c')],
+    [0.0, new THREE.Color('#cfe9f8')],  // 존1 산뜻한 출발 — 맑은 바다 아침
+    [0.26, new THREE.Color('#eeddc0')], // 존2 황무지 — 마르고 뜨거운 흙먼지
+    [0.5, new THREE.Color('#c6cacd')],  // 존3 외로움 — 회색빛 도시
+    [0.75, new THREE.Color('#ffd2b0')], // 존4 잔잔함 — 낮게 가라앉은 노을
+    [0.88, new THREE.Color('#b98098')], // 황혼
+    [1.0, new THREE.Color('#4c4c84')],  // 너머 — 미지의 밤
   ]
   const skyNow = SKY[0][1].clone()
   scene.background = skyNow
@@ -187,11 +196,30 @@ if (!webglAvailable()) {
   )
   scene.add(skyDome)
   const SKY_TOP = [
-    [0.0, new THREE.Color('#7fbce8')],
-    [0.35, new THREE.Color('#8fd0e4')],
-    [0.7, new THREE.Color('#f0a878')],
-    [1.0, new THREE.Color('#e07868')],
+    [0.0, new THREE.Color('#7fbce8')],  // 산뜻 — 파란 하늘
+    [0.26, new THREE.Color('#c2ad84')], // 황무지 — 먼지 낀 누런 하늘
+    [0.5, new THREE.Color('#8d97a2')],  // 외로움 — 잿빛
+    [0.75, new THREE.Color('#e8987c')], // 잔잔 — 노을
+    [0.88, new THREE.Color('#6f5a92')],
+    [1.0, new THREE.Color('#14162f')],
   ]
+  // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
+  const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
+  const SUN_POS = [[10, 3.4, 7], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
+  const SUN_INT = [1.55, 1.8, 0.55, 1.35, 0.75, 0.22]
+  const SUN_COL = ['#fff2dc', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
+  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#8f92e0'].map((c) => new THREE.Color(c))
+  const HEMI_GND = ['#b9d4b4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#4a5578'].map((c) => new THREE.Color(c))
+  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 0.62]
+  const SUN2D = [[-160, 16, -260, 46, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
+  function keyLerp(t, get, set) {
+    for (let i = 0; i < KEY_T.length - 1; i++) {
+      if (t <= KEY_T[i + 1]) {
+        return set(i, i + 1, (t - KEY_T[i]) / (KEY_T[i + 1] - KEY_T[i]))
+      }
+    }
+    return set(KEY_T.length - 2, KEY_T.length - 1, 1)
+  }
 
   const sunCv = document.createElement('canvas')
   sunCv.width = sunCv.height = 128
@@ -209,38 +237,93 @@ if (!webglAvailable()) {
   sun2d.position.set(-120, 55, -220)
   scene.add(sun2d)
 
-  const cloudMat = new THREE.MeshBasicMaterial({ color: '#dceef4', transparent: true, opacity: 0.62, fog: false })
+  const cloudDay = new THREE.Color('#dceef4')
+  const cloudNight = new THREE.Color('#3a3c68')
+  const cloudMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false })
+  cloudMat.color.copy(cloudDay)
+  function cloudGeo(seed) {
+    const parts = []
+    const n = 4 + Math.floor(((Math.sin(seed * 127.1) * 43758.5) % 1 + 1) % 1 * 3)
+    const rnd = (k) => ((Math.sin((seed * 7 + k) * 311.7) * 43758.5) % 1 + 1) % 1
+    const top = new THREE.Color('#ffffff')
+    const bot = new THREE.Color('#c3d6e2')
+    const tone = new THREE.Color()
+    for (let k = 0; k < n; k++) {
+      const r = 2.4 + rnd(k) * 2.2
+      const g = new THREE.IcosahedronGeometry(r, 0)
+      g.scale(1, 0.62, 0.85)
+      const p = g.attributes.position
+      const col = new Float32Array(p.count * 3)
+      for (let i = 0; i < p.count; i++) {
+        if (p.getY(i) < -0.34 * r) p.setY(i, -0.34 * r) // 평평한 밑면 — 이 한 줄이 솜을 구름으로 바꾼다
+        tone.copy(bot).lerp(top, Math.min(1, (p.getY(i) / r + 0.4)))
+        tone.toArray(col, i * 3)
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3))
+      g.translate(k * 3.4 - n * 1.7, (rnd(k + 9) - 0.5) * 1.6, (rnd(k + 17) - 0.5) * 1.2)
+      parts.push(g)
+    }
+    return mergeGeometries(parts, false)
+  }
+  const cloudGeos = [cloudGeo(1), cloudGeo(2), cloudGeo(3)]
   const clouds = []
   for (let i = 0; i < 7; i++) {
-    const cl = new THREE.Group()
-    const n = 3 + (i % 3)
-    for (let k = 0; k < n; k++) {
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(3.2 + (k % 3) * 1.6, 7, 5), cloudMat)
-      puff.position.set(k * 4.2 - n * 2, (k % 2) * 1.4, 0)
-      puff.scale.y = 0.55
-      cl.add(puff)
-    }
+    const cl = new THREE.Mesh(cloudGeos[i % 3], cloudMat)
     cl.position.set(-90 + i * 34, 26 + (i % 3) * 9, -160 - (i % 4) * 40)
+    cl.rotation.y = i * 1.7
+    cl.scale.setScalar(0.8 + (i % 4) * 0.18)
     scene.add(cl)
     clouds.push(cl)
   }
 
-  const hemi = new THREE.HemisphereLight('#eaf6ff', '#c2d4c4', 1.15)
+  // ----- 미지의 밤 — 별과 행성 (아웃트로에서만 떠오른다) -----
+  const starGeo = new THREE.BufferGeometry()
+  const starPos = new Float32Array(220 * 3)
+  for (let k = 0; k < 220; k++) {
+    const a = Math.random() * Math.PI * 2
+    const e = 0.16 + Math.random() * 1.3
+    const r = 230 + Math.random() * 40
+    starPos[k * 3] = Math.cos(a) * Math.cos(e) * r
+    starPos[k * 3 + 1] = 40 + Math.sin(e) * r * 0.6
+    starPos[k * 3 + 2] = Math.sin(a) * Math.cos(e) * r
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
+  const stars = new THREE.Points(
+    starGeo,
+    new THREE.PointsMaterial({ color: '#e4e0ff', size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })
+  )
+  scene.add(stars)
+  const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(26, 16, 12),
+    new THREE.MeshBasicMaterial({ color: '#cfc4e8', transparent: true, opacity: 0, fog: false })
+  )
+  planet.position.set(-150, 62, -300)
+  scene.add(planet)
+  const planetRing = new THREE.Mesh(
+    new THREE.TorusGeometry(38, 1.6, 6, 40),
+    new THREE.MeshBasicMaterial({ color: '#9fd4e0', transparent: true, opacity: 0, fog: false })
+  )
+  planetRing.position.copy(planet.position)
+  planetRing.rotation.x = 1.25
+  planetRing.rotation.y = 0.3
+  scene.add(planetRing)
+
+  const hemi = new THREE.HemisphereLight('#eaf6ff', '#8fa08c', 0.72) // 바운스가 밝으면 아래면이 안 어두워진다
   scene.add(hemi)
   const sun = new THREE.DirectionalLight('#fff6e4', 1.6)
   sun.position.set(6, 9, 4)
   sun.castShadow = true
   sun.shadow.mapSize.set(2048, 2048)
-  sun.shadow.camera.left = -18
-  sun.shadow.camera.right = 18
-  sun.shadow.camera.top = 18
-  sun.shadow.camera.bottom = -18
+  sun.shadow.camera.left = -26
+  sun.shadow.camera.right = 26
+  sun.shadow.camera.top = 26
+  sun.shadow.camera.bottom = -26
   sun.shadow.bias = -0.0008
   sun.shadow.normalBias = 0.02
   scene.add(sun)
 
   // 땅·모래·바다는 세계(world)가 지형으로 소유한다 — 길과 함께 층층이 내려가야 하므로
-  const world = buildWorld(scene, STORY.length)
+  const world = buildWorld(scene, PREMISES.length, PREMISES)
 
   // CTA 입간판 — 버튼은 세계 속 팻말 위에 얹힌다. 걷기 시작하면 풍경과 함께 뒤로 흘러간다
   const sign = new THREE.Group()
@@ -329,16 +412,27 @@ if (!webglAvailable()) {
   const quality = createQualityGovernor({ renderer, onDisableBloom: () => {} })
 
   // 하단 여정 바 — 7개 노드와 달리는 점
-  const journeyTrack = document.querySelector('#journey .track')
-  const journeyFill = document.querySelector('#journey .fill')
-  const journeyRunner = document.querySelector('#journey .runner')
+  // 지도 — 굽은 경로 하나에 자리 4개를 얹고, 걸은 만큼 실선이 따라온다
+  const NS = 'http://www.w3.org/2000/svg'
+  const routeLen = routeEl.getTotalLength()
+  routeDone.style.strokeDasharray = `0 ${routeLen}`
   const journeyNodes = world.npcs.map((n) => {
-    const el = document.createElement('div')
-    el.className = 'node'
-    el.style.left = `${(n.dist / world.TOTAL) * 100}%`
-    journeyTrack.appendChild(el)
-    return el
+    const pt = routeEl.getPointAtLength((n.dist / world.TOTAL) * routeLen)
+    const c = document.createElementNS(NS, 'circle')
+    c.setAttribute('class', 'node')
+    c.setAttribute('r', '3')
+    c.setAttribute('cx', pt.x.toFixed(1))
+    c.setAttribute('cy', pt.y.toFixed(1))
+    mapNodes.appendChild(c)
+    return c
   })
+  function drawMap(progress) {
+    const at = Math.min(1, Math.max(0, progress)) * routeLen
+    routeDone.style.strokeDasharray = `${at} ${routeLen}`
+    const pt = routeEl.getPointAtLength(at)
+    mapMe.setAttribute('cx', pt.x.toFixed(1))
+    mapMe.setAttribute('cy', pt.y.toFixed(1))
+  }
 
   // 챕터 진입 타이틀 카드
   const cardEl = document.getElementById('chapter-card')
@@ -347,7 +441,7 @@ if (!webglAvailable()) {
   let cardTimer = null
   function flashChapterCard(i) {
     cardNum.textContent = `CHAPTER ${String(i + 1).padStart(2, '0')}`
-    cardTitle.textContent = STORY[i].kicker
+    cardTitle.textContent = PREMISES[i].kicker
     cardEl.classList.add('show')
     if (cardTimer) clearTimeout(cardTimer)
     cardTimer = setTimeout(() => cardEl.classList.remove('show'), 2400)
@@ -355,10 +449,59 @@ if (!webglAvailable()) {
 
   // ---------- 걷는 로봇 ----------
 
+  // 성장 연출 — 한계를 깰 때마다 발밑에서 빛 고리가 퍼지고 불꽃이 오르며, 로봇이 실제로 조금 자란다
+  const growRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.86, 1, 40),
+    new THREE.MeshBasicMaterial({ color: '#ffd98a', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })
+  )
+  growRing.rotation.x = -Math.PI / 2
+  growRing.position.y = 0.1
+  scene.add(growRing)
+  const SPARK_N = 18
+  const sparks = new THREE.InstancedMesh(
+    new THREE.IcosahedronGeometry(0.045, 0),
+    new THREE.MeshBasicMaterial({ color: '#ffe9b0', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+    SPARK_N
+  )
+  sparks.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+  sparks.frustumCulled = false
+  scene.add(sparks)
+  const sparkSeed = []
+  for (let i = 0; i < SPARK_N; i++) {
+    sparkSeed.push({ a: (i / SPARK_N) * Math.PI * 2 + (i % 3) * 0.4, r: 0.35 + (i % 5) * 0.13, sp: 1.6 + (i % 4) * 0.5 })
+  }
+  const growSeat = new THREE.Object3D()
+
+  // 레벨 배지 — 머리 위에 떠서, 한계를 깰 때마다 오른다
+  const lvCv = document.createElement('canvas')
+  lvCv.width = 256
+  lvCv.height = 96
+  const lvCtx = lvCv.getContext('2d')
+  const lvTex = new THREE.CanvasTexture(lvCv)
+  lvTex.colorSpace = THREE.SRGBColorSpace
+  function drawLevel(n) {
+    lvCtx.clearRect(0, 0, 256, 96)
+    lvCtx.font = '700 44px "IBM Plex Sans KR", sans-serif'
+    lvCtx.textAlign = 'center'
+    lvCtx.textBaseline = 'middle'
+    lvCtx.lineWidth = 7
+    lvCtx.strokeStyle = 'rgba(22, 48, 60, 0.8)'
+    lvCtx.strokeText(`Lv.${n}`, 128, 47)
+    lvCtx.fillStyle = '#ffe9a0'
+    lvCtx.fillText(`Lv.${n}`, 128, 47)
+    lvTex.needsUpdate = true
+  }
+  drawLevel(1)
+  const lvSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lvTex, transparent: true, depthWrite: false }))
+  lvSprite.scale.set(1.1, 0.41, 1)
+  lvSprite.position.y = 2.35
+  let curLv = 1
+
   const walker = new THREE.Group()
-  walker.position.set(0, 0.08, 0) // 발이 데크 윗면에 선다
+  walker.position.set(0, 0.05, 0) // 발이 흙길 윗면에 선다
   walker.rotation.y = -0.49 // 랜딩에서는 관람자를 바라본다
   scene.add(walker)
+  walker.add(lvSprite)
 
   let mixer = null
   let walkAction = null
@@ -555,7 +698,8 @@ if (!webglAvailable()) {
   let atEnd = false
   let farthest = 0 // 가장 멀리 간 지점 — 되돌아 걸어도 기록은 줄지 않는다
 
-  // 질문이 타이핑되고, 이어서 답이 떠오른다. 막는 것은 없다 — 걸음은 언제나 독자의 것.
+  // 전제가 한 글자씩 새겨지고, 걸음에 따라 비트가 하나씩 얹힌다.
+  // 한 번에 다 쏟으면 읽기 벽이 되고, 정작 세계에서 일어나는 일을 못 본다.
   function stopTyping() {
     if (typeTimer) {
       clearInterval(typeTimer)
@@ -563,16 +707,96 @@ if (!webglAvailable()) {
     }
   }
 
+  // 만남 — 로봇은 자리에 멈춰 NPC 를 마주 보고, 스페이스로 문답을 넘긴다. 최대 3문답.
+  // state 0 대기 / 1 대화 중(걸음·스크롤 잠금) / 2 끝(다시 걸음)
+  const meets = PREMISES.map(() => ({ state: 0, step: 1 }))
+  // 비트를 3묶음으로 — 한 번에 한두 문단씩
+  const meetChunks = PREMISES.map((p2) => {
+    const per = Math.ceil(p2.beats.length / 3)
+    const chunks = []
+    for (let i = 0; i < p2.beats.length; i += per) chunks.push(p2.beats.slice(i, i + per))
+    return chunks
+  })
+  const popupStep = popupEl.querySelector('.hint .step')
+  const popupHint = popupEl.querySelector('.hint')
+  const popupVerb = popupEl.querySelector('.hint .verb')
+  let lockScrollY = -1 // 대화 중 고정할 스크롤 위치
+  let talkF = 0 // 대화 몰입 계수 — 카메라·비네트가 함께 탄다
+  const veilEl = document.getElementById('talk-veil')
+  const talkingNow = () => meets.findIndex((m) => m.state === 1)
+  function renderMeet(i) {
+    const m = meets[i]
+    const chunks = meetChunks[i]
+    popupStep.textContent = `${Math.min(m.step, chunks.length)} / ${chunks.length}`
+    popupHint.classList.add('on')
+    popupVerb.textContent = m.step >= chunks.length ? '계속 걷기' : '다음'
+    const shown = chunks[Math.min(m.step, chunks.length) - 1] || []
+    ui.beatKey = `meet:${i}:${m.step}`
+    popupA.innerHTML = shown.map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`).join('')
+    popupA.classList.add('on')
+  }
+  function endMeet(i) {
+    meets[i].state = 2
+    popupStep.textContent = ''
+    popupHint.classList.remove('on')
+  }
+  function advanceMeet() {
+    const i = talkingNow()
+    if (i < 0) return false
+    const m = meets[i]
+    if (m.step >= meetChunks[i].length) endMeet(i)
+    else {
+      m.step += 1
+      renderMeet(i)
+    }
+    return true
+  }
+  // 대화 중 스크롤 잠금 — 걸음이 잠겨 있는데 화면만 흐르면 어긋난다
+  const blockIfTalking = (e) => {
+    if (talkingNow() >= 0) e.preventDefault()
+  }
+  window.addEventListener('wheel', blockIfTalking, { passive: false })
+  window.addEventListener('touchmove', blockIfTalking, { passive: false })
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.key === ' ') {
+      if (advanceMeet()) e.preventDefault()
+      return
+    }
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key) && talkingNow() >= 0) {
+      e.preventDefault()
+    }
+  })
+  popupEl.addEventListener('click', () => advanceMeet()) // 마우스만 쓰는 손님을 위해
+
+  // 화면에 동시에 두 개까지. 세 번째가 뜨면 첫째는 빠진다.
+  function renderBeats(index, rel) {
+    const item = PREMISES[index]
+    const shown = item.beats.filter((b) => rel >= b.at)
+    const key = `${index}:${shown.length}`
+    if (key === ui.beatKey) return
+    ui.beatKey = key
+    if (!shown.length) {
+      popupA.innerHTML = ''
+      popupA.classList.remove('on')
+      return
+    }
+    popupA.innerHTML = shown
+      .slice(-2)
+      .map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`)
+      .join('')
+    popupA.classList.add('on')
+  }
+
   function typeQuestion(index) {
     stopTyping()
-    const text = STORY[index].question
-    popupWho.textContent = MEET_LABELS[index] ?? '길에서 만난 질문'
-    popupA.textContent = STORY[index].text
+    const text = PREMISES[index].premise
+    popupWho.textContent = MEET_LABELS[index] ?? '길 위의 자리'
+    popupA.innerHTML = ''
     popupA.classList.remove('on')
+    ui.beatKey = ''
     popupQ.innerHTML = '<span class="caret"></span>'
     if (reduceMotion) {
       popupQ.innerHTML = `“${text}”`
-      popupA.classList.add('on')
       return
     }
     let k = 0
@@ -582,28 +806,21 @@ if (!webglAvailable()) {
       if (k >= text.length) {
         stopTyping()
         popupQ.innerHTML = `“${text}”`
-        popupA.classList.add('on')
       }
     }, 28)
   }
 
-  let halfNoteShown = false
   function collect(i) {
     if (collected[i]) return
     collected[i] = true
-    chips[i].classList.add('filled')
-    journeyNodes[i].classList.add('lit')
-    kpiMeet.textContent = String(collected.filter(Boolean).length)
-    // 절반 지점 — 감사를 말이 아니라 개방의 심화로 지불한다 (되감아 다시 지나도 한 번만)
-    if (i === 3 && halfNote && !halfNoteShown) {
-      halfNoteShown = true
-      halfNote.classList.add('show')
-      setTimeout(() => halfNote.classList.remove('show'), 4200)
-    }
+    chips[i]?.classList.add('done')
+    journeyNodes[i]?.classList.add('done')
   }
 
   // 매 프레임 같은 값을 다시 쓰면 레이아웃이 무효화된다 — 바뀔 때만 손댄다
-  const ui = { pct: -1, title: '', dist: -1, time: '', fade: -1, inJourney: null }
+  const ui = { pct: -1, title: '', dist: -1, time: '', fade: -1, inJourney: null, beatKey: '', nowChip: -1, read: -1, verdict: -1 }
+
+  const verdictEl = document.getElementById('verdict')
 
   function updateUi(progress, t) {
     // v2: 스크롤 락 없음 — 세계는 걸음을 멈추지 않는다.
@@ -624,8 +841,7 @@ if (!webglAvailable()) {
     const inJourney = window.scrollY > journeyBase() * 0.72
     if (inJourney !== ui.inJourney) {
       ui.inJourney = inJourney
-      dashEl.classList.toggle('hidden-panel', !inJourney)
-      journeyEl.classList.toggle('hidden-panel', !inJourney)
+      miniEl.classList.toggle('hidden-panel', !inJourney)
     }
 
     // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
@@ -635,7 +851,7 @@ if (!webglAvailable()) {
     if (atEnd && !outroFilled && outroRecord && walked / world.TOTAL > 0.95) {
       outroFilled = true
       const secs = Math.floor(t)
-      outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${Math.round(farthest)}m, ${Math.floor(secs / 60)}분 ${secs % 60}초</b>.`
+      outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${Math.round(farthest)}m</b>.`
     }
 
     // 칩 적립은 팝업과 무관 — 지나친 정거장은 무조건 쌓인다 (점프 스크롤 포함)
@@ -646,7 +862,8 @@ if (!webglAvailable()) {
     // 만남 팝업: 가장 가까운 NPC 가 반경 안일 때
     let near = -1
     world.npcs.forEach((n, i) => {
-      if (Math.abs(n.dist - walked) < 10) near = i
+      // 자리에 닿기 전에 떠서, 지나갈 때까지 남는다
+      if (walked > n.dist + PANEL_IN && walked < n.dist + PANEL_OUT && meets[i].state !== 2) near = i
     })
     if (atEnd) near = -1
     if (near !== activePopup) {
@@ -660,37 +877,63 @@ if (!webglAvailable()) {
         popupEl.classList.add('hidden-panel')
       }
     }
-
-    // 계기판 — 측정이 아니라 동행의 기록. 거리는 되돌아 걸어도 줄지 않는다.
-    const pct = Math.round(Math.min(100, (progress * 100)))
-    if (pct !== ui.pct) {
-      ui.pct = pct
-      dashPct.textContent = `${pct}%`
-      journeyFill.style.width = `${pct}%`
-      journeyRunner.style.left = `${pct}%`
+    if (veilEl) veilEl.classList.toggle('on', talkingNow() >= 0)
+    if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
+      renderMeet(near) // 대화는 멈춰 선 3문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
     }
-    const title = pct >= 99 ? '함께 걸었습니다' : '함께 걷는 중'
-    if (dashTitle && title !== ui.title) {
-      ui.title = title
-      dashTitle.textContent = title
+    if (near !== ui.nowChip) {
+      chips[ui.nowChip]?.classList.remove('now')
+      ui.nowChip = near
+      chips[near]?.classList.add('now')
     }
-    const dist = Math.round(farthest)
-    if (dist !== ui.dist) {
-      ui.dist = dist
-      kpiDist.textContent = String(dist)
-    }
+    // 머문 시간 — 분모도 목표도 붙이지 않는다. 재는 값이 아니라 적는 값이다
     const sec = Math.floor(t)
-    const time = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
-    if (time !== ui.time) {
-      ui.time = time
-      kpiTime.textContent = time
+    const clockStr = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
+    if (clockStr !== ui.time) {
+      ui.time = clockStr
+      stTime.firstChild.textContent = clockStr.slice(0, 2)
+      stTime.querySelector('i').textContent = clockStr.slice(2)
     }
+    // 읽은 문단 — 진행을 세계의 단위(m·%)가 아니라 읽기의 단위로 말한다
+    let read = 0
+    for (let i = 0; i < PREMISES.length; i++) {
+      const rel = walked - world.npcs[i].dist
+      for (const b of PREMISES[i].beats) if (rel >= b.at) read++
+    }
+    if (read !== ui.read) {
+      ui.read = read
+      stRead.firstChild.textContent = String(read).padStart(2, '0')
+    }
+    // 결론 — 전제가 무너진 직후에만 잔해 위에 선다. 걸음의 순수 함수라 되감아도 성립한다.
+    let verdict = -1
+    for (let i = 0; i < PREMISES.length; i++) {
+      const gate = 26 + i * 60 + 48
+      if (walked > gate + 3 && walked < gate + 16) verdict = i
+      const passed = walked > gate + 3
+      if (passed !== chipShown[i]) {
+        chipShown[i] = passed
+        chips[i].innerHTML = `<b>${i + 1}</b><span>${passed ? PREMISES[i].chip : PREMISES[i].kicker}</span>`
+      }
+    }
+    if (verdict !== ui.verdict) {
+      ui.verdict = verdict
+      if (verdict >= 0) {
+        verdictEl.textContent = PREMISES[verdict].conclusion
+        verdictEl.style.opacity = '1'
+      } else {
+        verdictEl.style.opacity = '0'
+      }
+    }
+
+    drawMap(progress)
+
   }
 
   const clock = new THREE.Clock()
   const lookTarget = new THREE.Vector3(-0.5, 1.05, -9)
   const lookNow = lookTarget.clone()
   let prevWalked = 0
+  let idleFor = 0 // 자리를 비운 시간은 머문 시간이 아니다
   let sceneTime = 0 // clamped dt 누적 — 탭을 오래 비워도 파도·호흡 위상이 튀지 않는다
   let walkTime = 0 // 함께한 시간은 페이지를 연 때가 아니라 걷기 시작한 때부터
   let booting = true
@@ -709,15 +952,75 @@ if (!webglAvailable()) {
       booting = false
       walked = walkedTarget
       const passed = world.npcs.filter((n) => walked > n.dist - 2).length
-      if (passed >= 4) halfNoteShown = true // 복원은 조용히
-      world.npcs.forEach((n, i) => { if (walked > n.dist - 2) collect(i) })
+      world.npcs.forEach((n, i) => {
+        if (walked > n.dist - 2) collect(i)
+        if (walked > n.dist - 2.1) meets[i].state = 2
+      })
     } else {
-      walked += (walkedTarget - walked) * Math.min(1, dt * 4.5)
+      let target = walkedTarget
+      for (let i = 0; i < meets.length; i++) {
+        const m = meets[i]
+        const stopD = world.npcs[i].dist - 2.1 // NPC 두 걸음 앞
+        if (m.state === 0 && walkedTarget > stopD && walked > stopD - 8 && !atEnd) {
+          m.state = 1
+          m.step = 1
+          lockScrollY = window.scrollY // 대화 동안 화면도 여기 선다
+        }
+        if (m.state === 1) target = Math.min(target, stopD) // 스페이스로 끝내야 풀린다
+      }
+      if (talkingNow() >= 0 && lockScrollY >= 0 && Math.abs(window.scrollY - lockScrollY) > 2) {
+        window.scrollTo(0, lockScrollY)
+      }
+      walked += (target - walked) * Math.min(1, dt * 4.5)
     }
     farthest = Math.max(farthest, walked)
-    if (walked > 0.5) walkTime += dt
+    idleFor = Math.abs(walked - prevWalked) > dt * 0.25 ? 0 : idleFor + dt
+    if (walked > 0.5 && !atEnd && idleFor < 20) walkTime += dt
 
     world.update(walked, dt, t)
+
+    // 성장 — 한계를 깰 때마다 로봇이 5% 씩 자란다. 네 번이면 스스로 알아챌 만큼.
+    let grown = 0
+    let burstU = -1
+    for (let i = 0; i < 4; i++) {
+      const gate = 26 + i * 60 + 48
+      grown += smooth01((walked - gate) / 4)
+      const u = (walked - gate) / 5.5
+      if (u > 0 && u < 1) burstU = u
+    }
+    walker.scale.setScalar(1 + 0.05 * grown)
+    const lvNow = 1 + [0, 1, 2, 3].filter((i) => walked > 26 + i * 60 + 48 + 2.2).length
+    if (lvNow !== curLv) {
+      curLv = lvNow
+      drawLevel(curLv)
+    }
+    // 레벨업 순간 배지가 한 번 부풀었다 돌아온다
+    const lvPop = burstU >= 0 ? Math.sin(Math.PI * Math.min(1, burstU * 1.6)) * 0.35 : 0
+    lvSprite.scale.set(1.1 * (1 + lvPop), 0.41 * (1 + lvPop), 1)
+    lvSprite.position.y = 2.35 + Math.sin(t * 1.8) * 0.05
+    if (burstU >= 0) {
+      const ringU = Math.min(1, burstU * 1.4)
+      growRing.visible = true
+      growRing.scale.setScalar(0.4 + ringU * 4.2)
+      growRing.material.opacity = 0.75 * (1 - ringU)
+      sparks.visible = true
+      sparks.material.opacity = 0.9 * (1 - burstU)
+      for (let i = 0; i < SPARK_N; i++) {
+        const sk = sparkSeed[i]
+        growSeat.position.set(
+          Math.cos(sk.a + burstU * 2) * sk.r * (1 + burstU * 0.6),
+          0.15 + burstU * sk.sp,
+          Math.sin(sk.a + burstU * 2) * sk.r * (1 + burstU * 0.6)
+        )
+        growSeat.scale.setScalar(1 - burstU * 0.75)
+        growSeat.updateMatrix()
+        sparks.setMatrixAt(i, growSeat.matrix)
+      }
+      sparks.instanceMatrix.needsUpdate = true
+    } else {
+      growRing.visible = false
+      sparks.visible = false
+    }
     updateUi(progress, walkTime)
 
     // 실제 지면 이동 속도에 걸음 주기를 맞춘다 — 발이 미끄러지지 않게
@@ -734,10 +1037,22 @@ if (!webglAvailable()) {
 
     // 랜딩에선 관람자를 보고, 걷기 시작하면 길을 향해 돌아서고, 끝에서 다시 마주 본다
     // (atEnd 는 updateUi 가 이력 임계로 갱신한다 — 경계에서 앞뒤로 돌지 않게)
-    const facing = atEnd
+    let facing = atEnd
       ? 0
       : THREE.MathUtils.lerp(landingFace, Math.PI, THREE.MathUtils.smoothstep(ph, 0.25, 0.8))
-    walker.rotation.y += (facing - walker.rotation.y) * Math.min(1, dt * 3)
+    // 자리에 서면 NPC 를 완전히 마주 보고, 대화가 끝나면 다시 길을 본다
+    if (!atEnd && activePopup >= 0) {
+      const npc = world.npcs[activePopup]
+      const dx = npc.group.position.x
+      const dz = -npc.dist + walked // 로봇(원점) 기준 NPC 의 앞뒤 거리
+      const talking = meets[activePopup].state === 1
+      const engage = talking ? 1 : 1 - smooth01((Math.abs(dz) - 4) / 8)
+      facing += (Math.atan2(dx, dz) - Math.PI) * (talking ? 1 : 0.55) * engage
+    }
+    let dFace = facing - walker.rotation.y
+    dFace = ((dFace + Math.PI) % (Math.PI * 2)) - Math.PI // 최단 회전 — 돌아섰던 방향 그대로 되돌아온다
+    if (dFace < -Math.PI) dFace += Math.PI * 2
+    walker.rotation.y += dFace * Math.min(1, dt * 3)
     if (atEnd && !waved && waveAction) {
       waved = true
       waveAction.reset().play()
@@ -747,35 +1062,63 @@ if (!webglAvailable()) {
     const onLanding = ph < 0.5
     const px = onLanding && !reduceMotion ? mouseX * 0.5 : 0
     const py = onLanding && !reduceMotion ? -mouseY * 0.25 : 0
-    camera.position.x = THREE.MathUtils.lerp(-2.8, -2.1, ph) + Math.sin(t * 0.32) * 0.18 + px
-    camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + Math.sin(t * 0.45) * 0.08 + py
-    camera.position.z = THREE.MathUtils.lerp(6.6, 8.8, ph)
-    if (activePopup >= 0) {
-      const npc = world.npcs[activePopup]
-      lookTarget.set(npc.group.position.x * 0.55, 1.05, -2.5)
-    } else {
-      lookTarget.set(
-        THREE.MathUtils.lerp(-0.5, 0.35, ph),
-        THREE.MathUtils.lerp(1.05, 1.15, ph),
-        THREE.MathUtils.lerp(-9, -2.5, ph)
-      )
-    }
+    camera.position.x = THREE.MathUtils.lerp(-2.8, -2.1, ph) + Math.sin(t * 0.32) * 0.18 + px + talkF * 0.55
+    const terrace = Math.max(0, world.trackYAt(Math.max(0, walked - 8.8)) - world.trackYAt(walked))
+    // 대화 중에는 카메라가 반 걸음 다가서고 낮아진다 — 시선이 두 사람에게 모인다
+    talkF += (((talkingNow() >= 0) ? 1 : 0) - talkF) * Math.min(1, dt * 2.2)
+    camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + terrace * 0.85 + Math.sin(t * 0.45) * 0.08 + py - talkF * 0.75
+    camera.position.z = THREE.MathUtils.lerp(6.6, 8.8, ph) - talkF * 2.6
+    lookTarget.set(
+      THREE.MathUtils.lerp(-0.5, 0.35, ph) - talkF * 1.0, // 로봇과 NPC 의 가운데로
+      THREE.MathUtils.lerp(1.05, 1.15, ph) - talkF * 0.15,
+      THREE.MathUtils.lerp(-9, -2.5, ph) + talkF * 1.2
+    )
     lookNow.lerp(lookTarget, Math.min(1, dt * 2.2))
     camera.lookAt(lookNow)
     // 간판은 바닷바람에 흔들린다 — 클릭 영역도 같이 흔들려야 어긋나지 않는다
     if (onLanding) placeCta()
 
     // 하늘 — 돔·안개·배경이 함께 물든다
-    const c = skyAt(progress)
+    const skyPhase = world.skyPhaseAt(walked)
+    const c = skyAt(skyPhase)
     skyNow.copy(c)
     scene.fog.color.copy(c)
     scene.fog.near = 18 + 4 * ph // 랜딩에선 원경이 살짝 물러나 로봇만 또렷하다
+    // 전제가 무너질 때마다 보이는 세계가 넓어진다 — 발밑보다 이쪽이 먼저 읽힌다
+    scene.fog.far = world.fogFarAt(walked)
+    // 광원도 하늘과 같은 키를 탄다 — 새벽 낮은 해에서 미지의 밤까지
+    keyLerp(skyPhase, null, (a, b, u) => {
+      sun.position.set(
+        SUN_POS[a][0] + (SUN_POS[b][0] - SUN_POS[a][0]) * u,
+        SUN_POS[a][1] + (SUN_POS[b][1] - SUN_POS[a][1]) * u,
+        SUN_POS[a][2] + (SUN_POS[b][2] - SUN_POS[a][2]) * u
+      )
+      sun.intensity = SUN_INT[a] + (SUN_INT[b] - SUN_INT[a]) * u
+      sun.color.copy(SUN_COL[a]).lerp(SUN_COL[b], u)
+      hemi.color.copy(HEMI_SKY[a]).lerp(HEMI_SKY[b], u)
+      hemi.groundColor.copy(HEMI_GND[a]).lerp(HEMI_GND[b], u)
+      hemi.intensity = HEMI_INT[a] + (HEMI_INT[b] - HEMI_INT[a]) * u
+      sun2d.position.set(
+        SUN2D[a][0] + (SUN2D[b][0] - SUN2D[a][0]) * u,
+        SUN2D[a][1] + (SUN2D[b][1] - SUN2D[a][1]) * u,
+        SUN2D[a][2] + (SUN2D[b][2] - SUN2D[a][2]) * u
+      )
+      sun2d.scale.setScalar(SUN2D[a][3] + (SUN2D[b][3] - SUN2D[a][3]) * u)
+      sun2d.material.opacity = SUN2D[a][4] + (SUN2D[b][4] - SUN2D[a][4]) * u
+    })
+    // 밤이 오면 별과 행성이 떠오르고, 구름은 어둡게 물러난다
+    const night = Math.max(0, (skyPhase - 0.86) / 0.14)
+    stars.material.opacity = night * 0.9
+    planet.material.opacity = night * 0.85
+    planetRing.material.opacity = night * 0.5
+    cloudMat.opacity = 0.62 - night * 0.3
+    cloudMat.color.copy(cloudDay).lerp(cloudNight, night)
     skyUniforms.bottom.value.copy(c)
     for (let i = 0; i < SKY_TOP.length - 1; i++) {
       const [t0, c0] = SKY_TOP[i]
       const [t1, c1] = SKY_TOP[i + 1]
-      if (progress <= t1) {
-        skyUniforms.top.value.copy(c0).lerp(c1, (progress - t0) / (t1 - t0))
+      if (skyPhase <= t1) {
+        skyUniforms.top.value.copy(c0).lerp(c1, (skyPhase - t0) / (t1 - t0))
         break
       }
     }

@@ -16,7 +16,7 @@
       --hair: rgba(22, 48, 60, 0.16);
       --accent: #0ea8b8;       /* 점·발광·장식용 */
       --accent-ink: #087280;   /* 텍스트용 청록 — AA 대비 */
-      --coral: #ff7a59;
+      --coral: #f4552b;   /* 3D 간판·현재 위치 마커 공통 */
       --mono: 'IBM Plex Mono', 'Consolas', monospace;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -260,7 +260,8 @@
       .land-fade.in { transition: none; }
       /* 읽는 자리는 흔들리지 않는다 — 무한 반복 모션은 전부 끈다 */
       #popup, #popup .who::before, #popup .q .caret,
-      #dash .dash-head .led, #thanks-bubble.show svg { animation: none !important; }
+      #thanks-bubble.show svg { animation: none !important; }
+      #mini, #mini * { transition: none !important; }
       #popup .a { transition: none; }
     }
 
@@ -279,24 +280,83 @@
       .cta-wrap { left: 50%; }
     }
 
+    /* 대화 비네트 */
+    #talk-veil {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: radial-gradient(ellipse 62% 55% at 46% 44%, transparent 55%, rgba(10, 22, 30, 0.42) 100%);
+      opacity: 0; transition: opacity 0.8s ease;
+    }
+    #talk-veil.on { opacity: 1; }
+
+    /* 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장 */
+    #verdict {
+      position: fixed; top: 16vh; left: 50%; transform: translateX(-50%);
+      z-index: 3; pointer-events: none;
+      font-size: clamp(1.15rem, 2.1vw, 1.6rem); font-weight: 600;
+      letter-spacing: 0.01em; color: var(--accent-ink);
+      text-shadow: 0 1px 12px rgba(255, 255, 255, 0.65);
+      opacity: 0; transition: opacity 0.5s ease; white-space: nowrap;
+    }
+
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
+    /* 대사창 — 화면 하단 가로. 세계가 위쪽을 전부 쓴다 */
     #popup {
       position: fixed;
-      left: clamp(1.5rem, 5vw, 6rem);
-      top: 50%;
-      max-width: 26em;
-      max-height: calc(100vh - 8rem); /* 낮은 창에서 위아래가 잘리지 않게 */
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      padding: 1.9rem 2.2rem;
+      left: 50%;
+      bottom: 2.1rem;
+      transform: translateX(-50%);
+      width: min(1180px, 92vw);
+      max-height: 38vh;
+      overflow: hidden;
+      padding: 1.4rem 1.9rem 1.5rem;
+      font-size: 0.95rem;
       z-index: 3;
-      animation: hover-float 4.5s ease-in-out infinite;
+      display: grid;
+      grid-template-columns: minmax(15rem, 21rem) 1fr;
+      column-gap: 1.9rem;
+      align-items: start;
     }
-    @keyframes hover-float {
-      0%, 100% { transform: translateY(-50%); }
-      50% { transform: translateY(calc(-50% - 8px)); }
+    #popup.hidden-panel { transform: translateX(-50%) translateY(18px) scale(0.99); }
+    #popup .head { grid-column: 1; }
+    #popup .a {
+      grid-column: 2;
+      border-top: 0;
+      border-left: 1px dashed rgba(14, 168, 184, 0.32);
+      padding: 0.1rem 0 0.1rem 1.7rem;
     }
-    #popup.hidden-panel { animation: none; transform: translateY(calc(-50% + 22px)) scale(0.97); }
+    #popup .a p { margin: 0 0 0.8rem; font-size: 0.95em; line-height: 1.75; animation: beat-in 0.45s ease both; }
+
+    /* 문답 단계 + 스페이스 안내 */
+    #popup .hint .step {
+      margin-right: 1.1em; font-variant-numeric: tabular-nums;
+      color: var(--accent-ink); opacity: 0.85;
+    }
+    #popup .hint {
+      position: absolute; right: 1.6rem; bottom: 0.9rem;
+      font-size: 0.72rem; letter-spacing: 0.14em; font-weight: 600;
+      color: var(--accent-ink); opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #popup .hint kbd {
+      display: inline-block; padding: 0.1em 0.55em; margin-right: 0.4em;
+      border: 1px solid rgba(8, 114, 128, 0.4); border-bottom-width: 2px;
+      border-radius: 5px; font-family: inherit; font-size: 0.95em;
+    }
+    #popup .hint.on { opacity: 1; animation: hint-pulse 1.6s ease infinite; }
+    @keyframes hint-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    #popup .a p:last-child { margin-bottom: 0; }
+    /* 대가 — 얻은 것 옆에 포기한 것을 같이 적는다 */
+    #popup .a p.cost {
+      padding-left: 0.8rem;
+      border-left: 2px solid rgba(244, 85, 43, 0.55);
+      font-weight: 500;
+    }
+    @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 900px) {
+      #popup { grid-template-columns: 1fr; row-gap: 0.7rem; bottom: 1rem; max-height: 34vh; }
+      #popup .a { border-left: 0; border-top: 1px dashed rgba(14, 168, 184, 0.32); padding: 0.7rem 0 0 0; }
+    }
+
     #popup .who {
       display: flex; align-items: center; gap: 0.6em;
       font-size: 0.7rem; letter-spacing: 0.32em; color: var(--accent);
@@ -323,7 +383,7 @@
     }
     #popup .a {
       font-size: clamp(0.95rem, 1.12vw, 1.08rem);
-      line-height: 1.95; word-break: keep-all; font-weight: 400; color: var(--ink-70);
+      line-height: 1.72; word-break: keep-all; font-weight: 400; color: var(--ink-70);
       border-top: 1px dashed rgba(14, 168, 184, 0.3);
       padding-top: 0.9rem;
       opacity: 0;
@@ -332,78 +392,50 @@
     }
     #popup .a.on { opacity: 1; transform: none; }
 
-    /* 우상단 — 프로필 수집 계기판 */
-    #dash {
-      position: fixed;
-      right: clamp(1rem, 2.5vw, 2.4rem);
-      top: clamp(1rem, 2.5vh, 1.8rem);
-      z-index: 3;
-      padding: 1.1rem 1.25rem 1rem;
-      width: 17.5rem;
+    /* 우상단 — 지도와 지나온 자리 */
+    #mini {
+      position: fixed; top: 1.5rem; right: 1.5rem; z-index: 4;
+      width: 16.5rem; padding: 1.05rem 1.1rem 1rem;
+      display: flex; flex-direction: column; gap: 0.95rem;
+    }
+    /* 지표 — 칸막이·박스 없이 숨 쉬게. 라벨 위, 값 아래 두 칸뿐 */
+    #mini .stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;
       font-variant-numeric: tabular-nums;
     }
-    #dash .dash-head {
-      display: flex; align-items: center; gap: 0.55em;
-      font-size: 0.68rem; letter-spacing: 0.3em; font-weight: 700;
-      color: rgba(22,48,60,0.55);
-      margin-bottom: 0.8rem;
+    #mini .stats span {
+      display: block; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.12em;
+      color: var(--accent-ink); white-space: nowrap;
     }
-    #dash .dash-head .led {
-      width: 0.55em; height: 0.55em; border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: blink 1.8s ease-in-out infinite;
+    #mini .stats b {
+      display: block; margin-top: 0.32rem;
+      font-size: 0.94rem; font-weight: 500;
+      line-height: 1.15; color: rgba(22, 48, 60, 0.88); letter-spacing: 0.005em;
     }
-    #dash .dash-head b { margin-left: auto; font-size: 1.05rem; color: var(--accent); letter-spacing: 0.02em; }
-    #dash .kpis {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 0.5rem;
-      margin-bottom: 0.85rem;
+    /* 매초 바뀌는 자리와 분모는 무게·색만 낮춘다 — 크기를 줄이면 베이스라인이 어긋난다 */
+    #mini .stats b i { font-style: normal; font-weight: 400; color: rgba(22, 48, 60, 0.42); }
+
+    #mini svg { display: block; width: 100%; height: auto; }
+    #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.16); stroke-width: 2.4; stroke-linecap: round; }
+    #mini .route-done { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; }
+    #mini .node {
+      fill: #ffffff; stroke: rgba(22, 48, 60, 0.28); stroke-width: 1.6;
+      transition: fill 0.32s ease, stroke 0.32s ease;
     }
-    #dash .kpi {
-      background: rgba(255,255,255,0.5);
-      border: 1px solid rgba(14,168,184,0.22);
-      border-radius: 6px;
-      padding: 0.45rem 0.2rem 0.4rem;
-      text-align: center;
+    #mini .node.done { fill: var(--accent); stroke: var(--accent); }
+    #mini .me { fill: var(--coral); stroke: #ffffff; stroke-width: 2; }
+    #mini ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.34rem; }
+    #mini li {
+      display: grid; grid-template-columns: 1.15rem 1fr; gap: 0.4rem; align-items: baseline;
+      font-size: 0.74rem; line-height: 1.42; color: var(--ink-45); word-break: keep-all;
+      transition: color 0.4s;
     }
-    #dash .kpi .v { display: block; font-size: 1.02rem; font-weight: 700; color: var(--ink); line-height: 1.2; }
-    #dash .kpi .v small { font-size: 0.62rem; font-weight: 400; color: rgba(22,48,60,0.45); margin-left: 1px; }
-    #dash .kpi .k { display: block; font-size: 0.62rem; letter-spacing: 0.04em; color: rgba(22,48,60,0.45); margin-top: 0.15rem; word-break: keep-all; }
-    #dash .chip {
-      padding: 0.3em 0.1em 0.42em;
-      font-size: 0.8rem;
-      color: rgba(22,48,60,0.32);
-      transition: color 0.5s;
-    }
-    #dash .chip .row { display: flex; align-items: center; gap: 0.5em; }
-    #dash .chip .dot {
-      width: 0.5em; height: 0.5em; border-radius: 50%;
-      border: 1px solid rgba(22,48,60,0.3);
-      transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
-      flex: none;
-    }
-    #dash .chip .label { word-break: keep-all; line-height: 1.45; }
-    #dash .chip .label .val { display: none; font-weight: 700; color: var(--ink); }
-    #dash .chip .bar {
-      margin-top: 0.28em; margin-left: 1.05em;
-      height: 2.5px; border-radius: 2px;
-      background: rgba(22,48,60,0.1);
-      overflow: hidden;
-    }
-    #dash .chip .bar i {
-      display: block; height: 100%; width: 0%;
-      background: linear-gradient(90deg, var(--accent), #6fd8e4);
-      transition: width 0.8s cubic-bezier(0.2, 0.9, 0.3, 1);
-    }
-    #dash .chip.filled { color: var(--ink-70); }
-    #dash .chip.filled .dot {
-      background: var(--accent); border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(14, 168, 184, 0.8);
-    }
-    #dash .chip.filled .label .val { display: inline; }
-    #dash .chip.filled .label .key::after { content: ' — '; color: rgba(22,48,60,0.35); font-weight: 400; }
-    #dash .chip.filled .bar i { width: 100%; }
+    #mini li b { font-weight: 700; color: var(--ink-45); font-size: 0.68rem; }
+    #mini li.done { color: var(--ink-70); }
+    #mini li.done b { color: var(--accent-ink); }
+    #mini li.now { color: var(--ink); font-weight: 600; }
+    #mini li.now b { color: var(--coral); }
+    @media (max-width: 900px) { #mini { display: none; } }
 
     /* 엔딩 */
     #outro-panel {
@@ -424,27 +456,6 @@
     #outro-panel:not(.hidden-panel) .verdict span:nth-child(3) { transition-delay: 0.9s; }
     #outro-record b { font-family: var(--mono); font-weight: 600; color: var(--accent-ink); }
 
-    /* 절반 지점 노트 — 개방이 깊어진다는 예고 */
-    #half-note {
-      position: fixed;
-      left: 50%;
-      bottom: clamp(4.2rem, 9vh, 6.5rem);
-      transform: translateX(-50%) translateY(8px);
-      z-index: 3;
-      font-size: 13px;
-      color: var(--ink-70);
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      border-radius: 999px;
-      padding: 8px 20px;
-      word-break: keep-all;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.6s, transform 0.6s;
-    }
-    #half-note.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* 클릭의 보답 — 로봇 머리 위 이모트 버블(하트). 말 대신 게임의 문법으로 */
     #thanks-bubble {
@@ -532,39 +543,6 @@
       text-shadow: 0 2px 18px rgba(255,255,255,0.8);
     }
 
-    /* 하단 여정 진행 바 */
-    #journey {
-      position: fixed;
-      left: 50%; bottom: clamp(0.9rem, 2.4vh, 1.6rem);
-      transform: translateX(-50%);
-      z-index: 3;
-      width: min(42vw, 34rem);
-      padding: 0.55rem 1rem;
-    }
-    #journey .track { position: relative; height: 3px; background: rgba(22,48,60,0.14); border-radius: 2px; }
-    #journey .fill {
-      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
-      background: linear-gradient(90deg, var(--accent), #6fd8e4);
-      border-radius: 2px;
-      box-shadow: 0 0 8px rgba(14,168,184,0.55);
-    }
-    #journey .node {
-      position: absolute; top: 50%;
-      width: 7px; height: 7px; border-radius: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff;
-      border: 1.5px solid rgba(22,48,60,0.3);
-      transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
-    }
-    #journey .node.lit { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 7px rgba(14,168,184,0.8); }
-    #journey .runner {
-      position: absolute; top: 50%;
-      width: 11px; height: 11px; border-radius: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--coral);
-      border: 2px solid #fff;
-      box-shadow: 0 1px 6px rgba(20,60,80,0.35);
-    }
     /* ===== 좁은 화면 — 패널이 서로 겹치지 않게 위아래로 나눠 앉힌다 ===== */
     @media (max-width: 900px) {
       .footline { position: static; width: auto; margin-top: 18px; }
@@ -576,10 +554,7 @@
         padding: 1.4rem 1.5rem;
       }
       #popup.hidden-panel { transform: translateY(12px) scale(0.98); }
-      #dash { left: 1rem; right: 1rem; width: auto; top: 1rem; }
-      #dash #dash-chips { display: none; }
       #outro-panel { left: 1rem; right: 1rem; max-width: none; }
-      #half-note { white-space: normal; max-width: 90vw; text-align: center; line-height: 1.5; }
     }
   </style>
 </head>
@@ -616,7 +591,7 @@
         <a href="#">기술 포트폴리오</a>
         <a href="#">이력서</a>
         <a href="#">자기소개서</a>
-        <a href="#">경력 기술서</a>
+        <!-- <a href="#">경력 기술서</a> -->
       </div>
     </div>
     <div class="cta-wrap land-fade">
@@ -629,26 +604,38 @@
     </div>
   </header>
   <div id="spacer"></div>
-  <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길에서 만난 질문">
-    <div class="who">첫 번째 질문</div>
-    <div class="q"></div>
-    <div class="a"></div>
-  </section>
-  <div id="half-note">절반을 걸으셨습니다 — 여기부터는 조금 더 솔직한 이야기입니다</div>
-  <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
-  <aside id="dash" class="panel hidden-panel">
-    <div class="dash-head"><span class="led"></span><span id="dash-title">함께 걷는 중</span><b id="dash-pct">0%</b></div>
-    <div class="kpis">
-      <div class="kpi"><span class="v"><span id="kpi-meet">0</span><small>/7</small></span><span class="k">나눈 질문</span></div>
-      <div class="kpi"><span class="v"><span id="kpi-dist">0</span><small>m</small></span><span class="k">같이 걸은 거리</span></div>
-      <div class="kpi"><span class="v" id="kpi-time">0:00</span><span class="k">함께한 시간</span></div>
+  <!-- 대화 비네트 — 대화 중 주변이 어두워져 두 사람에게 시선이 모인다 -->
+  <div id="talk-veil"></div>
+
+  <!-- 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장 -->
+  <div id="verdict" aria-live="polite"></div>
+
+  <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길 위의 자리">
+    <div class="head">
+      <div class="who">첫 번째 자리</div>
+      <div class="q"></div>
     </div>
-    <div id="dash-chips"></div>
+    <div class="a"></div>
+    <div class="hint"><span class="step"></span><kbd>SPACE</kbd><span class="verb">다음</span></div>
+  </section>
+  <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
+  <aside id="mini" class="panel hidden-panel" aria-label="지도와 지나온 자리">
+    <div class="stats">
+      <div><span>머문 시간</span><b id="st-time">00<i>:00</i></b></div>
+      <div><span>읽은 문단</span><b id="st-read">00<i>&#8202;/&#8202;24</i></b></div>
+    </div>
+    <svg viewBox="0 0 150 150" aria-hidden="true">
+      <path class="route" id="route" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
+      <path class="route-done" id="route-done" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
+      <g id="map-nodes"></g>
+      <circle class="me" id="map-me" r="4" cx="20" cy="14" />
+    </svg>
+    <ol id="qlist"></ol>
   </aside>
   <section id="outro-panel" class="panel hud hidden-panel">
     <div class="verdict">
       <span id="outro-record">여기까지 함께 걸어주셨습니다.</span>
-      <span>일곱 번 멈춰 읽어주신 시간, 고맙습니다.</span>
+      <span>네 번 멈춰 읽어주신 시간, 고맙습니다.</span>
       <span>다음 구간은, 만나서 걷고 싶습니다.</span>
     </div>
     <div class="links">
@@ -658,12 +645,6 @@
     </div>
   </section>
   <div id="chapter-card"><span class="num"></span><span class="t"></span></div>
-  <nav id="journey" class="panel hidden-panel">
-    <div class="track">
-      <div class="fill"></div>
-      <div class="runner"></div>
-    </div>
-  </nav>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
   <script type="module" src="/src/main.js"></script>
 </body>
