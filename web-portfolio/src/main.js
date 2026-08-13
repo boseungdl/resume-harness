@@ -163,7 +163,7 @@ if (!webglAvailable()) {
     [0.5, new THREE.Color('#c6cacd')],  // 존3 외로움 — 회색빛 도시
     [0.75, new THREE.Color('#ffd2b0')], // 존4 잔잔함 — 낮게 가라앉은 노을
     [0.88, new THREE.Color('#b98098')], // 황혼
-    [1.0, new THREE.Color('#6a6cae')],  // 너머 — 미지의 밤 (밝은 남보라)
+    [1.0, new THREE.Color('#8b8dc8')],  // 너머 — 미지의 어스름 (밝은 라벤더)
   ]
   const skyNow = SKY[0][1].clone()
   scene.background = skyNow
@@ -201,16 +201,16 @@ if (!webglAvailable()) {
     [0.5, new THREE.Color('#8d97a2')],  // 외로움 — 잿빛
     [0.75, new THREE.Color('#e8987c')], // 잔잔 — 노을
     [0.88, new THREE.Color('#6f5a92')],
-    [1.0, new THREE.Color('#2a2e5c')],
+    [1.0, new THREE.Color('#4a4e8a')],
   ]
   // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
   const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
   const SUN_POS = [[10, 3.4, 7], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
-  const SUN_INT = [1.55, 1.8, 0.55, 1.35, 0.75, 0.5]
+  const SUN_INT = [1.55, 1.8, 0.55, 1.35, 0.75, 0.85]
   const SUN_COL = ['#fff2dc', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
-  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#a9ace8'].map((c) => new THREE.Color(c))
-  const HEMI_GND = ['#b9d4b4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#68719c'].map((c) => new THREE.Color(c))
-  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 0.95]
+  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
+  const HEMI_GND = ['#b9d4b4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
+  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 1.2]
   const SUN2D = [[-160, 16, -260, 46, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
   function keyLerp(t, get, set) {
     for (let i = 0; i < KEY_T.length - 1; i++) {
