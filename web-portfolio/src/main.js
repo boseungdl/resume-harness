@@ -821,6 +821,8 @@ if (!webglAvailable()) {
   const ui = { pct: -1, title: '', dist: -1, time: '', fade: -1, inJourney: null, beatKey: '', nowChip: -1, read: -1, verdict: -1 }
 
   const verdictEl = document.getElementById('verdict')
+  let veilOn = false
+  let arrived = 0 // 자리 도착 계수 — 몸 돌림·카메라·비네트가 함께 탄다
 
   function updateUi(progress, t) {
     // v2: 스크롤 락 없음 — 세계는 걸음을 멈추지 않는다.
@@ -877,7 +879,7 @@ if (!webglAvailable()) {
         popupEl.classList.add('hidden-panel')
       }
     }
-    if (veilEl) veilEl.classList.toggle('on', talkingNow() >= 0)
+    if (veilEl) veilEl.classList.toggle('on', veilOn)
     if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
       renderMeet(near) // 대화는 멈춰 선 3문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
     }
@@ -1040,15 +1042,17 @@ if (!webglAvailable()) {
     let facing = atEnd
       ? 0
       : THREE.MathUtils.lerp(landingFace, Math.PI, THREE.MathUtils.smoothstep(ph, 0.25, 0.8))
-    // 자리에 서면 NPC 를 완전히 마주 보고, 대화가 끝나면 다시 길을 본다
-    if (!atEnd && activePopup >= 0) {
+    // 자리에 도착해 멈춘 뒤에만 NPC 를 마주 본다 — 걸으면서 돌아보면 옆걸음이 된다
+    arrived = 0
+    if (!atEnd && activePopup >= 0 && meets[activePopup].state === 1) {
       const npc = world.npcs[activePopup]
+      const stopD2 = npc.dist - 2.1
+      arrived = smooth01((walked - (stopD2 - 1.2)) / 1.1) // 멈추는 마지막 한 걸음에서만
       const dx = npc.group.position.x
-      const dz = -npc.dist + walked // 로봇(원점) 기준 NPC 의 앞뒤 거리
-      const talking = meets[activePopup].state === 1
-      const engage = talking ? 1 : 1 - smooth01((Math.abs(dz) - 4) / 8)
-      facing += (Math.atan2(dx, dz) - Math.PI) * (talking ? 1 : 0.55) * engage
+      const dz = -npc.dist + walked
+      facing += (Math.atan2(dx, dz) - Math.PI) * arrived
     }
+    veilOn = arrived > 0.5
     let dFace = facing - walker.rotation.y
     dFace = ((dFace + Math.PI) % (Math.PI * 2)) - Math.PI // 최단 회전 — 돌아섰던 방향 그대로 되돌아온다
     if (dFace < -Math.PI) dFace += Math.PI * 2
@@ -1065,7 +1069,7 @@ if (!webglAvailable()) {
     camera.position.x = THREE.MathUtils.lerp(-2.8, -2.1, ph) + Math.sin(t * 0.32) * 0.18 + px + talkF * 0.55
     const terrace = Math.max(0, world.trackYAt(Math.max(0, walked - 8.8)) - world.trackYAt(walked))
     // 대화 중에는 카메라가 반 걸음 다가서고 낮아진다 — 시선이 두 사람에게 모인다
-    talkF += (((talkingNow() >= 0) ? 1 : 0) - talkF) * Math.min(1, dt * 2.2)
+    talkF += (arrived - talkF) * Math.min(1, dt * 2.2)
     camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + terrace * 0.85 + Math.sin(t * 0.45) * 0.08 + py - talkF * 0.75
     camera.position.z = THREE.MathUtils.lerp(6.6, 8.8, ph) - talkF * 2.6
     lookTarget.set(

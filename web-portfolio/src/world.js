@@ -1029,111 +1029,104 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
   const gateAnims = []
 
-  // ── 경계 1~3 — 한계의 판 ──
-  // 문이 아니다. 전제가 적힌 얇은 판 하나가 길 위에 떠 있고, 로봇이 다가가면
-  // 금이 가고, 부딪히는 순간 깨져 흩어진다. 한계는 장식이 아니라 깨는 것이다.
-  const SHARD_COLS = 6
-  const SHARD_ROWS = 6
-  function limitPane(idx, tintHex) {
-    if (!premises[idx]) return
+  // ── 경계 1~3 — 한계석(限界石) 아이템 ──
+  // 문도 판도 아니다. 길 위에 결정 하나가 떠 있고, 로봇이 걸어 들어가 줍는다.
+  // 줍는 순간 결정이 깨지며 빛 파편이 터지고, 그 힘이 로봇에게 흡수된다 — 한계는 주워서 깨는 것.
+  function limitItem(idx, tintHex) {
     const g = gateOf(idx)
     const y0 = trackY(g - 0.5)
     const root = new THREE.Group()
     root.position.set(0, y0, -(g - 0.5))
     group.add(root)
-    const W = 2.6
-    const H = 2.6
-    const paneMat = std('#ffffff', { roughness: 0.9, transparent: true, opacity: 0.96, side: THREE.DoubleSide })
-    paneMat.map = premiseTexture(premises[idx].premise, 512, 512)
-    paneMat.color.set(tintHex)
-    const pane = new THREE.Mesh(new THREE.PlaneGeometry(W, H), paneMat)
-    pane.position.y = 0.3 + H / 2
-    pane.castShadow = true
-    root.add(pane)
-    // 파편 — 판을 6×6 으로 쪼갠 조각들. 깨지는 순간에만 보인다.
+    const tint = new THREE.Color(tintHex)
+
+    // 결정 — 존의 빛을 머금은 팔면체. 겉껍질과 속심 두 겹.
+    const item = new THREE.Group()
+    const shell = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.52, 0),
+      std('#ffffff', { emissive: '#ffffff', emissiveIntensity: 0.55, transparent: true, opacity: 0.88, roughness: 0.35 })
+    )
+    shell.material.color.copy(tint)
+    shell.material.emissive.copy(tint)
+    const core = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.24, 0),
+      std('#fff6dc', { emissive: '#ffd98a', emissiveIntensity: 1.4 })
+    )
+    item.add(shell, core)
+    // 발밑 빛 무리와 부유 고리 — 아이템은 놓인 게 아니라 기다리는 것
+    const halo = new THREE.Mesh(
+      new THREE.CircleGeometry(0.85, 20),
+      new THREE.MeshBasicMaterial({ color: tintHex, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    halo.rotation.x = -Math.PI / 2
+    halo.position.y = 0.06
+    const orbit = new THREE.Mesh(
+      new THREE.TorusGeometry(0.75, 0.02, 5, 30),
+      new THREE.MeshBasicMaterial({ color: '#ffe9b0', transparent: true, opacity: 0.55, fog: false })
+    )
+    orbit.rotation.x = Math.PI / 2 - 0.25
+    root.add(item, halo, orbit)
+
+    // 빛 파편 — 줍는 순간 사방으로 터진다
+    const SHARDS = 20
     const shards = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(W / SHARD_COLS, H / SHARD_ROWS, 0.035),
-      std('#e9dfc8', { transparent: true, opacity: 0.96 }),
-      SHARD_COLS * SHARD_ROWS
+      new THREE.OctahedronGeometry(0.07, 0),
+      new THREE.MeshBasicMaterial({ color: '#ffe9b0', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+      SHARDS
     )
     shards.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
     shards.frustumCulled = false
-    const shardTint = new THREE.Color(tintHex)
-    const shardBase = new THREE.Color('#e9dfc8')
-    const _st = new THREE.Color()
-    for (let i = 0; i < SHARD_COLS * SHARD_ROWS; i++) {
-      _st.copy(shardBase).lerp(shardTint, 0.35 + hash(i * 7.7) * 0.4)
-      shards.setColorAt(i, _st)
-    }
     shards.visible = false
     root.add(shards)
-    // 보상 — 깨진 자리에서 떠오른 결정이 로봇에게 날아와 흡수된다. 퀘스트를 깬 값.
-    const reward = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.16, 0),
-      std('#ffd98a', { emissive: '#ffbe6a', emissiveIntensity: 1.3 })
-    )
-    reward.visible = false
-    group.add(reward)
-    const rewardHalo = new THREE.Mesh(
-      new THREE.CircleGeometry(0.34, 12),
-      new THREE.MeshBasicMaterial({ color: '#ffd98a', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
-    )
-    group.add(rewardHalo)
+
     gateAnims.push((walked, t) => {
-      const k = smooth01((walked - (g - 5)) / 5)
-      // 보상 궤적 — 깨짐(0.42)과 함께 태어나 위로 떠올랐다가 로봇 가슴께로 빨려든다
-      const rw = KK(k, 0.45, 1)
-      reward.visible = rw > 0 && rw < 0.98
-      rewardHalo.visible = reward.visible
-      if (reward.visible) {
-        const px2 = 0
-        const py2 = trackY(g - 0.5) + 1.5 + Math.sin(rw * Math.PI) * 1.1
-        const pz2 = -(g - 0.5)
-        const ry2 = trackY(walked) + 1.15
-        const u2 = smooth01((rw - 0.35) / 0.65)
-        reward.position.set(px2 * (1 - u2), py2 * (1 - u2) + ry2 * u2, pz2 * (1 - u2) + -walked * u2)
-        reward.rotation.y = t * 4
-        reward.rotation.x = 0.6
-        reward.scale.setScalar((1 - u2 * 0.75) * (0.5 + Math.min(1, rw * 4) * 0.5))
-        rewardHalo.position.copy(reward.position)
-        rewardHalo.material.opacity = 0.4 * (1 - u2)
-        rewardHalo.scale.setScalar(1 + Math.sin(t * 6) * 0.15)
+      const near = g - walked // 아이템까지 남은 걸음
+      const pick = KK(walked - (g - 0.9), 0, 3.2) // 닿는 순간부터 흡수 완료까지
+      const glow = 1 - smooth01((near - 3) / 14) // 다가갈수록 밝아진다
+
+      item.visible = pick < 0.55
+      halo.visible = item.visible
+      orbit.visible = item.visible
+      if (item.visible) {
+        const bob = Math.sin(t * 1.6 + idx * 2) * 0.14
+        // 줍기 시작하면 로봇 가슴께로 빨려든다
+        const u = smooth01(pick / 0.55)
+        const ry = trackY(walked) - y0 + 1.15
+        item.position.set(0, (1.25 + bob) * (1 - u) + ry * u, (-(walked) + (g - 0.5)) * u)
+        item.rotation.y = t * (1.1 + glow * 2.2 + u * 6)
+        item.rotation.x = 0.3
+        item.scale.setScalar((0.85 + glow * 0.3) * (1 - u * 0.8))
+        shell.material.emissiveIntensity = 0.45 + glow * 0.9 + u * 1.5
+        halo.material.opacity = 0.3 * (1 - u)
+        halo.scale.setScalar(1 + Math.sin(t * 2.2 + idx) * 0.12 + glow * 0.4)
+        orbit.rotation.z = t * 0.8
+        orbit.material.opacity = 0.55 * (1 - u)
       }
-      const crack = KK(k, 0, 0.42) // 다가갈수록 판이 떨리고 기운다 — 금이 가는 시간
-      const burst = KK(k, 0.42, 1)
-      pane.visible = burst < 0.02
-      pane.rotation.z = Math.sin(crack * 31) * 0.02 * crack
-      pane.rotation.x = -0.06 * crack
-      shards.visible = burst >= 0.02
+      shards.visible = pick > 0.12 && pick < 1
       if (shards.visible) {
-        let n = 0
-        for (let r = 0; r < SHARD_ROWS; r++) {
-          for (let c = 0; c < SHARD_COLS; c++) {
-            const cx = (c + 0.5 - SHARD_COLS / 2) * (W / SHARD_COLS)
-            const cy = 0.3 + (r + 0.5) * (H / SHARD_ROWS)
-            const dirX = cx * (1.4 + hash(n * 3.1))
-            const dirY = (cy - 1.6) * 0.8 + hash(n * 5.7) * 0.9
-            // 앞으로(-z) 튄다 — 로봇이 뚫고 나가는 방향
-            const fly = burst * (0.8 + hash(n * 7.3) * 0.7)
-            seat.position.set(
-              cx + dirX * fly,
-              Math.max(0.06, cy + dirY * fly - 2.2 * burst * burst),
-              -(0.4 + 2.6 * fly)
-            )
-            seat.rotation.set(burst * 6 * (hash(n * 9.1) - 0.5), burst * 5 * (hash(n * 11.3) - 0.5), burst * 7 * (hash(n * 13.7) - 0.5))
-            seat.scale.setScalar(Math.max(0.001, 1 - burst * 0.92))
-            seat.updateMatrix()
-            shards.setMatrixAt(n, seat.matrix)
-            n++
-          }
+        const b = KK(pick, 0.12, 1)
+        for (let i = 0; i < SHARDS; i++) {
+          const a = (i / SHARDS) * Math.PI * 2 + i * 0.7
+          const el = (hash(i * 3.7) - 0.3) * 1.6
+          const r = 0.3 + b * (1.6 + hash(i * 5.1) * 1.4)
+          seat.position.set(
+            Math.cos(a) * r,
+            1.25 + Math.sin(el) * r - b * b * 1.4,
+            Math.sin(a) * r * 0.7
+          )
+          seat.rotation.set(t * 3 + i, t * 2, 0)
+          seat.scale.setScalar(Math.max(0.001, 1 - b))
+          seat.updateMatrix()
+          shards.setMatrixAt(i, seat.matrix)
         }
+        shards.material.opacity = 0.95 * (1 - b * 0.8)
         shards.instanceMatrix.needsUpdate = true
       }
     })
   }
-  limitPane(0, '#dff0e2') // 산뜻한 존의 옅은 초록빛
-  limitPane(1, '#eadfc2') // 황무지의 모래빛
-  limitPane(2, '#d9dde0') // 도시의 잿빛
+  limitItem(0, '#7fd8a8') // 산뜻한 존 — 초록 결정
+  limitItem(1, '#e8b86a') // 황무지 — 호박빛 결정
+  limitItem(2, '#9fb8d8') // 도시 — 푸른 잿빛 결정
 
 
 
