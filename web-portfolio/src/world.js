@@ -1137,71 +1137,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const root = new THREE.Group()
     root.position.set(0, trackY(g4 - 0.5), -(g4 - 0.5))
     group.add(root)
-    const T1 = '#96795b', T2 = '#7a5c3e', T3 = '#8a6a48'
-    const statics = []
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      statics.push(memb(gat(GC(0.15, 0.19, 4.2, 8), sx * 1.05, 2.0, sz * 0.6, 0, 0, sx * 0.02), T1, { gradH: 1.8, strength: 0.3, upBoost: 0.1 }))
-      statics.push(memb(gat(GC(0.17, 0.2, 1.9, 8), sx * 1.05, -0.75, sz * 0.6), T2))
-    }
-    for (const sz of [-1, 1]) {
-      statics.push(memb(gat(GB(3.5, 0.22, 0.34), 0, 4.16, sz * 0.6), T2))
-      statics.push(memb(gat(GB(0.35, 0.16, 0.34), 1.72, 4.1, sz * 0.6, 0, 0, -0.16), T2))
-      statics.push(memb(gat(GB(0.35, 0.16, 0.34), -1.72, 4.1, sz * 0.6, 0, 0, 0.16), T2))
-      statics.push(memb(gat(GB(3.2, 0.16, 0.4), 0, 3.93, sz * 0.6), T3))
-      statics.push(memb(gat(GB(2.9, 0.18, 0.26), 0, 2.75, sz * 0.6), T3))
-    }
-    for (const sx of [-1, 1]) {
-      statics.push(memb(gat(GB(0.16, 0.16, 1.4), sx * 1.05, 2.75, 0), T2))
-      statics.push(memb(gat(GB(0.16, 0.16, 1.4), sx * 1.05, 3.98, 0), T2))
-    }
-    statics.push(memb(gat(GB(0.22, 1.05, 0.22), 0, 3.34, 0.6), T2))
-    statics.push(memb(gat(GB(2.6, 0.09, 0.34), 0, 0.075, 1.5), '#a98b6a'))
-    statics.push(memb(gat(GB(2.6, 0.09, 0.34), 0, 0.075, -1.5), '#a98b6a'))
-    statics.push(memb(gat(GC(0.13, 0.15, 0.55, 8), -1.55, 0.28, 2.2), '#8a7358'))
-    statics.push(memb(gat(GC(0.13, 0.15, 0.55, 8), 1.55, 0.28, -2.2), '#8a7358'))
-    // 물에 잠긴 옛 상인방 — 여기 있던 문은 이미 없다
-    statics.push(memb(gat(GB(3.4, 0.3, 0.36), -4.6, -0.42, 0.8, 0, -0.5, 0.22), T2))
-    const toriiStatic = weld(statics, 0.85)
-    root.add(toriiStatic)
-    // 수면 반영 — 잔잔함의 시각적 근거
-    const refl = toriiStatic.clone()
-    refl.material = toriiStatic.material.clone()
-    refl.material.transparent = true
-    refl.material.opacity = 0.22
-    refl.scale.y = -1
-    refl.position.y = -0.6
-    refl.castShadow = false
-    root.add(refl)
-    // 편액
-    const plaqueGrp = new THREE.Group()
-    const plaqueBody = weld([memb(gat(GB(1.62, 0.86, 0.1), 0, 0, 0), '#e9dfc8')], 0.9)
-    const plate4 = premisePlate(premises[3] ? premises[3].premise : '', 1.5, 0.75, 512, 256)
-    plate4.position.z = 0.06
-    plaqueGrp.add(plaqueBody, plate4)
-    plaqueGrp.position.set(0, 3.2, 0.66)
-    root.add(plaqueGrp)
-    // 등롱 2 — 이 게이트에서 변하는 건 빛뿐이다
-    const gLanternMat = std('#ffdf9e', { emissive: '#ffbe6a', emissiveIntensity: 0.4 })
-    for (const sx of [-1, 1]) {
-      const pole = new THREE.Mesh(GC(0.08, 0.1, 1.35, 6), std('#8a7358'))
-      pole.position.set(sx * 1.75, 0.65, 1.15)
-      const lbody = new THREE.Mesh(GC(0.14, 0.16, 0.26, 6), gLanternMat)
-      lbody.position.set(sx * 1.75, 1.45, 1.15)
-      const lcap = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.12, 6), std('#6b5540'))
-      lcap.position.set(sx * 1.75, 1.63, 1.15)
-      root.add(pole, lbody, lcap)
-    }
-    // 안개 커튼 + 첫 발광 링 (기존 유지)
-    const veils = []
-    for (let i = 0; i < 6; i++) {
-      const veil = new THREE.Mesh(
-        new THREE.PlaneGeometry(11, 6.4),
-        new THREE.MeshBasicMaterial({ color: '#e0c3bc', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
-      )
-      veil.position.set(0, trackY(g4) + 3.4, -(g4 - 2 + i * 0.8))
-      group.add(veil)
-      veils.push(veil)
-    }
     const ringGrp = new THREE.Group()
     ringGrp.position.set(0, trackY(g4 + 5) + 2.45, -(g4 + 5))
     const ringMain = new THREE.Mesh(
@@ -1220,14 +1155,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     ringGrp.add(ringMain, ringSub, membrane)
     group.add(ringGrp)
     gateAnims.push((walked, t) => {
-      const k = smooth01((walked - (g4 - 6)) / 6)
-      const nearIn = 1 - smooth01((g4 - walked - 8) / 10) // 18m 밖에서는 안 보인다
-      for (let i = 0; i < veils.length; i++) {
-        veils[i].visible = g4 - walked < 19 && walked - g4 < 8
-        veils[i].material.opacity = 0.42 * (1 - k) * nearIn
-        veils[i].position.x = (i % 2 === 0 ? -1 : 1) * 3.4 * k
-      }
-      gLanternMat.emissiveIntensity = 0.4 + 1.4 * KK(k, 0.3, 1)
       const pass = Math.max(0, 1 - Math.abs(g4 + 5 - walked) / 3)
       membrane.material.opacity = 0.08 + 0.55 * pass * pass
       ringMain.material.opacity = 0.25 + 0.7 * (1 - smooth01((g4 + 5 - walked - 18) / 14))
@@ -1884,13 +1811,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const isle = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + hash(k * 7.7) * 1.3, 0), std('#cfe4ee'))
     isle.scale.set(1, 0.42, 1)
     isle.position.set(side * (7 + hash(k * 5.1) * 5), 5.5 + hash(k * 9.1) * 4.5, -d)
-    const beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.3, 5.5, 6, 1, true),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
-    )
-    beam.position.copy(isle.position)
-    beam.position.y -= 3
-    dream.add(isle, beam)
+    dream.add(isle)
   }
   // 모노리스 — 기울어 떠 있는 돌기둥. 아래 광원 원판이 부양을 증명한다.
   for (const [mx, md, my, tilt] of [[-16, 24, 9, 0.12], [21, 42, 14, -0.08], [-27, 58, 11, 0.05]]) {
@@ -1909,36 +1830,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     dream.add(mono, band, disc)
   }
 
-  // 오로라 커튼 — 하늘이 밤이 된 뒤에만 보인다
-  const auroras = []
-  let auroraIdx = 0
-  for (const [ax, ad, phase] of [[-18, 34, 0], [9, 52, 1], [-6, 70, 2]]) {
-    const ag = new THREE.PlaneGeometry(30, 34, 32, 4)
-    const ap = ag.attributes.position
-    const ac = new Float32Array(ap.count * 3)
-    const cBot = new THREE.Color(GLOW)
-    const cTop = new THREE.Color('#b78ce0')
-    const tmpA = new THREE.Color()
-    for (let i = 0; i < ap.count; i++) {
-      const x0 = ap.getX(i)
-      ap.setZ(i, Math.sin(x0 * 0.3 + phase) * 2.4) // 깊이로 말려야 판이 아니다
-      const u = (ap.getY(i) + 17) / 34
-      const sideFade = Math.sin(Math.PI * ((x0 + 15) / 30)) // 좌우 끝이 사라진다
-      tmpA.copy(cBot).lerp(cTop, u).multiplyScalar((1 - u * 0.85) * Math.max(0, sideFade))
-      tmpA.toArray(ac, i * 3)
-    }
-    ag.setAttribute('color', new THREE.BufferAttribute(ac, 3))
-    const aurora = new THREE.Mesh(
-      ag,
-      new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })
-    )
-    aurora.position.set(ax, 26, -ad)
-    aurora.rotation.y = [0.5, -0.42, 0.34][auroraIdx]
-    aurora.rotation.x = 0.12
-    dream.add(aurora)
-    auroras.push({ mesh: aurora, phase })
-    auroraIdx++
-  }
 
   // 저중력 파편 — 밟고 온 재료(부교 판재·판석)가 중력을 잃었다
   const DEBRIS = 14
@@ -2051,10 +1942,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     plazaGlow.material.opacity = 0.12 * night
     debris.visible = night > 0.05 // 낮에 보이면 꿈의 재료가 아니라 낙석이다
     if (dream.visible) {
-      for (const au of auroras) {
-        au.mesh.material.opacity = (0.1 + Math.sin(t * 0.4 + au.phase) * 0.05 + 0.08) * night
-        au.mesh.position.x += Math.sin(t * 0.13 + au.phase) * 0.008
-      }
       if (debris.visible) {
         const pop = smooth01((night - 0.12) / 0.35)
         for (const db of debrisBase) {
