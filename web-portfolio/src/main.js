@@ -153,7 +153,7 @@ if (!webglAvailable()) {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 0.92 // ACES 상단 압축이 파스텔을 화이트로 밀어낸다
+  renderer.toneMappingExposure = 1.05 // 구역 분리 이전 값 — 0.92 는 세계 전체를 반 스톱 눌러 흐렸다
 
   const scene = new THREE.Scene()
 
@@ -209,14 +209,16 @@ if (!webglAvailable()) {
   const SKY_BEND = [0.34, 0.55, 0.55, 0.55, 0.55, 0.55]
   // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
   const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
-  const SUN_POS = [[10, 3.4, 7], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
-  const SUN_INT = [1.9, 1.8, 0.55, 1.35, 0.75, 0.85] // 존1 은 화창한 한낮 — 직사광이 세야 색이 쨍하다
-  const SUN_COL = ['#fff0d2', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
+  // 존1 은 구역 분리 이전의 해 위치(6, 9, 4) — 높고 오른쪽 뒤, 그래서 그림자가 길에 비스듬히 눕는다
+  const SUN_POS = [[6, 9, 4], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
+  const SUN_INT = [1.6, 1.8, 0.55, 1.35, 0.75, 0.85] // 존1 은 구역 분리 이전 값(1.6)
+  const SUN_COL = ['#fff6e4', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
   // 존1 의 하늘빛 앰비언트는 흰색이 아니라 파랑이어야 한다 — 흰 앰비언트가 채도를 씻어낸다
-  const HEMI_SKY = ['#8ccdff','#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
-  const HEMI_GND = ['#a9cfa2', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
-  const HEMI_INT = [0.86, 1.05, 1.25, 1.1, 0.78, 1.2] // 존1 환경광은 낮춘다 — 균일광이 세면 대비가 죽어 뿌예진다
-  const SUN2D = [[-160, 16, -260, 34, 0.6],[-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
+  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
+  const HEMI_GND = ['#c2d4c4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
+  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 1.2] // 존1 은 구역 분리 이전 값(1.15)
+  // 존1 은 구역 분리 이전의 해 스프라이트 — 높이 55, 크기 60 (수평선 위에 낮게 걸리지 않는다)
+  const SUN2D = [[-120, 55, -220, 60, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
   function keyLerp(t, get, set) {
     for (let i = 0; i < KEY_T.length - 1; i++) {
       if (t <= KEY_T[i + 1]) {
@@ -244,41 +246,22 @@ if (!webglAvailable()) {
 
   // 안개색을 지평선 하늘색 그대로 두면 원경이 흰 판이 된다 — 존1 만 한 단 더 푸르게 빼서
   // 공기원근을 살리고 먼 지형에 채도를 남긴다
-  const cloudDay = new THREE.Color('#fbfdff') // 순백에 가까워야 깊은 파랑 위에서 구름이 형태로 읽힌다
+  // 구름 — 구역 분리 이전 그대로: 납작하게 눌린 구 퍼프를 옆으로 늘어놓은 반투명 덩어리.
+  // 정점 그라데이션 구름은 형태가 또렷해 하늘이 무거워진다.
+  const cloudDay = new THREE.Color('#dceef4')
   const cloudNight = new THREE.Color('#3a3c68')
-  const cloudMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false })
-  cloudMat.color.copy(cloudDay)
-  function cloudGeo(seed) {
-    const parts = []
-    const n = 4 + Math.floor(((Math.sin(seed * 127.1) * 43758.5) % 1 + 1) % 1 * 3)
-    const rnd = (k) => ((Math.sin((seed * 7 + k) * 311.7) * 43758.5) % 1 + 1) % 1
-    const top = new THREE.Color('#ffffff')
-    const bot = new THREE.Color('#c3d6e2')
-    const tone = new THREE.Color()
-    for (let k = 0; k < n; k++) {
-      const r = 2.4 + rnd(k) * 2.2
-      const g = new THREE.IcosahedronGeometry(r, 0)
-      g.scale(1, 0.62, 0.85)
-      const p = g.attributes.position
-      const col = new Float32Array(p.count * 3)
-      for (let i = 0; i < p.count; i++) {
-        if (p.getY(i) < -0.34 * r) p.setY(i, -0.34 * r) // 평평한 밑면 — 이 한 줄이 솜을 구름으로 바꾼다
-        tone.copy(bot).lerp(top, Math.min(1, (p.getY(i) / r + 0.4)))
-        tone.toArray(col, i * 3)
-      }
-      g.setAttribute('color', new THREE.BufferAttribute(col, 3))
-      g.translate(k * 3.4 - n * 1.7, (rnd(k + 9) - 0.5) * 1.6, (rnd(k + 17) - 0.5) * 1.2)
-      parts.push(g)
-    }
-    return mergeGeometries(parts, false)
-  }
-  const cloudGeos = [cloudGeo(1), cloudGeo(2), cloudGeo(3)]
+  const cloudMat = new THREE.MeshBasicMaterial({ color: '#dceef4', transparent: true, opacity: 0.62, fog: false })
   const clouds = []
   for (let i = 0; i < 7; i++) {
-    const cl = new THREE.Mesh(cloudGeos[i % 3], cloudMat)
+    const cl = new THREE.Group()
+    const n = 3 + (i % 3)
+    for (let k = 0; k < n; k++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(3.2 + (k % 3) * 1.6, 7, 5), cloudMat)
+      puff.position.set(k * 4.2 - n * 2, (k % 2) * 1.4, 0)
+      puff.scale.y = 0.55
+      cl.add(puff)
+    }
     cl.position.set(-90 + i * 34, 26 + (i % 3) * 9, -160 - (i % 4) * 40)
-    cl.rotation.y = i * 1.7
-    cl.scale.setScalar(0.8 + (i % 4) * 0.18)
     scene.add(cl)
     clouds.push(cl)
   }

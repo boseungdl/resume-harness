@@ -274,6 +274,261 @@ function bush(color, s) {
   return g
 }
 
+// ---------- 존1 소품 — 여름 바닷가 ----------
+// 우산소나무·둥근 덤불·바위·빛기둥은 육지의 실루엣이라, 바다 옆에 서면 여기가 어디인지 지운다.
+// 그 다음에 놓아 본 어촌 세간(어망 건조대·통발·계류 말뚝·유목 더미)은 실루엣은 해안이었지만
+// 정서가 쓸쓸한 폐어항이었다. 게다가 서 있는 막대기류(말뚝·기둥)는 멀리서 "그냥 꽂힌 작대기"로만
+// 읽혀 전부 걷어냈다 — 존1은 여정의 산뜻한 출발이고, 그 감정의 이름은 한여름 바닷가다.
+//
+// 색 — 바다(#38b0cc)·모래(#eee2c4)와 한 팔레트다. 볕에 마른 흰색을 바탕으로 코랄·파스텔 하늘·
+// 민트를 악센트로만 쓴다. SF 예약색 #3fd4e0(발광 청록)은 존1에 한 점도 없다.
+const SUN_WHITE = '#f9f5ea'
+const CORAL_S = '#ef8168'  // 파라솔·튜브·배 — 여름의 주색
+const SKY_S = '#8ecbdf'    // 파스텔 하늘 — 물과 같은 계열이되 채도가 낮아 발광으로 안 읽힌다
+const MINT_S = '#95d9c1'
+const SAND_S = ['#f0e4c6', '#e5d6b0'] // 모래성·조개무지용 — 바닥 모래보다 반 톤 진하다
+const DRIFT = ['#dbd5c5', '#cac4b4', '#e4dfd2', '#bcb7a9'] // 표백 유목 — 노·손잡이 같은 잔부재용
+// 콘크리트는 모래(#eee2c4)보다 확실히 어두워야 한다 — 밝게 두면 흰 파편으로 흩어져 보인다
+const CONCRETE = ['#a9ada6', '#979c96']
+
+// 해안 소품은 부품이 많다. 하나로 용접해 소품 하나가 드로우콜 하나를 넘지 않게 한다.
+function piece(geo, hex) {
+  paint(geo, hex)
+  return geo.toNonIndexed()
+}
+function weld(parts) {
+  const g = new THREE.Group()
+  g.add(new THREE.Mesh(mergeGeometries(parts, false), std('#ffffff', { vertexColors: true, roughness: 0.88 })))
+  return g
+}
+
+// 뒤집힌 목선 — 해변에 올려 둔 배는 물이 고이지 않게 엎어 둔다.
+// 용골 능선 하나가 이 덩어리를 모래둔덕이 아니라 배로 만든다.
+function beachedBoat(_c, s) {
+  const parts = []
+  const L = 2.7 * s
+  const R = 0.5 * s
+  const HY = 0.92 // 납작하면 배가 아니라 벤치다 — 처음엔 0.6 이었고, 실제로 벤치로 읽혔다
+  const taper = (z) => 1 - Math.pow(Math.abs(z) / (L / 2), 2.3) * 0.97 // 양 끝은 뾰족하게
+  const hull = new THREE.CylinderGeometry(R, R, L, 7)
+  hull.rotateX(Math.PI / 2)
+  const hp = hull.attributes.position
+  for (let i = 0; i < hp.count; i++) {
+    const t = taper(hp.getZ(i))
+    hp.setXYZ(i, hp.getX(i) * t, Math.max(0, hp.getY(i) * t * HY), hp.getZ(i))
+  }
+  hull.computeVertexNormals()
+  // 도색한 조각배. 표백 회백은 모래에 묻혔고 타르 회색은 폐선으로 읽혔다 —
+  // 여름 바닷가에 엎어 둔 배는 색이 남아 있다.
+  parts.push(piece(hull, '#e0755a'))
+  // 용골 — 등뼈는 끊기지 않은 한 줄이어야 한다. 토막으로 나눴더니 벤치 살대가 됐다.
+  const keel = new THREE.BoxGeometry(0.13 * s, 0.17 * s, L * 0.86, 1, 1, 8)
+  const kp = keel.attributes.position
+  for (let i = 0; i < kp.count; i++) {
+    const t = taper(kp.getZ(i))
+    kp.setXYZ(i, kp.getX(i) * (0.35 + 0.65 * t), kp.getY(i) * (0.45 + 0.55 * t) + R * t * HY, kp.getZ(i))
+  }
+  keel.computeVertexNormals()
+  parts.push(piece(keel, SUN_WHITE))
+  // 세워 둔 노 — 수직 하나가 붙어야 멀리서도 배로 걸린다
+  const oar = new THREE.CylinderGeometry(0.035 * s, 0.05 * s, 1.7 * s, 5)
+  oar.translate(0, 0.85 * s, 0)
+  oar.rotateZ(-0.6)
+  oar.translate(0.62 * s, 0, -0.35 * s)
+  parts.push(piece(oar, DRIFT[0]))
+  const g = weld(parts)
+  g.rotation.y = 0.25 + hash(s * 7.1) * 0.7 // 물가와 나란한 배는 없다
+  return g
+}
+
+// 조개 흩어진 모래 언덕 — 파도가 밀어 올린 것을 아이가 한 줌 모아 둔 자리.
+function shellMound(_c, s) {
+  const parts = []
+  const mound = new THREE.ConeGeometry(0.86 * s, 0.42 * s, 9)
+  mound.translate(0, 0.21 * s, 0)
+  parts.push(piece(mound, SAND_S[0]))
+  for (let k = 0; k < 14; k++) {
+    const a = hash(k * 3.1 + s) * 6.28
+    const r = (0.1 + hash(k * 5.3 + s) * 0.88) * s
+    const sh = new THREE.ConeGeometry(0.11 * s, 0.05 * s, 6)
+    sh.rotateZ((hash(k * 7.7 + s) - 0.5) * 1.0)
+    sh.rotateY(a)
+    sh.translate(Math.cos(a) * r, 0.42 * s * Math.max(0, 1 - r / (0.86 * s)) + 0.02 * s, Math.sin(a) * r)
+    parts.push(piece(sh, k % 3 === 0 ? '#f6c9bc' : SUN_WHITE))
+  }
+  return weld(parts)
+}
+
+// 소품 크기 길들이기 — 배치 루프의 tier 는 0.5~2.1 을 뿌리는데, 파라솔이 1m 였다가 4.4m 가 되면
+// 같은 물건으로 안 보인다. 사람이 쓰는 물건은 크기가 곧 정체라 폭을 좁혀 받는다.
+const humanScale = (s) => 0.92 + s * 0.26
+
+// 비치 파라솔 — 여름의 표지. 줄무늬 캐노피가 이 장면의 계절을 혼자 정한다.
+// 캐노피는 ConetGeometry 를 thetaLength 로 여덟 조각 내어 한 조각씩 색을 바꿔 굽는다.
+function beachParasol(_c, s0) {
+  const s = humanScale(s0)
+  const parts = []
+  const R = 1.15 * s
+  const CH = 0.5 * s
+  const TOP = 2.05 * s
+  const wedges = 8
+  for (let k = 0; k < wedges; k++) {
+    const w = new THREE.ConeGeometry(R, CH, 1, 1, true, (k * Math.PI * 2) / wedges, (Math.PI * 2) / wedges)
+    w.translate(0, TOP - CH / 2, 0)
+    parts.push(piece(w, k % 2 ? SUN_WHITE : CORAL_S))
+  }
+  // 천 가장자리 테 — 원뿔만 있으면 고깔이다. 밑단에 두께가 생겨야 천으로 읽힌다.
+  const rim = new THREE.TorusGeometry(R, 0.045 * s, 4, 16)
+  rim.rotateX(Math.PI / 2)
+  rim.translate(0, TOP - CH, 0)
+  parts.push(piece(rim, SUN_WHITE))
+  // 꼭지와 대 — 대는 캐노피 아래에만 있어 "꽂힌 작대기"로 따로 읽히지 않는다
+  const finial = new THREE.SphereGeometry(0.075 * s, 6, 5)
+  finial.translate(0, TOP + 0.045 * s, 0)
+  parts.push(piece(finial, SUN_WHITE))
+  const pole = new THREE.CylinderGeometry(0.035 * s, 0.045 * s, TOP, 6)
+  pole.translate(0, TOP / 2, 0)
+  parts.push(piece(pole, '#e8e0cc'))
+  // 돗자리 — 파라솔 밑이 비면 자리가 아니라 버섯이다
+  const mat = new THREE.BoxGeometry(1.5 * s, 0.035 * s, 1.05 * s)
+  mat.rotateY(0.4)
+  mat.translate(0.5 * s, 0.018 * s, 0.35 * s)
+  parts.push(piece(mat, SUN_WHITE))
+  for (let k = 0; k < 3; k++) {
+    const st = new THREE.BoxGeometry(1.5 * s, 0.04 * s, 0.17 * s)
+    st.translate(0, 0, (-0.3 + k * 0.3) * s)
+    st.rotateY(0.4)
+    st.translate(0.5 * s, 0.02 * s, 0.35 * s)
+    parts.push(piece(st, k === 1 ? CORAL_S : SKY_S))
+  }
+  // 아이스박스 — 뚜껑 색이 달라야 상자가 아니라 아이스박스다
+  const box = new THREE.BoxGeometry(0.5 * s, 0.3 * s, 0.36 * s)
+  box.translate(-0.72 * s, 0.15 * s, 0.5 * s)
+  parts.push(piece(box, SUN_WHITE))
+  const lid = new THREE.BoxGeometry(0.54 * s, 0.09 * s, 0.4 * s)
+  lid.translate(-0.72 * s, 0.33 * s, 0.5 * s)
+  parts.push(piece(lid, SKY_S))
+  const g = weld(parts)
+  g.rotation.y = hash(s0 * 9.1) * 2.6
+  // 파라솔은 늘 조금 기울어 있다 — 수직이면 조형물이 된다
+  g.rotation.z = 0.06 + hash(s0 * 4.3) * 0.07
+  return g
+}
+
+// 튜브와 비치볼 — 굴러다니는 원형들. 도넛과 공은 실루엣만으로 정체가 끝난다.
+function beachToys(_c, s0) {
+  const s = humanScale(s0)
+  const parts = []
+  // 눕힌 튜브 — 반쪽씩 색을 바꿔 감아 놓은 물놀이 튜브
+  for (const arc of [0, Math.PI]) {
+    const half = new THREE.TorusGeometry(0.46 * s, 0.16 * s, 5, 9, Math.PI)
+    half.rotateZ(arc)
+    half.rotateX(Math.PI / 2)
+    half.translate(0, 0.16 * s, 0)
+    parts.push(piece(half, arc ? SUN_WHITE : CORAL_S))
+  }
+  // 세워 기대 놓은 튜브 — 수평만 있으면 납작해 보인다
+  for (const arc of [0, Math.PI]) {
+    const half = new THREE.TorusGeometry(0.42 * s, 0.15 * s, 5, 9, Math.PI)
+    half.rotateZ(arc)
+    half.rotateY(0.5)
+    half.rotateZ(0.3)
+    half.translate(0.95 * s, 0.42 * s, -0.35 * s)
+    parts.push(piece(half, arc ? SUN_WHITE : SKY_S))
+  }
+  // 비치볼 — 세 쪽으로 나눠 감은 패널
+  for (let k = 0; k < 3; k++) {
+    const panel = new THREE.SphereGeometry(0.26 * s, 5, 5, (k * Math.PI * 2) / 3, (Math.PI * 2) / 3)
+    panel.translate(-0.75 * s, 0.26 * s, 0.45 * s)
+    parts.push(piece(panel, [SUN_WHITE, CORAL_S, MINT_S][k]))
+  }
+  // 뒤집힌 모래놀이 양동이
+  const pail = new THREE.CylinderGeometry(0.17 * s, 0.21 * s, 0.28 * s, 8)
+  pail.translate(0.2 * s, 0.14 * s, 0.75 * s)
+  parts.push(piece(pail, MINT_S))
+  const handle = new THREE.TorusGeometry(0.19 * s, 0.02 * s, 4, 8, Math.PI)
+  handle.rotateY(Math.PI / 2)
+  handle.translate(0.2 * s, 0.28 * s, 0.75 * s)
+  parts.push(piece(handle, SUN_WHITE))
+  const g = weld(parts)
+  g.rotation.y = hash(s0 * 3.7) * 3.0
+  return g
+}
+
+// 모래성 — 아무도 없는 해변이 아니라 방금까지 누가 있던 해변이 된다.
+function sandCastle(_c, s0) {
+  const s = humanScale(s0) * 0.85
+  const parts = []
+  const towers = [[0, 0, 0.34, 0.62], [0.52, 0.3, 0.26, 0.46], [-0.42, 0.36, 0.24, 0.42]]
+  for (let k = 0; k < towers.length; k++) {
+    const [tx, tz, r, h] = towers[k]
+    const body = new THREE.CylinderGeometry(r * 0.88 * s, r * s, h * s, 8)
+    body.translate(tx * s, (h / 2) * s, tz * s)
+    parts.push(piece(body, SAND_S[k % 2]))
+    const roof = new THREE.ConeGeometry(r * 1.05 * s, 0.3 * s, 8)
+    roof.translate(tx * s, (h + 0.15) * s, tz * s)
+    parts.push(piece(roof, SAND_S[(k + 1) % 2]))
+  }
+  // 성벽 — 탑만 있으면 두꺼비집이다
+  const wall = new THREE.BoxGeometry(0.95 * s, 0.24 * s, 0.2 * s)
+  wall.translate(0.26 * s, 0.12 * s, 0.16 * s)
+  parts.push(piece(wall, SAND_S[1]))
+  // 깃발 — 꼭대기 코랄 삼각형 하나가 멀리서도 걸린다
+  const staff = new THREE.CylinderGeometry(0.014 * s, 0.014 * s, 0.34 * s, 4)
+  staff.translate(0, 1.05 * s, 0)
+  parts.push(piece(staff, SUN_WHITE))
+  const flag = new THREE.ConeGeometry(0.13 * s, 0.2 * s, 3)
+  flag.scale(1, 1, 0.05)
+  flag.rotateZ(Math.PI / 2)
+  flag.translate(0.1 * s, 1.15 * s, 0)
+  parts.push(piece(flag, CORAL_S))
+  // 조개 몇 개 박아 둔 자리
+  for (let k = 0; k < 5; k++) {
+    const a = hash(k * 5.1 + s0) * 6.28
+    const sh = new THREE.ConeGeometry(0.075 * s, 0.04 * s, 6)
+    sh.rotateZ((hash(k * 7.3 + s0) - 0.5) * 0.8)
+    sh.translate(Math.cos(a) * 0.85 * s, 0.02 * s, Math.sin(a) * 0.85 * s)
+    parts.push(piece(sh, k % 2 ? SUN_WHITE : '#f6c9bc'))
+  }
+  const g = weld(parts)
+  g.rotation.y = hash(s0 * 6.3) * 3.0
+  return g
+}
+
+// ---------- 물가 쪽 소품 — 비탈과 수면 위 ----------
+
+// 테트라포드 — 비탈을 덮은 콘크리트. 이 물건 하나가 "여기는 해안이다"를 통째로 말한다.
+function tetrapods(_c, s) {
+  const parts = []
+  const dirs = [
+    new THREE.Vector3(0, 1, 0),
+    new THREE.Vector3(0.943, -0.333, 0),
+    new THREE.Vector3(-0.471, -0.333, 0.816),
+    new THREE.Vector3(-0.471, -0.333, -0.816),
+  ]
+  const up = new THREE.Vector3(0, 1, 0)
+  const q = new THREE.Quaternion()
+  const m = new THREE.Matrix4()
+  // 둘이면 족하다 — 셋을 겹쳐 놓았더니 다리끼리 엉켜 콘크리트 파편 더미로 읽혔다
+  const lay = [[0, 0, 0, 0], [2.1, -0.3, 1.2, 1.9]]
+  for (let p = 0; p < lay.length; p++) {
+    const [ox, oy, oz, ry] = lay[p]
+    for (let k = 0; k < 4; k++) {
+      // 다리는 굵되 길어야 한다 — 짧고 굵으면 덩어리, 가늘면 나뭇가지가 된다.
+      // 위로 뻗은 다리 하나가 이 물건의 이름표라, 눕히면 아무것도 아닌 콘크리트 조각이 된다.
+      const leg = new THREE.CylinderGeometry(0.2 * s, 0.38 * s, 0.98 * s, 6)
+      leg.translate(0, 0.44 * s, 0)
+      q.setFromUnitVectors(up, dirs[k])
+      leg.applyMatrix4(m.makeRotationFromQuaternion(q))
+      leg.rotateY(ry)
+      leg.rotateZ(p * 0.18)
+      leg.translate(ox * s, (0.56 + oy) * s, oz * s)
+      parts.push(piece(leg, CONCRETE[(k + p) % 2]))
+    }
+  }
+  return weld(parts)
+}
+
 function post(_c, s) {
   const g = new THREE.Group()
   const h = 1.5 * s
@@ -441,7 +696,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
   // 안개도 같은 계단을 탄다 — 전제가 무너질 때마다 보이는 세계가 실제로 넓어진다.
   // 열림은 문을 "지난 뒤"에 시작한다 — 통과 전에는 안개 커튼이 다음 세계를 가리고,
   // 유일한 미리보기는 포탈 안쪽 막뿐이어야 문을 지나는 일이 사건이 된다.
-  const FOG_FAR = [64, 82, 100, 118, 136]
+  const FOG_FAR = [78, 88, 100, 118, 136] // 존1 78 — 구역 분리 이전의 트인 시야(Fog(22, 78))
   function fogFarAt(d) {
     let v = FOG_FAR[0]
     for (let z = 0; z < chapterCount; z++) {
@@ -473,15 +728,16 @@ export function buildWorld(scene, chapterCount, premises = []) {
   // ----- 땅과 길의 색 -----
   function groundLife(d) {
     // 인생의 모험 — 산뜻한 출발(풀), 황무지(없음), 도시(없음), 잔잔함(다시 풀), 미지
-    // 존1 0.12 — 무리 지어 돋으면 잡초로 읽힌다. 드문드문 놓인 몇 포기가 '이제 막 시작한 땅'이다.
-    const LIFE = [0.12, 0.06, 0.03, 0.5, 0.9]
+    // 존1 0.03 — 구역 분리 이전의 해안엔 풀이 아예 없었다. 비어 있어야 하늘·물·땅이 한 톤으로 묶인다.
+    const LIFE = [0.03, 0.06, 0.03, 0.5, 0.9]
     let v = LIFE[0]
     for (let z = 0; z < chapterCount; z++) {
       v += (LIFE[Math.min(z + 1, 4)] - LIFE[Math.min(z, 4)]) * smooth01((d - gateOf(z)) / 7)
     }
     return v
   }
-  const GROUND_TONE = ['#a3d18d', '#e6d2a4', '#b4b8b4', '#c2d4b0', '#9caf9a'].map((c) => new THREE.Color(c))
+  // 존1 은 구역 분리 이전의 '푸른 해안'(#cfe0cb) — 채도 있는 초록은 목가적 들판이 되어 바다와 따로 논다
+  const GROUND_TONE = ['#cfe0cb', '#e6d2a4', '#b4b8b4', '#c2d4b0', '#9caf9a'].map((c) => new THREE.Color(c))
   // 전이는 매끈한 lerp 가 아니라 디더 — 다음 존의 땅이 다각형 조각으로 침범해 온다.
   // 시작은 게이트 3m 뒤 — 문턱 앞 땅색까지 바뀌면 안개 커튼 안쪽(근접 미포그 영역)에서 다음 존이 샌다.
   function groundColorAt(out, d, x = 0) {
@@ -552,13 +808,16 @@ export function buildWorld(scene, chapterCount, premises = []) {
   function seaGone(d) {
     return smooth01((d - seaCloseAt) / 9)
   }
-  displacedPlane(SHORE_X0, SHORE_X1, '#ecd9b2', (x, d) => {
+  // 백사장 — 구역 분리 이전 색·경사(#eee2c4, (t-0.3)/0.7). 길 옆은 평평하다 바깥에서 물로 떨어진다.
+  // 물가 소품을 이 비탈 위에 정확히 앉히려면 높이식을 이름 붙여 공유해야 한다.
+  function shoreH(x, d) {
     const t = (x - SHORE_X0) / (SHORE_X1 - SHORE_X0)
     const top = trackY(d) - 0.05
-    const shore = top + (SEA_Y - 0.3 - top) * smooth01((t - 0.22) / 0.55)
+    const shore = top + (SEA_Y - 0.3 - top) * smooth01((t - 0.3) / 0.7)
     // 존1 너머에서는 해변이 올라와 평지가 된다
     return shore + (top - shore) * seaGone(d)
-  }, 14)
+  }
+  displacedPlane(SHORE_X0, SHORE_X1, '#eee2c4', shoreH, 14)
 
   // 왼편 먼 땅 — 존1에서는 바다 밑에 잠겨 있다가, 바다가 끝나면 떠오른다
   displacedPlane(SHORE_X1, -70, '#ffffff', (x, d) => {
@@ -573,17 +832,24 @@ export function buildWorld(scene, chapterCount, premises = []) {
   // 육지 — 길 옆은 평평하고, 바깥에서 능선이 솟는다. 능선 높이가 존 채널이다.
   function landH(x, d) {
     const off = Math.abs(x) - SHORE_X0
-    let y = trackY(d) - 0.05
+    const base = trackY(d) - 0.05
+    // 존1 은 구역 분리 이전의 완만한 구릉뿐 — 능선·셀노이즈·메사가 붙으면 해안이 산악지가 된다
+    const z1 = 1 - smooth01((d - (gateOf(0) - 12)) / 16)
+    if (z1 > 0.98) {
+      const far = smooth01((off - 16) / 26)
+      return base + (Math.sin(d * 0.037) * 1.1 + Math.cos(d * 0.021 + 1.7) * 0.7) * far
+    }
+    let y = base
     y -= basinAt(d) * (1 - smooth01((off - 2.6) / 9)) // 길 옆이 파여 물이 든다
-    y += byZone(RIDGE_H, d) * smooth01((off - byZone(RIDGE_X, d)) / 9)
+    y += byZone(RIDGE_H, d) * smooth01((off - byZone(RIDGE_X, d)) / 9) * (1 - z1)
     const far = smooth01((off - 26) / 30)
     y += (Math.sin(d * 0.037) * 1.3 + Math.cos(d * 0.021 + 1.7) * 0.9) * far
     // 셀 노이즈 — 3m 셀마다 높이가 달라야 인접 면 법선이 벌어져 각이 보인다. 길 옆 3m 는 평평하게.
     const fac = smooth01((off - 3.0) / 4)
     const cell = Math.floor(x / 3.1) * 91 + Math.floor(d / 3.0) * 57
-    y += (hash(cell) - 0.5) * 0.85 * fac * (0.4 + 0.6 * far)
+    y += (hash(cell) - 0.5) * 0.85 * fac * (0.4 + 0.6 * far) * (1 - z1)
     // 원경 메사화 — 먼 능선이 계단 층으로 앉는다
-    y = y + (Math.round(y / 0.9) * 0.9 - y) * smooth01((far - 0.5) / 0.35)
+    y = y + (Math.round(y / 0.9) * 0.9 - y) * smooth01((far - 0.5) / 0.35) * (1 - z1)
     return y
   }
   displacedPlane(SHORE_X0, LAND_X1, '#ffffff', landH, 48, (out, x, d) => {
@@ -603,9 +869,9 @@ export function buildWorld(scene, chapterCount, premises = []) {
   const oceanBase = oceanGeo.attributes.position.array.slice()
 
   const foams = []
-  ;[[-0.6, 0], [-2.8, 2.1]].forEach(([offset, phase]) => {
+  ;[[-0.5, 0], [-2.6, 2.1]].forEach(([offset, phase]) => {
     const foam = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 115),
+      new THREE.PlaneGeometry(1.4, 115),
       new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5 })
     )
     foam.rotation.x = -Math.PI / 2
@@ -667,57 +933,133 @@ export function buildWorld(scene, chapterCount, premises = []) {
     group.add(m)
   }
 
-  // 존1 — 모래 위에 놓인 널판. 좌우 두 조각이라 중앙 이음매가 길이 방향 선을 만든다.
-  function pathDeck(len, dCenter, opts = {}) {
+  // 떠다니는 빛 입자 — 바닷바람에 실린 모트. 세계 그룹이 아니라 씬에 붙여
+  // 걸음에 맞춰 순환시킨다(그룹에 넣으면 지형 하강만큼 떠올라 하늘로 사라진다).
+  const MOTES = 90
+  const moteGeo = new THREE.BufferGeometry()
+  const motePos = new Float32Array(MOTES * 3)
+  for (let k = 0; k < MOTES; k++) {
+    motePos[k * 3] = -22 + hash(k * 1.7) * 40
+    motePos[k * 3 + 1] = 0.4 + hash(k * 3.1) * 4
+    motePos[k * 3 + 2] = 20 - hash(k * 5.3) * 120
+  }
+  moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos, 3))
+  const moteBase = motePos.slice()
+  const motes = new THREE.Points(
+    moteGeo,
+    new THREE.PointsMaterial({
+      size: 0.09,
+      color: '#bff0f6',
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+  )
+  scene.add(motes)
+
+  // 존1 — 여름 해수욕장 데크.
+  //
+  // 판을 진행 방향과 직각으로 깔되 이음매는 손가락 하나 폭까지 좁힌다. 처음엔 틈을 넓게 두고
+  // 양옆에 둥근 굄목을 깔았더니 침목+레일, 곧 철길로 읽혔다 — 해안의 길이 철길이 되면 끝이다.
+  // 가장자리는 그래서 널 위에 겹쳐 대는 납작한 갓널(rub board)로 잡는다. 같은 나무·같은 두께라
+  // 레일이 아니라 마감으로 읽히면서도, 끊기지 않아 눈을 길 끝까지 데려간다.
+  //
+  // 색 — 표백 회백만으로 깔았더니 차분하다 못해 계절이 사라졌다. 볕에 마른 흰 판재를 바탕으로,
+  // 다시 칠한 판을 파스텔 하늘·민트·코랄로 드문드문 섞고 갓널을 하늘색으로 칠한다.
+  // 물놀이장 데크의 도색은 원래 이렇게 군데군데 남는다 — 균일한 도색은 새 시설이지 해수욕장이 아니다.
+  const DECK = ['#f8f4ea', '#f0ebdc', '#fcf9f1', '#e8e2d1'] // 볕에 마른 흰 판재
+  // 도색 판은 소품보다 반 톤 옅게 — 같은 채도면 길이 소품보다 먼저 눈에 띄어 안전 표지가 된다
+  const DECK_PAINT = ['#a5d2e2', '#a8dcc8', '#f3ab95']
+  const boardGeo = bakeAO(new THREE.BoxGeometry(1, 0.075, 0.4), { gradH: 0.075, strength: 0.26, upBoost: 0.22, edge: 0.05 })
+  const trimGeo = bakeAO(new THREE.BoxGeometry(0.24, 0.055, 1), { gradH: 0.055, strength: 0.24, upBoost: 0.2 })
+  const chipGeo = bakeAO(new THREE.ConeGeometry(0.09, 0.05, 5), { gradH: 0.05, strength: 0.3, upBoost: 0.25 })
+
+  function pathBoardwalk(len, dCenter, opts = {}) {
     const d0 = dCenter - len / 2
-    const n = Math.floor(len / 0.3)
-    const j = opts.pristine ? 0.18 : 1 // 인트로의 길은 아직 흐트러지지 않았다
-    const plankGeo = bakeAO(new THREE.BoxGeometry(0.975, 0.06, 0.26, 2, 1, 1), { gradH: 0.06, strength: 0.2, upBoost: 0.2, edge: 0.035 })
-    const mesh = new THREE.InstancedMesh(plankGeo, std('#ffffff', { vertexColors: true, roughness: 0.85 }), n * 2)
+    const j = opts.pristine ? 0.3 : 1 // 인트로의 길은 아직 모래에 먹히지 않았다
+    const step = 0.43
+    const n = Math.floor(len / step)
+
+    const boards = new THREE.InstancedMesh(boardGeo, std('#ffffff', { vertexColors: true, roughness: 0.92 }), n)
     const tone = new THREE.Color()
-    let pn = 0
     for (let k = 0; k < n; k++) {
-      for (const side of [-1, 1]) {
-        if (!opts.pristine && hash(k * 31 + side * 7) < 0.055) continue // 결손 — 러너 보가 드러난다
-        const d = d0 + k * 0.3 + 0.15 + (hash(k * 3.1 + side) - 0.5) * 0.06 * j
-        seat.position.set(side * 0.512 + (hash(k * 7.1 + side) - 0.5) * 0.06 * j, trackY(d) + 0.028, -d)
-        seat.rotation.set(
-          (hash(k * 11 + side) - 0.5) * 0.04 * j,
-          (hash(k * 13 + side) - 0.5) * 0.09 * j,
-          (hash(k * 17 + side) - 0.5) * 0.036 * j
-        )
-        seat.scale.set(1, 0.85 + hash(k * 19 + side) * 0.3, 1)
+      const d = d0 + k * step + step / 2
+      const sunk = hash(k * 31) < 0.18 * j ? 1 : 0 // 모래가 되찾아 간 판 — 내려앉고 더 기운다
+      const w = 2.62 - hash(k * 7.7) * 0.24 * j
+      seat.position.set((hash(k * 13) - 0.5) * 0.1 * j, trackY(d) + 0.042 - sunk * 0.035, -d)
+      seat.rotation.set(
+        (hash(k * 11) - 0.5) * 0.04 * j,
+        (hash(k * 17) - 0.5) * 0.05 * j,
+        (hash(k * 19) - 0.5) * (0.025 + sunk * 0.05) * j
+      )
+      seat.scale.set(w, 1, 0.96 + hash(k * 23) * 0.08)
+      seat.updateMatrix()
+      boards.setMatrixAt(k, seat.matrix)
+      // 널마다 다른 나무여야 널이다. 여섯 장에 한 장꼴로 도색 판이 섞여 리듬이 생긴다 —
+      // 두 장에 한 장이면 줄무늬 벽지가 되고, 하나도 없으면 계절이 없다.
+      const painted = hash(k * 41) < 0.16
+      tone.set(painted ? DECK_PAINT[Math.floor(hash(k * 3.3) * 3)] : DECK[Math.floor(hash(k * 3.3) * 4)])
+      tone.offsetHSL(0, 0, (hash(k * 5.9) - 0.5) * (painted ? 0.05 : 0.055))
+      if (sunk) tone.offsetHSL(0, 0, -0.05)
+      boards.setColorAt(k, tone)
+    }
+    boards.frustumCulled = false
+    boards.receiveShadow = true
+    boards.castShadow = true
+    group.add(boards)
+
+    // 갓널 — 널 위에 겹쳐 대는 납작한 마감재. 널 끝이 톱니로 삐져나온 자리를 눌러 준다.
+    // 하늘색 도색이라 바다와 한 계열로 묶이고, 발광이 아니라 페인트라 SF 청록과 섞이지 않는다.
+    const trims = new THREE.InstancedMesh(trimGeo, std(SKY_S, { roughness: 0.9 }), 2)
+    ;[-1.24, 1.24].forEach((x, i) => {
+      seat.position.set(x, trackY(dCenter) + 0.098, -dCenter)
+      seat.rotation.set(0, 0, 0)
+      seat.scale.set(1, 1, len)
+      seat.updateMatrix()
+      trims.setMatrixAt(i, seat.matrix)
+    })
+    trims.frustumCulled = false
+    trims.castShadow = true
+    group.add(trims)
+
+    // 조개·자갈 갓 — 길과 모래가 맞닿는 선을 흐린다. 발광 띠 대신 여기에 반짝임을 둔다.
+    const CHIP = [SUN_WHITE, '#f6c9bc', '#dfe7dd', '#e2d9c0'].map((c) => new THREE.Color(c))
+    const chips = new THREE.InstancedMesh(chipGeo, std('#ffffff', { vertexColors: true }), Math.floor(len * 3))
+    for (let k = 0; k < chips.count; k++) {
+      const d = d0 + hash(k * 2.1) * len
+      const side = k % 2 ? 1 : -1
+      const x = side * (1.28 + Math.pow(hash(k * 4.3), 1.6) * 0.85)
+      seat.position.set(x, trackY(d) + 0.012, -d)
+      seat.rotation.set((hash(k * 6.1) - 0.5) * 0.7, hash(k * 8.7) * 3.1, (hash(k * 10.3) - 0.5) * 0.7)
+      const sc = 0.5 + hash(k * 12.9) * 0.8
+      seat.scale.set(sc, sc * 0.7, sc)
+      seat.updateMatrix()
+      chips.setMatrixAt(k, seat.matrix)
+      chips.setColorAt(k, CHIP[Math.floor(hash(k * 14.7) * 4)])
+    }
+    chips.frustumCulled = false
+    group.add(chips)
+
+    // (여기 있던 바다 쪽 말뚝 열은 걷어냈다 — 서 있는 막대기는 멀리서 정체가 안 잡히고,
+    //  길 옆에 줄지어 서면 다시 철길 울타리로 읽힌다.)
+
+    skirt(len, dCenter, 1.35)
+
+    // 모래 혓바닥 — 맨발이 실어 나른 모래가 널 위에 흩어진다. 인트로 제외.
+    const tn = opts.pristine ? 0 : 6
+    if (tn) {
+      const tongues = new THREE.InstancedMesh(new THREE.CircleGeometry(1.6, 7), std('#e9dcbc'), tn)
+      for (let k = 0; k < tn; k++) {
+        const d = d0 + (k + 0.6) * (len / (tn + 0.6))
+        seat.position.set((hash(k * 3.3) - 0.5) * 1.2, trackY(d) + 0.088, -d)
+        seat.rotation.set(-Math.PI / 2, 0, hash(k * 5.1) * 3.1)
+        seat.scale.set(1, 0.42 + hash(k * 7.9) * 0.24, 1)
         seat.updateMatrix()
-        mesh.setMatrixAt(pn, seat.matrix)
-        tone.set('#bb8f60').offsetHSL(
-          (hash(k * 23 + side) - 0.5) * 0.05 * j,
-          (hash(k * 29 + side) - 0.5) * 0.1 * j,
-          (hash(k * 37 + side) - 0.5) * 0.2 * j
-        ) // 판마다 다른 나무여야 판재다 — 밝은 단일 톤은 타일이 된다
-        mesh.setColorAt(pn, tone)
-        pn++
+        tongues.setMatrixAt(k, seat.matrix)
       }
-    }
-    mesh.count = pn
-    mesh.frustumCulled = false
-    mesh.receiveShadow = true
-    group.add(mesh)
-    // 러너 보 — 판재 아래 구조가 보여야 "놓인 것"이 된다
-    for (const x of [-0.72, 0.72]) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, len), std('#8a6a48'))
-      beam.position.set(x, trackY(dCenter) - 0.05, -dCenter)
-      group.add(beam)
-    }
-    skirt(len, dCenter, 1.0)
-    // 모래 혓바닥 — 길이 사라졌다 나타난다 (인트로 제외)
-    for (let k = 0; k < (opts.pristine ? 0 : 5); k++) {
-      const d = d0 + (k + 0.6) * (len / 5.6)
-      const tongue = new THREE.Mesh(new THREE.CircleGeometry(1.5, 7), std('#e9dcbc'))
-      tongue.rotation.x = -Math.PI / 2
-      tongue.rotation.z = hash(k * 5.1) * 3.1
-      tongue.scale.set(1, 0.5, 1)
-      tongue.position.set((hash(k * 3.3) - 0.5) * 0.7, trackY(d) + 0.062, -d)
-      group.add(tongue)
+      tongues.frustumCulled = false
+      group.add(tongues)
     }
   }
 
@@ -885,7 +1227,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     group.add(frames, bodies)
   }
 
-  const PATHS = [pathDeck, pathStone, pathBund, pathFloat]
+  const PATHS = [pathBoardwalk, pathStone, pathBund, pathFloat]
 
   function addProp(obj, dist, contactR = 1.0) {
     obj.scale.setScalar(0.001)
@@ -896,11 +1238,11 @@ export function buildWorld(scene, chapterCount, premises = []) {
   }
 
   // ----- 인트로 — 아직 전제를 하나도 의심하지 않은, 흠 없는 새 길 -----
-  pathDeck(33, 9.5, { pristine: true })
+  pathBoardwalk(33, 9.5, { pristine: true })
 
   // ----- 존 -----
   const SCENERY = [
-    [bush, pine],          // 존1 — 푸른 해안
+    [beachParasol, beachToys, sandCastle, beachParasol, beachedBoat, shellMound], // 존1 — 여름 바닷가
     [deadBush, post, deadBush], // 존2 — 황무지, 마른 것들
     [post, post],          // 존3 — 도시 (건물·가로등은 따로 선다)
     [reed, reed],          // 존4 — 물가 갈대뿐, 잔잔함은 비움이다
@@ -919,7 +1261,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
       const x = (hash(z * 41 + k) - 0.5) * 2.2
       let stone
       if (z === 0) {
-        stone = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.14, 0.55), std('#cfc7b4')) // 부러진 널판 위 돌
+        stone = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.14, 0.34), std('#cac4b4')) // 뜯겨 나온 보드워크 널판
       } else if (z === 1) {
         stone = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.18, 0.72), std('#c3bba8')) // 굴러떨어진 석재
       } else if (z === 2) {
@@ -980,10 +1322,38 @@ export function buildWorld(scene, chapterCount, premises = []) {
       const factory = pool[Math.floor(hash(n) * pool.length)]
       const tier = hash(n * 7)
       const size = tier < 0.17 ? 1.7 + hash(n * 11) * 0.4 : tier < 0.83 ? 1.0 + hash(n * 11) * 0.3 : 0.5 + hash(n * 11) * 0.2
-      const obj = factory('#b8c8a8', size)
+      // 존1 소품은 스스로 표백 회백 팔레트를 굽는다 — tint 는 넘어온 다음 존 소품용으로만 남는다
+      const tint = z === 0 ? DRIFT[Math.floor(hash(n * 3) * DRIFT.length)] : '#b8c8a8'
+      const obj = factory(tint, size)
       const px = (reading ? 7.5 : 3.4) + hash(n * 13) * 6.5
       obj.position.set(px, landH(px, d), -d)
       addProp(obj, d)
+    }
+  }
+
+  // ----- 존1 왼쪽(물가) 모래턱 -----
+  // 오른쪽(육지) 소품 루프는 |x|>3.4 에만 놓아서, 화면 왼쪽 절반이 내내 맨 모래였다.
+  //
+  // 수면 위에는 아무것도 두지 않는다. 등부표와 먼 돛단배를 띄워 봤지만 거리가 멀어 형태가 뭉개지고
+  // 크기 기준이 없어 "배인지 뭔지" 애매했다 — 애매한 물체보다 빈 바다가 낫다.
+  // 모래턱에는 테트라포드(형태가 한눈에 끝나는 물건)와, 읽기 구간 밖에는 여름 소품을 둔다.
+  {
+    // [팩토리, x, d, 크기, 모래에 박는 깊이, 기울기]
+    // 읽기 구간(d 30~69)에는 |x|<5 를 비운다 — 파라솔·튜브는 그 앞(모래턱), 테트라포드는 그 바깥.
+    // 테트라포드는 처음에 x=-4 / 크기 1.15 로 뒀다가 근경을 통째로 가리는 콘크리트 덩어리가 됐다.
+    // 물턱 아래로 밀어 내리고 반으로 줄이면 여름 백사장을 두른 호안 라인으로만 읽힌다.
+    const SEASIDE = [
+      [beachParasol, -4.7, 22, 1.15, 0, 0],
+      [beachToys, -4.3, 28, 1.05, 0, 0],
+      [tetrapods, -6.6, 36, 0.72, 0.12, 0.16],
+      [tetrapods, -7.2, 50, 0.8, 0.14, 0.2],
+      [tetrapods, -6.4, 62, 0.7, 0.12, 0.14],
+    ]
+    for (const [factory, sx, sd, size, sink, tilt] of SEASIDE) {
+      const obj = factory(SUN_WHITE, size)
+      obj.position.set(sx, shoreH(sx, sd) - sink * size, -sd)
+      if (tilt) obj.rotation.z = tilt
+      addProp(obj, sd, 0.5)
     }
   }
 
@@ -2349,7 +2719,8 @@ export function buildWorld(scene, chapterCount, premises = []) {
       const x = oceanBase[i]
       const y = oceanBase[i + 1]
       const amp = smooth01((SHORE_X1 - 2 - (x - 60)) / 8)
-      p[i + 2] = (Math.sin(x * 0.25 + t * 1.1) * 0.6 + Math.cos(y * 0.08 + t * 0.7) * 0.5) * amp
+      // 잔물결 — 구역 분리 이전 진폭(0.22/0.18). 3배로 키운 파도는 바다를 거칠게 만든다.
+      p[i + 2] = (Math.sin(x * 0.25 + t * 1.1) * 0.22 + Math.cos(y * 0.08 + t * 0.7) * 0.18) * amp
     }
     oceanGeo.attributes.position.needsUpdate = true
 
@@ -2436,12 +2807,12 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const top = trackY(walked) - 0.05
     const s = (SEA_Y - top) / (SEA_Y - 0.3 - top)
     const u = 0.5 - Math.sin(Math.asin(1 - 2 * Math.min(1, Math.max(0, s))) / 3)
-    const wx = SHORE_X0 + (0.22 + 0.78 * u) * (SHORE_X1 - SHORE_X0)
+    const wx = SHORE_X0 + (0.3 + 0.7 * u) * (SHORE_X1 - SHORE_X0) // 구역 분리 이전 물가 선
     const wet = 1 - seaGone(walked) // 물가가 닫히면 거품도 함께 잦아든다
     for (const f of foams) {
       const breathe = Math.sin(t * 0.9 + f.phase)
       f.mesh.position.x = wx + f.offset + breathe * 0.5
-      f.mesh.material.opacity = (0.28 + (breathe * 0.5 + 0.5) * 0.32) * wet
+      f.mesh.material.opacity = (0.3 + (breathe * 0.5 + 0.5) * 0.35) * wet // 구역 분리 이전 거품 농도
     }
 
     // 날씨 — 존2 모래바람, 존3 비. 카메라 주변만 돌면 된다.
@@ -2473,6 +2844,17 @@ export function buildWorld(scene, chapterCount, premises = []) {
       }
       dust.instanceMatrix.needsUpdate = true
     }
+
+    // 모트 순환 — 존1(해안)에서만 보인다. 걸음에 맞춰 120m 주기로 되돌아온다.
+    const mp = moteGeo.attributes.position.array
+    for (let k = 0; k < MOTES; k++) {
+      mp[k * 3] = moteBase[k * 3] + Math.sin(t * 0.5 + k) * 0.6
+      mp[k * 3 + 1] = moteBase[k * 3 + 1] + Math.sin(t * 0.8 + k * 2.7) * 0.35
+      mp[k * 3 + 2] = (((moteBase[k * 3 + 2] + walked) % 120) + 120) % 120 - 100
+    }
+    moteGeo.attributes.position.needsUpdate = true
+    motes.material.opacity = 0.8 * (1 - smooth01((walked - (gateOf(0) - 10)) / 14))
+    motes.visible = motes.material.opacity > 0.02
 
     group.position.z = walked
   }
