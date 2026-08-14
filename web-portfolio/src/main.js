@@ -868,7 +868,10 @@ if (!webglAvailable()) {
     }, 42) // 쏟아지지 않고 새겨지는 속도 — 첫 문장이 손글씨의 리듬으로 적힌다
   }
 
-  function collect(i) {
+  // 이름을 collect 로 되돌리지 말 것 — echarts 가 최상위에 같은 이름의 함수를 갖고 있어
+  // 번들에서 충돌한다("Identifier 'collect' has already been declared"). dev 서버는 모듈을
+  // 따로 두어 멀쩡하고, 프로덕션 빌드에서만 스크립트 전체가 파싱 단계에서 죽는다.
+  function markCollected(i) {
     if (collected[i]) return
     collected[i] = true
     chips[i]?.classList.add('done')
@@ -916,7 +919,7 @@ if (!webglAvailable()) {
 
     // 칩 적립은 팝업과 무관 — 지나친 정거장은 무조건 쌓인다 (점프 스크롤 포함)
     world.npcs.forEach((n, i) => {
-      if (!collected[i] && walked > n.dist - 2) collect(i)
+      if (!collected[i] && walked > n.dist - 2) markCollected(i)
     })
 
     // 만남 팝업: 대화 중(state 1)에만 뜬다 — 창이 곧 이벤트다. 걸어오는 길에 미리 보이면 김이 샌다.
@@ -1038,7 +1041,7 @@ if (!webglAvailable()) {
       walked = walkedTarget
       const passed = world.npcs.filter((n) => walked > n.dist - 2).length
       world.npcs.forEach((n, i) => {
-        if (walked > n.dist - 2) collect(i)
+        if (walked > n.dist - 2) markCollected(i)
         // flow 존은 state 2 로 잠그지 않는다 — 새로고침 후 되돌아와도 흔적이 다시 흘러야 한다
         if (walked > n.dist - 2.1 && !PREMISES[i].flow) meets[i].state = 2
       })
