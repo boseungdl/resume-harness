@@ -24,7 +24,7 @@ echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 const spacer = document.getElementById('spacer')
 // 정거장당 스크롤 분량(vh) — 값이 클수록 걸음이 느긋해진다
-const SCROLL_PER_STOP = 1600
+const SCROLL_PER_STOP = 700
 spacer.style.height = `${(PREMISES.length + 2.4) * SCROLL_PER_STOP}vh`
 
 const landingEl = document.getElementById('landing')
@@ -209,8 +209,11 @@ if (!webglAvailable()) {
   const SKY_BEND = [0.34, 0.55, 0.55, 0.55, 0.55, 0.55]
   // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
   const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
-  // 존1 은 구역 분리 이전의 해 위치(6, 9, 4) — 높고 오른쪽 뒤, 그래서 그림자가 길에 비스듬히 눕는다
-  const SUN_POS = [[6, 9, 4], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
+  // 광원은 화면에 보이는 해와 같은 쪽에 서야 한다 — 존1·2 는 해가 왼쪽 앞(SUN2D 의 -x, -z)에 걸리는데
+  // 광원만 오른쪽 뒤(6, 9, 4)에 있어 그림자가 해를 향해 뻗었다. 방위각을 SUN2D 와 맞추고(왼쪽 29°)
+  // 고도만 40° 로 남겨(스프라이트는 낮게 걸려 있어도 그림자는 짧게) 그림자가 오른쪽 앞으로 눕게 한다.
+  // world.js 의 SUN_XZ(접지 그림자 방향)와 짝이다 — 해를 옮기면 거기도 옮긴다.
+  const SUN_POS = [[-5.4, 9, -9.6], [-5.6, 9.5, -10.3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
   const SUN_INT = [1.6, 1.8, 0.55, 1.35, 0.75, 0.85] // 존1 은 구역 분리 이전 값(1.6)
   const SUN_COL = ['#fff6e4', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
   // 존1 의 하늘빛 앰비언트는 흰색이 아니라 파랑이어야 한다 — 흰 앰비언트가 채도를 씻어낸다
@@ -301,7 +304,7 @@ if (!webglAvailable()) {
   const hemi = new THREE.HemisphereLight('#eaf6ff', '#8fa08c', 0.72) // 바운스가 밝으면 아래면이 안 어두워진다
   scene.add(hemi)
   const sun = new THREE.DirectionalLight('#fff6e4', 1.6)
-  sun.position.set(6, 9, 4)
+  sun.position.set(-5.4, 9, -9.6) // 첫 프레임부터 SUN_POS[0] 과 같은 자리 — 해와 그림자가 어긋난 채 시작하지 않는다
   sun.castShadow = true
   sun.shadow.mapSize.set(2048, 2048)
   sun.shadow.camera.left = -26
@@ -990,6 +993,27 @@ if (!webglAvailable()) {
 
   }
 
+  // ── 문을 지나는 순간의 가속 ──
+  // 스크롤→걸음 사상을 문 앞뒤에서 구부린다. 문 직전에는 걸음이 뒤로 눌려 뜸을 들이다가,
+  // 문턱에서 두 배 가까운 속도로 빠져나간다 — 통과가 "지나갔다"가 아니라 "빨려 들어갔다"가 된다.
+  // 진행률만의 순수 함수라 되감아도 같은 자리다(상태 없음 = 역스크롤 멱등).
+  // 기울기 1 + (A/W)(1-u²)e^(-u²/2) 의 최솟값이 1 - 0.446(A/W) — A/W = 0.9 면 0.6배까지만
+  // 느려지고 절대 뒤로 가지 않는다. 문턱에서는 1.9배.
+  const GATES = [0, 1, 2, 3].map((i) => 26 + i * 60 + 48)
+  const DASH_W = 5.5
+  const DASH_A = DASH_W * 0.9
+  function gateWarp(d) {
+    let out = d
+    for (const g of GATES) {
+      const u = (d - g) / DASH_W
+      // 창을 ±6 으로 잡는다 — ±4 에서 자르면 경계에서 6mm 가 툭 끊긴다(미분이 튄다)
+      if (u > -6 && u < 6) out += DASH_A * u * Math.exp(-u * u * 0.5)
+    }
+    return out
+  }
+  // 문턱에서의 화각 킥 — 속도는 다리가 아니라 시야가 말한다. 걸음이 제일 빠른 지점에서 최대.
+  const BASE_FOV = camera.fov
+
   const clock = new THREE.Clock()
   const lookTarget = new THREE.Vector3(-0.5, 1.05, -9)
   const lookNow = lookTarget.clone()
@@ -1006,7 +1030,7 @@ if (!webglAvailable()) {
     const progress = scrollProgress()
     // 랜딩→여정 위상 (0=마주 보기, 1=동행) — 스크롤 첫 0.9화면 구간을 스크럽
     const ph = THREE.MathUtils.smoothstep(window.scrollY / (window.innerHeight * 0.9), 0, 1)
-    const walkedTarget = progress * world.TOTAL
+    const walkedTarget = gateWarp(progress * world.TOTAL)
 
     if (booting) {
       // 새로고침으로 중간에서 시작하면, 걸어온 척 되감지 않고 그 자리에서 시작한다
@@ -1056,13 +1080,13 @@ if (!webglAvailable()) {
     let grown = 0
     let burstU = -1
     for (let i = 0; i < 4; i++) {
-      const gate = 26 + i * 60 + 48
+      const gate = GATES[i]
       grown += smooth01((walked - gate) / 4)
       const u = (walked - gate) / 5.5
       if (u > 0 && u < 1) burstU = u
     }
     walker.scale.setScalar(1 + 0.05 * grown)
-    const lvNow = 1 + [0, 1, 2, 3].filter((i) => walked > 26 + i * 60 + 48 + 2.2).length
+    const lvNow = 1 + GATES.filter((g) => walked > g + 2.2).length
     if (lvNow !== curLv) {
       curLv = lvNow
       drawLevel(curLv)
@@ -1152,6 +1176,20 @@ if (!webglAvailable()) {
     )
     lookNow.lerp(lookTarget, Math.min(1, dt * 2.2))
     camera.lookAt(lookNow)
+    // 문턱의 화각 킥 — 걸음이 제일 빠른 지점에서 시야가 벌어졌다 닫힌다. 속도는 다리보다
+    // 시야가 먼저 말한다. 걸음(walked)만의 함수라 되감으면 그대로 되감긴다.
+    // 다만 실제로 움직일 때만 — 문 앞에 멈춰 서 있는데 화각이 벌어져 있으면 그건 왜곡이다.
+    let dash = 0
+    for (const g of GATES) {
+      const u = (walked - g) / (DASH_W * 0.8)
+      if (u > -3 && u < 3) dash = Math.max(dash, Math.exp(-u * u * 0.5))
+    }
+    dash *= THREE.MathUtils.clamp(Math.abs(groundSpeed) / 5, 0, 1)
+    const fovWant = BASE_FOV + 7 * dash
+    camera.fov += (fovWant - camera.fov) * Math.min(1, dt * 6)
+    if (Math.abs(camera.fov - fovWant) > 0.005 || Math.abs(camera.fov - BASE_FOV) > 0.005) {
+      camera.updateProjectionMatrix()
+    }
     // 간판은 바닷바람에 흔들린다 — 클릭 영역도 같이 흔들려야 어긋나지 않는다
     if (onLanding) placeCta()
 
