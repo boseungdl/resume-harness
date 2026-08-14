@@ -288,14 +288,18 @@
     }
     #talk-veil.on { opacity: 1; }
 
-    /* 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장 */
+    /* 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장.
+       패널 없이 하늘 위에 서는 유일한 텍스트라, 좁은 흰 테(2px) + 넓은 흰 번짐(24px)의
+       이중 섀도로 움직이는 배경에서도 윤곽이 산다. nowrap 은 모바일에서 긴 결론이 넘쳐 해제. */
     #verdict {
       position: fixed; top: 16vh; left: 50%; transform: translateX(-50%);
       z-index: 3; pointer-events: none;
-      font-size: clamp(1.15rem, 2.1vw, 1.6rem); font-weight: 600;
+      font-size: clamp(1.25rem, 2.3vw, 1.85rem); font-weight: 700;
       letter-spacing: 0.01em; color: var(--accent-ink);
-      text-shadow: 0 1px 12px rgba(255, 255, 255, 0.65);
-      opacity: 0; transition: opacity 0.5s ease; white-space: nowrap;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 6px rgba(255, 255, 255, 0.8), 0 4px 24px rgba(255, 255, 255, 0.6);
+      opacity: 0; transition: opacity 0.5s ease;
+      white-space: normal; word-break: keep-all; text-wrap: balance;
+      width: max-content; max-width: min(88vw, 24ch); text-align: center;
     }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
@@ -312,7 +316,7 @@
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
-      grid-template-columns: minmax(15rem, 21rem) 1fr;
+      grid-template-columns: minmax(16rem, 24rem) 1fr;
       column-gap: 1.9rem;
       align-items: start;
     }
@@ -353,26 +357,30 @@
     }
     @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
     @media (max-width: 900px) {
-      #popup { grid-template-columns: 1fr; row-gap: 0.7rem; bottom: 1rem; max-height: 34vh; }
+      /* padding-bottom 2.4rem: 힌트(.hint, absolute bottom)가 본문 마지막 줄을 덮지 않게 */
+      #popup { grid-template-columns: 1fr; row-gap: 0.7rem; bottom: 1rem; max-height: 34vh; padding-bottom: 2.4rem; }
       #popup .a { border-left: 0; border-top: 1px dashed rgba(14, 168, 184, 0.32); padding: 0.7rem 0 0 0; }
     }
 
     #popup .who {
+      /* 존 테마('시작' 등)를 존 색으로 — 한 화면의 테마색은 현재 존 1색뿐 */
       display: flex; align-items: center; gap: 0.6em;
-      font-size: 0.7rem; letter-spacing: 0.32em; color: var(--accent);
+      font-size: 0.7rem; letter-spacing: 0.32em; color: var(--zone-c, var(--accent));
       font-weight: 600; margin-bottom: 0.9rem;
     }
     #popup .who::before {
       content: ''; width: 0.55em; height: 0.55em; border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      background: var(--zone-c, var(--accent));
+      box-shadow: 0 0 8px var(--zone-c, var(--accent));
       animation: blink 1.6s ease-in-out infinite;
     }
     #popup .q {
-      font-size: clamp(1.05rem, 1.35vw, 1.26rem);
+      /* 흔적①이 위계의 머리 — verdict(1.85) 아래, 본문(1.08) 위. balance 가 쉼표 뒤에서 줄을 끊는다 */
+      font-size: clamp(1.15rem, 1.6vw, 1.5rem);
       font-weight: 700;
-      line-height: 1.65;
+      line-height: 1.5;
       word-break: keep-all;
+      text-wrap: balance;
       margin-bottom: 1rem;
       min-height: 1.6em;
     }
@@ -383,7 +391,8 @@
     }
     #popup .a {
       font-size: clamp(0.95rem, 1.12vw, 1.08rem);
-      line-height: 1.72; word-break: keep-all; font-weight: 400; color: var(--ink-70);
+      /* 존1의 흰 물거품·밝은 바다가 블러 뒤에서 배경을 계속 흔든다 — 잉크만 한 단 진하게 (패널 배경은 존3·4 를 위해 유지) */
+      line-height: 1.72; word-break: keep-all; font-weight: 400; color: rgba(22, 48, 60, 0.85);
       border-top: 1px dashed rgba(14, 168, 184, 0.3);
       padding-top: 0.9rem;
       opacity: 0;
@@ -433,8 +442,8 @@
     #mini li b { font-weight: 700; color: var(--ink-45); font-size: 0.68rem; }
     #mini li.done { color: var(--ink-70); }
     #mini li.done b { color: var(--accent-ink); }
-    #mini li.now { color: var(--ink); font-weight: 600; }
-    #mini li.now b { color: var(--coral); }
+    #mini li.now { color: var(--zone-c, var(--ink)); font-weight: 600; }
+    #mini li.now b { color: var(--zone-c, var(--coral)); }
     @media (max-width: 900px) { #mini { display: none; } }
 
     /* 엔딩 */
@@ -532,8 +541,8 @@
     #chapter-card .num {
       display: block;
       font-size: 0.85rem; letter-spacing: 0.55em; font-weight: 600;
-      color: var(--accent);
-      text-shadow: 0 0 14px rgba(14,168,184,0.5);
+      color: var(--zone-c, var(--accent));
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.6); /* 흰 halo — 존 4종 배경 모두에서 안전 */
       margin-bottom: 0.4rem;
     }
     #chapter-card .t {

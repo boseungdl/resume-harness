@@ -177,8 +177,11 @@ if (!webglAvailable()) {
 
   // ----- 하늘 돔 (그라데이션) · 태양 · 구름 -----
   const skyUniforms = {
-    top: { value: new THREE.Color('#8fc8ec') },
+    top: { value: new THREE.Color('#2b93de') },
     bottom: { value: skyNow.clone() },
+    // 그라데이션 굽힘 — 낮을수록 천정 파랑이 지평선 가까이까지 내려온다.
+    // 존1 만 강하게 굽혀(0.34) 흰 헤이즈 띠를 지평선에 붙이고 화면 대부분을 파랑으로 채운다.
+    bend: { value: 0.55 },
   }
   const skyDome = new THREE.Mesh(
     new THREE.SphereGeometry(300, 20, 14),
@@ -189,29 +192,31 @@ if (!webglAvailable()) {
       uniforms: skyUniforms,
       vertexShader: 'varying vec3 vP; void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader:
-        'varying vec3 vP; uniform vec3 top; uniform vec3 bottom;' +
+        'varying vec3 vP; uniform vec3 top; uniform vec3 bottom; uniform float bend;' +
         // 지평선(y=0)이 정확히 안개색이 되어야 하늘과 땅의 이음매가 사라진다
-        'void main() { float h = clamp(normalize(vP).y, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, pow(h, 0.55)), 1.0); }',
+        'void main() { float h = clamp(normalize(vP).y, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, pow(h, bend)), 1.0); }',
     })
   )
   scene.add(skyDome)
   const SKY_TOP = [
-    [0.0, new THREE.Color('#7fbce8')],  // 산뜻 — 파란 하늘
+    [0.0, new THREE.Color('#1180d6')],  // 산뜻 — 쨍한 한여름 파랑(천정). 지평선 흰 헤이즈와의 낙차가 "푸름"을 만든다
     [0.26, new THREE.Color('#c2ad84')], // 황무지 — 먼지 낀 누런 하늘
     [0.5, new THREE.Color('#8d97a2')],  // 외로움 — 잿빛
     [0.75, new THREE.Color('#e8987c')], // 잔잔 — 노을
     [0.88, new THREE.Color('#6f5a92')],
     [1.0, new THREE.Color('#4a4e8a')],
   ]
+  const SKY_BEND = [0.34, 0.55, 0.55, 0.55, 0.55, 0.55]
   // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
   const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
   const SUN_POS = [[10, 3.4, 7], [7, 9.5, 3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
-  const SUN_INT = [1.55, 1.8, 0.55, 1.35, 0.75, 0.85]
-  const SUN_COL = ['#fff2dc', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
-  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
-  const HEMI_GND = ['#b9d4b4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
-  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 1.2]
-  const SUN2D = [[-160, 16, -260, 46, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
+  const SUN_INT = [1.9, 1.8, 0.55, 1.35, 0.75, 0.85] // 존1 은 화창한 한낮 — 직사광이 세야 색이 쨍하다
+  const SUN_COL = ['#fff0d2', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
+  // 존1 의 하늘빛 앰비언트는 흰색이 아니라 파랑이어야 한다 — 흰 앰비언트가 채도를 씻어낸다
+  const HEMI_SKY = ['#8ccdff','#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
+  const HEMI_GND = ['#a9cfa2', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
+  const HEMI_INT = [0.86, 1.05, 1.25, 1.1, 0.78, 1.2] // 존1 환경광은 낮춘다 — 균일광이 세면 대비가 죽어 뿌예진다
+  const SUN2D = [[-160, 16, -260, 34, 0.6],[-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
   function keyLerp(t, get, set) {
     for (let i = 0; i < KEY_T.length - 1; i++) {
       if (t <= KEY_T[i + 1]) {
@@ -237,7 +242,9 @@ if (!webglAvailable()) {
   sun2d.position.set(-120, 55, -220)
   scene.add(sun2d)
 
-  const cloudDay = new THREE.Color('#dceef4')
+  // 안개색을 지평선 하늘색 그대로 두면 원경이 흰 판이 된다 — 존1 만 한 단 더 푸르게 빼서
+  // 공기원근을 살리고 먼 지형에 채도를 남긴다
+  const cloudDay = new THREE.Color('#fbfdff') // 순백에 가까워야 깊은 파랑 위에서 구름이 형태로 읽힌다
   const cloudNight = new THREE.Color('#3a3c68')
   const cloudMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false })
   cloudMat.color.copy(cloudDay)
@@ -441,6 +448,7 @@ if (!webglAvailable()) {
   let cardTimer = null
   function flashChapterCard(i) {
     cardNum.textContent = `CHAPTER ${String(i + 1).padStart(2, '0')}`
+    cardEl.style.setProperty('--zone-c', PREMISES[i].themeColor ?? '')
     cardTitle.textContent = PREMISES[i].kicker
     cardEl.classList.add('show')
     if (cardTimer) clearTimeout(cardTimer)
@@ -709,41 +717,77 @@ if (!webglAvailable()) {
 
   // 만남 — 로봇은 자리에 멈춰 NPC 를 마주 보고, 스페이스로 문답을 넘긴다. 최대 3문답.
   // state 0 대기 / 1 대화 중(걸음·스크롤 잠금) / 2 끝(다시 걸음)
-  const meets = PREMISES.map(() => ({ state: 0, step: 1 }))
-  // 비트를 3묶음으로 — 한 번에 한두 문단씩
-  const meetChunks = PREMISES.map((p2) => {
-    const per = Math.ceil(p2.beats.length / 3)
+  const meets = PREMISES.map(() => ({ state: 0, step: 1, t0: 0, shownAll: false }))
+  // 비트를 3묶음으로 — 한 번에 한두 문단씩. oneShot 존은 쪼개지 않는다(상영과 함께 전부 한 번에).
+  const chunk3 = (beats) => {
+    const per = Math.ceil(beats.length / 3)
     const chunks = []
-    for (let i = 0; i < p2.beats.length; i += per) chunks.push(p2.beats.slice(i, i + per))
+    for (let i = 0; i < beats.length; i += per) chunks.push(beats.slice(i, i + per))
     return chunks
-  })
+  }
+  const meetChunks = PREMISES.map((p2) => (p2.oneShot ? [p2.beats] : chunk3(p2.beats)))
   const popupStep = popupEl.querySelector('.hint .step')
   const popupHint = popupEl.querySelector('.hint')
   const popupVerb = popupEl.querySelector('.hint .verb')
+  // 터치 기기엔 SPACE 가 없다 — 힌트가 거짓말하지 않게
+  const popupKbd = popupEl.querySelector('.hint kbd')
+  if (popupKbd && matchMedia('(pointer: coarse)').matches) popupKbd.textContent = 'TAP'
   let lockScrollY = -1 // 대화 중 고정할 스크롤 위치
   let talkF = 0 // 대화 몰입 계수 — 카메라·비네트가 함께 탄다
+  let projZone = -1 // 어느 존의 영사기가 주인인가 — 소등 페이드 동안에도 유지되는 래치
   const veilEl = document.getElementById('talk-veil')
   const talkingNow = () => meets.findIndex((m) => m.state === 1)
   function renderMeet(i) {
     const m = meets[i]
     const chunks = meetChunks[i]
-    popupStep.textContent = `${Math.min(m.step, chunks.length)} / ${chunks.length}`
+    const oneShot = !!PREMISES[i].oneShot
+    popupStep.textContent = chunks.length > 1 ? `${Math.min(m.step, chunks.length)} / ${chunks.length}` : ''
     popupHint.classList.add('on')
+    // oneShot: 힌트는 두 박자 늦게 — 즉시 띄우면 재촉으로 읽힌다
+    popupHint.style.transitionDelay = oneShot && m.step === 1 ? '2s' : '0s'
     popupVerb.textContent = m.step >= chunks.length ? '계속 걷기' : '다음'
     const shown = chunks[Math.min(m.step, chunks.length) - 1] || []
     ui.beatKey = `meet:${i}:${m.step}`
-    popupA.innerHTML = shown.map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`).join('')
+    // oneShot: 장면(0s) → 답 첫 줄(0.6s) → 둘째 줄(1.05s) — 시선이 한 번씩만 지나가는 스태거
+    popupA.innerHTML = shown
+      .map(
+        (b, j) =>
+          `<p class="${b.kind === 'cost' ? 'cost' : ''}"${oneShot ? ` style="animation-delay:${(0.6 + j * 0.45).toFixed(2)}s"` : ''}>${b.text}</p>`
+      )
+      .join('')
     popupA.classList.add('on')
   }
   function endMeet(i) {
     meets[i].state = 2
+    ui.beatKey = `meet:${i}:done` // 이미 다 보인 글을 다시 그려 깜빡이지 않게
     popupStep.textContent = ''
     popupHint.classList.remove('on')
+    popupHint.style.transitionDelay = '0s'
+    // 자동 접근으로 당겨 걸은 거리만큼 스크롤을 앞으로 맞춘다 — 안 맞추면 대화가 끝나고 뒷걸음질친다
+    const stopD = world.npcs[i].dist - 2.1
+    const base = journeyBase()
+    const span = document.documentElement.scrollHeight - window.innerHeight - base
+    if (span > 0 && scrollProgress() * world.TOTAL < stopD) {
+      window.scrollTo(0, base + (stopD / world.TOTAL) * span)
+    }
   }
   function advanceMeet() {
     const i = talkingNow()
     if (i < 0) return false
     const m = meets[i]
+    // 성급한 첫 입력은 닫기가 아니라 전부 보여주기 — 스태거를 건너뛰고 상영은 결말로 빨리감기
+    if (PREMISES[i].oneShot && !m.shownAll && sceneTime - m.t0 < 1.8) {
+      m.shownAll = true
+      popupA.querySelectorAll('p').forEach((p) => {
+        p.style.animation = 'none'
+        p.style.opacity = '1'
+        p.style.transform = 'none'
+      })
+      world.projectors?.forEach((p) => {
+        if (p.zone === i) p.fast()
+      })
+      return true
+    }
     if (m.step >= meetChunks[i].length) endMeet(i)
     else {
       m.step += 1
@@ -751,15 +795,41 @@ if (!webglAvailable()) {
     }
     return true
   }
-  // 대화 중 스크롤 잠금 — 걸음이 잠겨 있는데 화면만 흐르면 어긋난다
+  // 대화 중 스크롤 잠금 — 걸음이 잠겨 있는데 화면만 흐르면 어긋난다.
+  // 탈출구는 있으되, 걸어오던 관성 스크롤이 대화를 스치듯 끝내면 안 된다:
+  // 만남 1.5초 경과 후, 직전 휠과 350ms 이상 떨어진 "새 플릭"만 세어 두 번이면 계속 걷기.
+  let talkWheelN = 0
+  let talkWheelT = 0
   const blockIfTalking = (e) => {
-    if (talkingNow() >= 0) e.preventDefault()
+    const i = talkingNow()
+    if (i < 0) return
+    e.preventDefault()
+    if (e.type === 'wheel') {
+      const now = performance.now()
+      const fresh = now - talkWheelT > 350
+      talkWheelT = now
+      if (sceneTime - meets[i].t0 < 1.5) {
+        talkWheelN = 0 // 진입 관성은 탈출 의사가 아니다
+        return
+      }
+      if (fresh) {
+        talkWheelN += 1
+        if (talkWheelN >= 2) {
+          talkWheelN = 0
+          endMeet(i)
+        }
+      }
+    }
   }
   window.addEventListener('wheel', blockIfTalking, { passive: false })
   window.addEventListener('touchmove', blockIfTalking, { passive: false })
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.key === ' ') {
       if (advanceMeet()) e.preventDefault()
+      return
+    }
+    if (e.key === 'Escape' && talkingNow() >= 0) {
+      endMeet(talkingNow()) // 탈출에 사과나 확인창은 없다 — 손님의 시간을 존중하는 게 인상이 된다
       return
     }
     if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key) && talkingNow() >= 0) {
@@ -790,7 +860,9 @@ if (!webglAvailable()) {
   function typeQuestion(index) {
     stopTyping()
     const text = PREMISES[index].premise
-    popupWho.textContent = MEET_LABELS[index] ?? '길 위의 자리'
+    // 헤더는 존 테마('시작' 등)를 존 색으로 — 서수는 HUD 번호가 이미 말한다
+    popupWho.textContent = PREMISES[index].kicker
+    popupEl.style.setProperty('--zone-c', PREMISES[index].themeColor ?? '')
     popupA.innerHTML = ''
     popupA.classList.remove('on')
     ui.beatKey = ''
@@ -807,7 +879,7 @@ if (!webglAvailable()) {
         stopTyping()
         popupQ.innerHTML = `“${text}”`
       }
-    }, 28)
+    }, 42) // 쏟아지지 않고 새겨지는 속도 — 첫 문장이 손글씨의 리듬으로 적힌다
   }
 
   function collect(i) {
@@ -861,11 +933,11 @@ if (!webglAvailable()) {
       if (!collected[i] && walked > n.dist - 2) collect(i)
     })
 
-    // 만남 팝업: 가장 가까운 NPC 가 반경 안일 때
+    // 만남 팝업: 대화 중(state 1)에만 뜬다 — 창이 곧 이벤트다. 걸어오는 길에 미리 보이면 김이 샌다.
+    // 다시 읽는 방법은 텍스트 잔류가 아니라 되돌아와서 상영을 다시 여는 것(양방향 재무장).
     let near = -1
-    world.npcs.forEach((n, i) => {
-      // 자리에 닿기 전에 떠서, 지나갈 때까지 남는다
-      if (walked > n.dist + PANEL_IN && walked < n.dist + PANEL_OUT && meets[i].state !== 2) near = i
+    meets.forEach((m, i) => {
+      if (m.state === 1) near = i
     })
     if (atEnd) near = -1
     if (near !== activePopup) {
@@ -880,13 +952,17 @@ if (!webglAvailable()) {
       }
     }
     if (veilEl) veilEl.classList.toggle('on', veilOn)
-    if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
-      renderMeet(near) // 대화는 멈춰 선 3문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
+    if (near >= 0 && PREMISES[near].flow) {
+      // 흐르는 존 — 걸음이 곧 페이지 넘김. 정지도 클릭도 없다. (현재 미사용 — oneShot 상영이 표준)
+      renderBeats(near, walked - world.npcs[near].dist)
+    } else if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
+      renderMeet(near) // 대화는 멈춰 선 문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
     }
     if (near !== ui.nowChip) {
       chips[ui.nowChip]?.classList.remove('now')
       ui.nowChip = near
       chips[near]?.classList.add('now')
+      chips[near]?.style.setProperty('--zone-c', PREMISES[near]?.themeColor ?? '') // 현재 존 한 줄만 존 색
     }
     // 머문 시간 — 분모도 목표도 붙이지 않는다. 재는 값이 아니라 적는 값이다
     const sec = Math.floor(t)
@@ -956,19 +1032,31 @@ if (!webglAvailable()) {
       const passed = world.npcs.filter((n) => walked > n.dist - 2).length
       world.npcs.forEach((n, i) => {
         if (walked > n.dist - 2) collect(i)
-        if (walked > n.dist - 2.1) meets[i].state = 2
+        // flow 존은 state 2 로 잠그지 않는다 — 새로고침 후 되돌아와도 흔적이 다시 흘러야 한다
+        if (walked > n.dist - 2.1 && !PREMISES[i].flow) meets[i].state = 2
       })
     } else {
       let target = walkedTarget
       for (let i = 0; i < meets.length; i++) {
         const m = meets[i]
         const stopD = world.npcs[i].dist - 2.1 // NPC 두 걸음 앞
-        if (m.state === 0 && walkedTarget > stopD && walked > stopD - 8 && !atEnd) {
+        // 어느 방향으로든 멀어지면 재무장 — 돌아오면 상영이 처음부터 다시 열린다.
+        // 재무장 경계(-7/+9)가 발동권(±6)보다 바깥이라, 끝내고 걸어 나가는 중에 다시 발동하지 않는다.
+        if (m.state === 2 && (walked < stopD - 7 || walked > stopD + 9)) {
+          m.state = 0
+          m.step = 1
+          m.shownAll = false
+        }
+        // 발동권(±6m)에 들어서면 스크롤과 무관하게 자동으로 NPC 앞까지 걸어가 멈춘다 — 상영관이 된다
+        if (m.state === 0 && !PREMISES[i].flow && Math.abs(walked - stopD) < 6 && !atEnd) {
           m.state = 1
           m.step = 1
+          m.t0 = sceneTime // 성급한 입력·관성 스크롤 판정 기준
+          projZone = i // 이 존의 영사기가 소등 페이드까지 주인이다
+          talkWheelN = 0
           lockScrollY = window.scrollY // 대화 동안 화면도 여기 선다
         }
-        if (m.state === 1) target = Math.min(target, stopD) // 스페이스로 끝내야 풀린다
+        if (m.state === 1) target = stopD // 남은 걸음은 자동 — 스페이스로 끝내야 풀린다
       }
       if (talkingNow() >= 0 && lockScrollY >= 0 && Math.abs(window.scrollY - lockScrollY) > 2) {
         window.scrollTo(0, lockScrollY)
@@ -979,7 +1067,7 @@ if (!webglAvailable()) {
     idleFor = Math.abs(walked - prevWalked) > dt * 0.25 ? 0 : idleFor + dt
     if (walked > 0.5 && !atEnd && idleFor < 20) walkTime += dt
 
-    world.update(walked, dt, t)
+    world.update(walked, dt, t, projZone, talkF) // 대화 상태를 넘긴다 — ? 스프라이트·NPC 몸 돌림이 이걸 탄다
 
     // 성장 — 한계를 깰 때마다 로봇이 5% 씩 자란다. 네 번이면 스스로 알아챌 만큼.
     let grown = 0
@@ -1070,6 +1158,8 @@ if (!webglAvailable()) {
     const terrace = Math.max(0, world.trackYAt(Math.max(0, walked - 8.8)) - world.trackYAt(walked))
     // 대화 중에는 카메라가 반 걸음 다가서고 낮아진다 — 시선이 두 사람에게 모인다
     talkF += (arrived - talkF) * Math.min(1, dt * 2.2)
+    // 상영 구동 — 빔·스크린은 대화 몰입 계수를 그대로 탄다 (점등·소등 이징이 공짜)
+    world.projectors?.forEach((p) => p.update(p.zone === projZone ? talkF : 0, t, dt))
     camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + terrace * 0.85 + Math.sin(t * 0.45) * 0.08 + py - talkF * 0.75
     camera.position.z = THREE.MathUtils.lerp(6.6, 8.8, ph) - talkF * 2.6
     lookTarget.set(
@@ -1085,11 +1175,14 @@ if (!webglAvailable()) {
     // 하늘 — 돔·안개·배경이 함께 물든다
     const skyPhase = world.skyPhaseAt(walked)
     const c = skyAt(skyPhase)
-    skyNow.copy(c)
-    scene.fog.color.copy(c)
-    scene.fog.near = 18 + 4 * ph // 랜딩에선 원경이 살짝 물러나 로봇만 또렷하다
+    // 상영 소등 — 대화 중 세계가 반 스톱 어두워진다. 밝은 존1 하늘 위에서도 빔이 서고,
+    // talk-veil 의 가장자리 어둠과 합쳐져 "객석 소등"이 된다.
+    const dim = 1 - 0.34 * talkF
+    skyNow.copy(c).multiplyScalar(dim)
+    scene.fog.color.copy(skyNow) // 안개는 하늘색 그대로 — 원경을 덮는 커튼은 흰빛이다
     // 전제가 무너질 때마다 보이는 세계가 넓어진다 — 발밑보다 이쪽이 먼저 읽힌다
     scene.fog.far = world.fogFarAt(walked)
+    scene.fog.near = 18 + 4 * ph // 랜딩에선 원경이 살짝 물러나 로봇만 또렷하다
     // 광원도 하늘과 같은 키를 탄다 — 새벽 낮은 해에서 미지의 밤까지
     keyLerp(skyPhase, null, (a, b, u) => {
       sun.position.set(
@@ -1099,6 +1192,7 @@ if (!webglAvailable()) {
       )
       sun.intensity = SUN_INT[a] + (SUN_INT[b] - SUN_INT[a]) * u
       sun.color.copy(SUN_COL[a]).lerp(SUN_COL[b], u)
+      skyUniforms.bend.value = SKY_BEND[a] + (SKY_BEND[b] - SKY_BEND[a]) * u
       hemi.color.copy(HEMI_SKY[a]).lerp(HEMI_SKY[b], u)
       hemi.groundColor.copy(HEMI_GND[a]).lerp(HEMI_GND[b], u)
       hemi.intensity = HEMI_INT[a] + (HEMI_INT[b] - HEMI_INT[a]) * u
@@ -1110,6 +1204,9 @@ if (!webglAvailable()) {
       sun2d.scale.setScalar(SUN2D[a][3] + (SUN2D[b][3] - SUN2D[a][3]) * u)
       sun2d.material.opacity = SUN2D[a][4] + (SUN2D[b][4] - SUN2D[a][4]) * u
     })
+    // 상영 소등 — keyLerp 가 매 프레임 값을 새로 쓰므로 곱해도 누적되지 않는다
+    sun.intensity *= dim
+    hemi.intensity *= 1 - 0.28 * talkF
     // 밤이 오면 별과 행성이 떠오르고, 구름은 어둡게 물러난다
     const night = Math.max(0, (skyPhase - 0.86) / 0.14)
     stars.material.opacity = night * 0.9
@@ -1117,7 +1214,7 @@ if (!webglAvailable()) {
     planetRing.material.opacity = night * 0.5
     cloudMat.opacity = 0.62 - night * 0.3
     cloudMat.color.copy(cloudDay).lerp(cloudNight, night)
-    skyUniforms.bottom.value.copy(c)
+    skyUniforms.bottom.value.copy(skyNow)
     for (let i = 0; i < SKY_TOP.length - 1; i++) {
       const [t0, c0] = SKY_TOP[i]
       const [t1, c1] = SKY_TOP[i + 1]
@@ -1126,6 +1223,7 @@ if (!webglAvailable()) {
         break
       }
     }
+    skyUniforms.top.value.multiplyScalar(dim) // 돔 상단도 함께 소등
     clouds.forEach((cl, i) => {
       cl.position.x += Math.sin(t * 0.08 + i) * 0.004
     })

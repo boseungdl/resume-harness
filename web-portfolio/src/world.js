@@ -6,6 +6,7 @@
 
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { buildProjector, PROJ_TINT, PROJ_SCENES } from './projector.js'
 
 export const INTRO_LEN = 26
 export const ZONE_LEN = 60
@@ -360,7 +361,8 @@ function questionSprite() {
   ctx.shadowBlur = 12
   ctx.fillText('?', 64, 68)
   const tex = new THREE.CanvasTexture(cv)
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0 }))
+  // depthWrite false — 투명해진 판이 depth 를 쓰면 뒤의 영사광에 사각 구멍을 낸다("모자이크"의 진범)
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }))
   sp.scale.set(0.7, 0.7, 1)
   return sp
 }
@@ -393,6 +395,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
   const seat = new THREE.Object3D()
   const props = []
   const npcs = []
+  const projectors = [] // 만남의 영사기 — main 이 talkF 로 구동한다
   const contactSpots = [] // { x, d, r } — 그림자 카메라 밖에서도 물체가 땅을 누르게 한다
 
   // ----- 걸음의 높이 -----
@@ -420,7 +423,8 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const u = zoneU(d)
     const i = Math.max(0, Math.min(chapterCount - 1, Math.floor(u)))
     const j = Math.min(chapterCount - 1, i + 1)
-    return arr[i] + (arr[j] - arr[i]) * smooth01((u - i - 0.68) / 0.27)
+    // 능선 전이는 게이트(u=0.8) 뒤에서 시작 — 통과 전에 다음 존 지형이 문 밖으로 새면 안 된다
+    return arr[i] + (arr[j] - arr[i]) * smooth01((u - i - 0.82) / 0.15)
   }
   const zoneOf = (d) => Math.max(0, Math.min(chapterCount - 1, Math.floor(zoneU(d))))
   const zoneY = (z) => trackY(INTRO_LEN + z * ZONE_LEN + 12)
@@ -434,20 +438,34 @@ export function buildWorld(scene, chapterCount, premises = []) {
     return 0.55 * smooth01((d - (INTRO_LEN + 3 * ZONE_LEN - 14)) / 18)
   }
 
-  // 안개도 같은 계단을 탄다 — 전제가 무너질 때마다 보이는 세계가 실제로 넓어진다
+  // 안개도 같은 계단을 탄다 — 전제가 무너질 때마다 보이는 세계가 실제로 넓어진다.
+  // 열림은 문을 "지난 뒤"에 시작한다 — 통과 전에는 안개 커튼이 다음 세계를 가리고,
+  // 유일한 미리보기는 포탈 안쪽 막뿐이어야 문을 지나는 일이 사건이 된다.
   const FOG_FAR = [64, 82, 100, 118, 136]
   function fogFarAt(d) {
     let v = FOG_FAR[0]
     for (let z = 0; z < chapterCount; z++) {
-      v += (FOG_FAR[Math.min(z + 1, 4)] - FOG_FAR[Math.min(z, 4)]) * smooth01((d - gateOf(z)) / 9)
+      v += (FOG_FAR[Math.min(z + 1, 4)] - FOG_FAR[Math.min(z, 4)]) * smooth01((d - gateOf(z) - 1) / 6)
+    }
+    // 게이트 앞 커튼 조임 — 다가설수록 안개가 문 바로 뒤까지 조여들어, 문 밖 어디로도
+    // 다음 존이 안 보인다. 커튼 거리는 카메라(로봇 뒤 8.8m) 기준 문 평면+4m 이고,
+    // 하한 24 는 안개 near(22)보다 위 — far<near 는 안개가 깨진다. 통과하면 6m 에 걸쳐 풀린다.
+    for (let z = 0; z < chapterCount; z++) {
+      const ahead = gateOf(z) - d
+      const mix = Math.max(smooth01((ahead - 12) / 16), smooth01((-ahead - 0.5) / 5.5))
+      if (mix >= 1) continue
+      const curtain = Math.max(24, ahead + 12.8)
+      const vc = Math.min(v, curtain)
+      v = vc + (v - vc) * mix
     }
     return v
   }
   // 하늘도 계단으로. 연속 보간이면 화면당 색차가 감지 문턱 아래라 예산만 태운다.
+  // 안개와 같은 이유로 문 너머에서 물든다 — 통과 전 다음 존 하늘은 막 안에만 있다.
   function skyPhaseAt(d) {
     let v = 0
     for (let z = 0; z < chapterCount; z++) {
-      v += (1 / chapterCount) * smooth01((d - gateOf(z)) / 9)
+      v += (1 / chapterCount) * smooth01((d - gateOf(z) - 1) / 6)
     }
     return Math.min(1, v * 0.92 + (d / TOTAL) * 0.08)
   }
@@ -455,19 +473,21 @@ export function buildWorld(scene, chapterCount, premises = []) {
   // ----- 땅과 길의 색 -----
   function groundLife(d) {
     // 인생의 모험 — 산뜻한 출발(풀), 황무지(없음), 도시(없음), 잔잔함(다시 풀), 미지
-    const LIFE = [0.72, 0.06, 0.03, 0.5, 0.9]
+    // 존1 0.12 — 무리 지어 돋으면 잡초로 읽힌다. 드문드문 놓인 몇 포기가 '이제 막 시작한 땅'이다.
+    const LIFE = [0.12, 0.06, 0.03, 0.5, 0.9]
     let v = LIFE[0]
     for (let z = 0; z < chapterCount; z++) {
       v += (LIFE[Math.min(z + 1, 4)] - LIFE[Math.min(z, 4)]) * smooth01((d - gateOf(z)) / 7)
     }
     return v
   }
-  const GROUND_TONE = ['#aed69e', '#e6d2a4', '#b4b8b4', '#c2d4b0', '#9caf9a'].map((c) => new THREE.Color(c))
-  // 전이는 매끈한 lerp 가 아니라 디더 — 다음 존의 땅이 다각형 조각으로 침범해 온다
+  const GROUND_TONE = ['#a3d18d', '#e6d2a4', '#b4b8b4', '#c2d4b0', '#9caf9a'].map((c) => new THREE.Color(c))
+  // 전이는 매끈한 lerp 가 아니라 디더 — 다음 존의 땅이 다각형 조각으로 침범해 온다.
+  // 시작은 게이트 3m 뒤 — 문턱 앞 땅색까지 바뀌면 안개 커튼 안쪽(근접 미포그 영역)에서 다음 존이 샌다.
   function groundColorAt(out, d, x = 0) {
     out.copy(GROUND_TONE[0])
     for (let z = 0; z < chapterCount; z++) {
-      const t = smooth01((d - gateOf(z)) / 8)
+      const t = smooth01((d - gateOf(z) - 3) / 9)
       if (t > 0.12 && t < 0.88) {
         const cell = Math.floor(x / 3.1) * 71 + Math.floor(d / 3.0) * 37
         if (hash(cell) < t) out.copy(GROUND_TONE[Math.min(z + 1, 4)])
@@ -525,12 +545,14 @@ export function buildWorld(scene, chapterCount, premises = []) {
     return mesh
   }
 
-  // 해안 — 바다는 첫 장면의 것이다. 존1이 끝나면 물가가 닫히고 땅이 이어진다.
-  const seaCloseAt = INTRO_LEN + ZONE_LEN + 14
+  // 해안 — 바다는 첫 장면의 것이다. 물의 문을 지나면 물가는 뒤에 남는다.
+  // 문(gateOf(0)) 앞 20m 에 걸쳐 닫혀서, 통과하는 순간에는 이미 땅이다 — 다음 존에 바다가 남아 있으면
+  // "다른 세계로 건너왔다"가 무너진다. 닫히는 과정은 접근 중의 안개 커튼이 대부분 가린다.
+  const seaCloseAt = gateOf(0) - 4
   function seaGone(d) {
-    return smooth01((d - seaCloseAt) / 26)
+    return smooth01((d - seaCloseAt) / 9)
   }
-  displacedPlane(SHORE_X0, SHORE_X1, '#eee2c4', (x, d) => {
+  displacedPlane(SHORE_X0, SHORE_X1, '#ecd9b2', (x, d) => {
     const t = (x - SHORE_X0) / (SHORE_X1 - SHORE_X0)
     const top = trackY(d) - 0.05
     const shore = top + (SEA_Y - 0.3 - top) * smooth01((t - 0.22) / 0.55)
@@ -570,21 +592,25 @@ export function buildWorld(scene, chapterCount, premises = []) {
   })
 
   // 바다 — 해수면 고정. 파도 진폭이 1px 미만이라 색 밴드로 보였다. 3배로 키운다.
-  const oceanGeo = new THREE.PlaneGeometry(110, 300, 22, 44)
-  const ocean = new THREE.Mesh(oceanGeo, std('#2f8fa6', { flatShading: true, transparent: true, opacity: 0.94 }))
+  const oceanGeo = new THREE.PlaneGeometry(110, 170, 22, 26)
+  // 물빛 — 존이 나뉘기 전의 밝은 청록빛 파랑(#38b0cc)으로 되돌린다. 어두운 청록은 첫 장면을 가라앉힌다.
+  // 불투명 — 0.94 였을 때 바다 밑 1.2m 에 잠긴 땅이 비쳐 물빛에 초록 얼룩이 번졌다
+  const ocean = new THREE.Mesh(oceanGeo, std('#38b0cc', { flatShading: true }))
   ocean.rotation.x = -Math.PI / 2
-  ocean.position.set(-60, SEA_Y, -75) // 첫 장면의 바다 — 존1 너머에는 없다
+  // 첫 장면의 바다 — 물의 문 너머에는 아예 수면이 없다 (d -63 ~ +107 만 덮는다)
+  ocean.position.set(-60, SEA_Y, -22)
   group.add(ocean)
   const oceanBase = oceanGeo.attributes.position.array.slice()
 
   const foams = []
   ;[[-0.6, 0], [-2.8, 2.1]].forEach(([offset, phase]) => {
     const foam = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 170),
+      new THREE.PlaneGeometry(1.6, 115),
       new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5 })
     )
     foam.rotation.x = -Math.PI / 2
-    foam.position.set(SHORE_X1, SEA_Y + 0.05, -55)
+    // 물가 선을 따라가는 띠 — 물이 닫힌 뒤(문 이후)까지 남으면 마른 땅 위의 흰 줄이 된다
+    foam.position.set(SHORE_X1, SEA_Y + 0.05, -22)
     group.add(foam)
     foams.push({ mesh: foam, offset, phase })
   })
@@ -922,7 +948,24 @@ export function buildWorld(scene, chapterCount, premises = []) {
     mark.position.y = 1.55
     npc.add(mark)
     group.add(npc)
-    npcs.push({ group: npc, mark, dist: npcDist, baseY: trackY(npcDist), wasNear: false, excite: 0 })
+    npcs.push({
+      group: npc,
+      mark,
+      dist: npcDist,
+      baseY: trackY(npcDist),
+      baseRot: npc.rotation.y,
+      castRot: Math.atan2(nside * 1.6, -2.8), // 시전 자세 — 스크린(허공)을 향해 돌아선 각
+      wasNear: false,
+      excite: 0,
+    })
+
+    // 영사기 — 지금은 존1(바다)만. NPC 보빙과 분리된 루트에 두어 스크린이 흔들리지 않는다.
+    if (z === 0 && PROJ_SCENES[z]) {
+      const proj = buildProjector({ tint: PROJ_TINT[z], drawScene: PROJ_SCENES[z], side: nside, zone: z })
+      proj.group.position.set(nside * 2.0, trackY(npcDist), -npcDist)
+      group.add(proj.group)
+      projectors.push(proj)
+    }
 
     // 배경 소품 — 읽기 구간(존+4~+43)에는 |x|<5 에 아무것도 두지 않는다.
     // 큰 것을 멀리 두면 천천히 지나가 읽기를 방해하지 않으면서 세계를 바꾼다.
@@ -1025,108 +1068,532 @@ export function buildWorld(scene, chapterCount, premises = []) {
     m.material.map = premiseTexture(text, W, H)
     return m
   }
-  const KK = (k, a, b) => smooth01((k - a) / (b - a))
-
   const gateAnims = []
 
-  // ── 경계 1~3 — 한계석(限界石) 아이템 ──
-  // 문도 판도 아니다. 길 위에 결정 하나가 떠 있고, 로봇이 걸어 들어가 줍는다.
-  // 줍는 순간 결정이 깨지며 빛 파편이 터지고, 그 힘이 로봇에게 흡수된다 — 한계는 주워서 깨는 것.
-  function limitItem(idx, tintHex) {
-    const g = gateOf(idx)
-    const y0 = trackY(g - 0.5)
-    const root = new THREE.Group()
-    root.position.set(0, y0, -(g - 0.5))
-    group.add(root)
+  // ── 경계 1~4 — 다음 세계로 넘어가는 포탈 ──
+  // 길 위에 선 발광 링. 색은 다음 존의 테마색, 안쪽 막에는 다음 존의 하늘이 비친다 —
+  // 통과가 "다음 세계로 넘어가는 사건"으로 읽히되, 로봇은 멈추지 않는다.
+  // 성장(스케일·Lv·불꽃)은 main 이 walked 의 순수 함수로 계산한다 — 여기서는 상태를 만들지 않는다(역스크롤 멱등).
+  function teaserTexture(text, tintHex, W = 512, H = 176) {
+    const cv = document.createElement('canvas')
+    cv.width = W
+    cv.height = H
+    const ctx = cv.getContext('2d')
     const tint = new THREE.Color(tintHex)
+    // 바탕은 다음 존 테마색을 어둡게 누른 판 — 원색 면적이 크면 예고가 아니라 광고판이 된다
+    ctx.fillStyle = tint.clone().multiplyScalar(0.24).getStyle()
+    ctx.fillRect(0, 0, W, H)
+    ctx.strokeStyle = tint.clone().lerp(new THREE.Color('#ffffff'), 0.3).getStyle()
+    ctx.lineWidth = Math.max(3, H * 0.03)
+    const M = W * 0.03
+    ctx.strokeRect(M, M, W - M * 2, H - M * 2)
+    ctx.fillStyle = '#f2ead8'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    let size = H * 0.3
+    ctx.font = `600 ${size}px "IBM Plex Sans KR", sans-serif`
+    while (ctx.measureText(text).width > W * 0.78 && size > H * 0.14) {
+      size -= 2
+      ctx.font = `600 ${size}px "IBM Plex Sans KR", sans-serif`
+    }
+    ctx.fillText(text, W / 2, H * 0.52)
+    const tex = new THREE.CanvasTexture(cv)
+    tex.colorSpace = THREE.SRGBColorSpace
+    // 커서가 앉을 자리 — 문장 끝 바로 뒤(0~1 정규화). 점멸은 캔버스가 아니라 발광 바 메시가 맡는다.
+    return {
+      tex,
+      cursorU: Math.min(0.95, (W / 2 + ctx.measureText(text).width / 2 + size * 0.28) / W),
+      sizeV: size / H,
+    }
+  }
 
-    // 결정 — 존의 빛을 머금은 팔면체. 겉껍질과 속심 두 겹.
-    const item = new THREE.Group()
-    const shell = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.52, 0),
-      std('#ffffff', { emissive: '#ffffff', emissiveIntensity: 0.55, transparent: true, opacity: 0.88, roughness: 0.35 })
+  // 다음 존의 하늘 — main.js SKY/SKY_TOP 의 존 키와 같은 값(포탈 막 전용 사본).
+  // 막에 다음 존의 하늘이 비쳐야 "저 너머는 다른 세계"가 문 하나로 읽힌다.
+  const NEXT_SKY = [
+    ['#c2ad84', '#eeddc0'], // 문1 너머 — 사막의 먼지 낀 하늘
+    ['#8d97a2', '#c6cacd'], // 문2 너머 — 잿빛 도시
+    ['#e8987c', '#ffd2b0'], // 문3 너머 — 낮게 가라앉은 노을
+    ['#6f5a92', '#b98098'], // 문4 너머 — 황혼 (SF 청록은 부두 포털의 예약색, 여기 못 쓴다)
+  ]
+  function portalSkyTexture(idx, overrideSky) {
+    // overrideSky — 존별 예외용 [top, bot]. 물의 문은 사막 하늘 대신 제 물빛을 막에 채운다.
+    const [topHex, botHex] = overrideSky || NEXT_SKY[Math.min(idx, NEXT_SKY.length - 1)]
+    const cv = document.createElement('canvas')
+    cv.width = cv.height = 256
+    const ctx = cv.getContext('2d')
+    // 채도를 반 단 올린다 — 반투명 막 너머로 안개 낀 원경이 비쳐 색이 반쯤 씻겨 나가기 때문
+    const top = new THREE.Color(topHex).offsetHSL(0, 0.12, -0.02)
+    const bot = new THREE.Color(botHex).offsetHSL(0, 0.12, 0)
+    // 세로 그라데이션 — 위는 다음 존의 상공, 지평선에서 밝아졌다가 발치는 어둡게(땅의 예감)
+    const sky = ctx.createLinearGradient(0, 0, 0, 256)
+    sky.addColorStop(0, top.getStyle())
+    sky.addColorStop(0.6, bot.getStyle())
+    sky.addColorStop(0.76, bot.clone().lerp(new THREE.Color('#ffffff'), 0.28).getStyle())
+    sky.addColorStop(1, bot.clone().multiplyScalar(0.5).getStyle())
+    ctx.fillStyle = sky
+    ctx.fillRect(0, 0, 256, 256)
+    // 지평선의 해무리 — 저 세계에도 광원이 있다는 한 점
+    const glow = ctx.createRadialGradient(128, 170, 4, 128, 170, 84)
+    glow.addColorStop(0, 'rgba(255,244,224,0.5)')
+    glow.addColorStop(1, 'rgba(255,244,224,0)')
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, 256, 256)
+    // 가장자리 알파 페더 — 막이 링 안쪽으로 스며들 듯 붙는다
+    const mask = ctx.createRadialGradient(128, 128, 56, 128, 128, 128)
+    mask.addColorStop(0, 'rgba(0,0,0,1)')
+    mask.addColorStop(0.8, 'rgba(0,0,0,0.92)')
+    mask.addColorStop(1, 'rgba(0,0,0,0.45)')
+    ctx.globalCompositeOperation = 'destination-in'
+    ctx.fillStyle = mask
+    ctx.fillRect(0, 0, 256, 256)
+    ctx.globalCompositeOperation = 'source-over'
+    const tex = new THREE.CanvasTexture(cv)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return tex
+  }
+  // 빛 웅덩이 텍스처 — 흰 방사 그라데이션 하나를 공유하고, 색은 재질이 입힌다
+  const poolTex = (() => {
+    const cv = document.createElement('canvas')
+    cv.width = cv.height = 128
+    const ctx = cv.getContext('2d')
+    const grad = ctx.createRadialGradient(64, 64, 4, 64, 64, 64)
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)')
+    grad.addColorStop(0.55, 'rgba(255,255,255,0.32)')
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 128, 128)
+    return new THREE.CanvasTexture(cv)
+  })()
+
+  // 다음 질문 예고판 — 게이트 너머 길가에 다음 전제의 앞 절반만.
+  // 문장이 끝나기 전에 끊겨야 예고다 — 나머지는 걸어가서 듣는다. 마지막 존은 다음이 없어 생략.
+  function gateTeaser(next, g) {
+    if (!next?.premise) return null
+    const teaser = next.premise.slice(0, Math.ceil(next.premise.length * 0.45)) + '…'
+    const nextTint = new THREE.Color(next.themeColor ?? '#ffffff')
+    const { tex, cursorU, sizeV } = teaserTexture(teaser, next.themeColor ?? '#ffffff')
+    const pd = g + 4.5
+    const pw = 1.7
+    const phh = 0.6
+    const holder = new THREE.Group()
+    // 포탈 옆 — 문틀(반폭 ~2.4)과 겹치면 예고판이 문에 먹힌다. 문을 나서면 오른쪽에 서 있다.
+    holder.position.set(3.3, trackY(pd), -pd)
+    holder.rotation.y = -0.3 // 살짝 길 쪽으로 — 정면 판은 걷는 이가 아니라 카메라를 향한 광고가 된다
+    const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 1.05, 6), std('#8a7358'))
+    stake.position.y = 0.52
+    const board = new THREE.Mesh(
+      new THREE.PlaneGeometry(pw, phh),
+      std('#ffffff', { map: tex, transparent: true, opacity: 0.85, roughness: 0.7, side: THREE.DoubleSide })
     )
-    shell.material.color.copy(tint)
-    shell.material.emissive.copy(tint)
-    const core = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.24, 0),
-      std('#fff6dc', { emissive: '#ffd98a', emissiveIntensity: 1.4 })
+    board.position.y = 1.18
+    // 깜빡이는 커서 — 다음 질문이 아직 적히는 중이라는 신호
+    const cursor = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.035, phh * sizeV),
+      new THREE.MeshBasicMaterial({
+        color: nextTint.clone().lerp(new THREE.Color('#ffffff'), 0.55),
+        transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+      })
     )
-    item.add(shell, core)
-    // 발밑 빛 무리와 부유 고리 — 아이템은 놓인 게 아니라 기다리는 것
+    cursor.position.set((cursorU - 0.5) * pw, -0.01, 0.012)
+    board.add(cursor)
+    holder.add(stake, board)
+    shadowed(holder)
+    group.add(holder)
+    contactSpots.push({ x: 3.3, d: pd, r: 0.4 })
+    return cursor
+  }
+
+  function gatePortal(idx) {
+    const g = gateOf(idx)
+    const next = premises[idx + 1]
+    // 문 색 = 다음 존의 테마색 — "저 색의 세계로 넘어간다"가 문 하나로 읽힌다.
+    // 마지막 문은 다음 존이 없다 — 너머는 황혼이므로 노을색으로 마감(SF 청록 침범 금지).
+    const tint = new THREE.Color(next?.themeColor ?? '#C2410C')
+    // 채도를 올리고 1 을 넘겨 굽는다 — ACES 상단 압축이 파스텔을 화이트로 밀어내므로,
+    // HDR 로 넣어야 톤매핑 후에도 "그 존의 색"이 남는다.
+    // 문2(도시 강청)만 색상을 남색 쪽으로 — 밝힌 강청은 SF 예약 청록과 헷갈린다.
+    const hueNudge = [0, 0.035, 0, 0][idx] ?? 0
+    const bright = tint.clone().offsetHSL(hueNudge, 0.25, 0.08).multiplyScalar(1.5)
+    const haloCol = tint.clone().offsetHSL(hueNudge, 0.3, 0.02).multiplyScalar(1.2)
+    const root = new THREE.Group()
+    root.position.set(0, trackY(g), -g)
+    group.add(root)
+
+    // 서 있는 링 — 중심(1.55)을 반지름(2.0)보다 낮게. 아래 호는 땅에 묻혀
+    // 문이 땅에서 자라난 형태가 되고, 로봇(|x|<0.4)이 튜브를 뚫지 않고 통과한다.
+    // 최대 |x|=2.0 은 카메라 통과선(x≈-2.1)보다 안쪽 — 카메라도 부재를 뚫지 않는다.
+    const R = 2.0
+    const CY = 1.55
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(R, 0.07, 10, 56),
+      new THREE.MeshBasicMaterial({ color: bright, transparent: true, opacity: 0.85, fog: false })
+    )
+    ring.position.y = CY
+    // 후광 — 본체가 형태를, 후광이 밝기를 맡는다. 통과 순간 이쪽이 터진다.
     const halo = new THREE.Mesh(
-      new THREE.CircleGeometry(0.85, 20),
-      new THREE.MeshBasicMaterial({ color: tintHex, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+      new THREE.TorusGeometry(R, 0.21, 8, 56),
+      new THREE.MeshBasicMaterial({ color: haloCol, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
     )
-    halo.rotation.x = -Math.PI / 2
-    halo.position.y = 0.06
-    const orbit = new THREE.Mesh(
-      new THREE.TorusGeometry(0.75, 0.02, 5, 30),
-      new THREE.MeshBasicMaterial({ color: '#ffe9b0', transparent: true, opacity: 0.55, fog: false })
+    halo.position.y = CY
+    // 막 — 다음 존의 하늘이 어른거리는 반투명 필름. 지금 존의 하늘과 색이 달라야 문이다.
+    const membrane = new THREE.Mesh(
+      new THREE.CircleGeometry(R - 0.05, 48),
+      new THREE.MeshBasicMaterial({ map: portalSkyTexture(idx), transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide, fog: false })
     )
-    orbit.rotation.x = Math.PI / 2 - 0.25
-    root.add(item, halo, orbit)
+    membrane.position.y = CY
+    // 메아리 링 — 같은 고리가 2.6m 너머에 한 겹 더. 걸으면 시차로 벌어져 문이 부피를 갖는다.
+    const echo = new THREE.Mesh(
+      ring.geometry,
+      new THREE.MeshBasicMaterial({ color: haloCol, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    echo.position.set(0, CY + 0.15, -2.6)
+    echo.scale.setScalar(1.18)
+    root.add(ring, halo, membrane, echo)
 
-    // 빛 파편 — 줍는 순간 사방으로 터진다
-    const SHARDS = 20
+    // 막 일렁임 준비 — 둘레 정점의 기준 반경·각도를 재 둔다. 원판 정점은 중심 하나와
+    // 둘레뿐이라, 실루엣을 물결치게 하는 쪽이 면을 구기는 것보다 싸고 잘 보인다.
+    const memPos = membrane.geometry.attributes.position
+    const memBase = []
+    for (let i = 0; i < memPos.count; i++) {
+      memBase.push([Math.hypot(memPos.getX(i), memPos.getY(i)), Math.atan2(memPos.getY(i), memPos.getX(i))])
+    }
+    membrane.material.map.center.set(0.5, 0.5) // 회전 축을 중심으로 — 막 안의 하늘이 제자리서 인다
+
+    // 끊긴 이중 호 — 매끈한 원환 하나는 도형이지 문이 아니다. 길이가 다른 호 조각 두 겹이
+    // 서로 반대로 돈다. 균등 분할을 피한 비대칭이 이 세계 수공예의 서명이다.
+    const arcAt = (r, tube, arc, rz) => gat(new THREE.TorusGeometry(r, tube, 6, 22, arc), 0, 0, 0, 0, 0, rz)
+    const arcsIn = new THREE.Mesh(
+      mergeGeometries([arcAt(R + 0.2, 0.042, 1.7, 0.45), arcAt(R + 0.2, 0.042, 1.05, 2.85)], false),
+      new THREE.MeshBasicMaterial({ color: bright, transparent: true, opacity: 0.4, fog: false })
+    )
+    const arcsOut = new THREE.Mesh(
+      mergeGeometries([arcAt(R + 0.38, 0.026, 2.1, 1.7), arcAt(R + 0.38, 0.026, 0.75, 4.9)], false),
+      new THREE.MeshBasicMaterial({ color: haloCol, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    arcsIn.position.y = CY
+    arcsOut.position.y = CY
+    root.add(arcsIn, arcsOut)
+
+    // 부유 룬돌 — 발치 돌과 같은 계열의 새김돌이 문가에 떠 있다. 문이 돌을 띄우고 있어야
+    // 빛의 고리가 홀로그램이 아니라 힘이 된다. 아래 호는 땅속이라 위쪽 반원에만 띄우고,
+    // 카메라 통과선(좌상단, 각도 2.1~3.0rad)은 비워 둔다 — 카메라가 돌을 뚫으면 안 된다.
+    const RUNE_N = 6
+    const runes = new THREE.InstancedMesh(
+      bakeAO(new THREE.BoxGeometry(0.15, 0.24, 0.05), { gradH: 0.24, strength: 0.32, upBoost: 0.15 }),
+      std('#ffffff', { vertexColors: true, emissive: tint, emissiveIntensity: 0.2 }),
+      RUNE_N
+    )
+    runes.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    runes.frustumCulled = false
+    const RUNE_A = [-0.35, 0.45, 1.1, 1.7, 3.3, 3.62] // 균등 배치를 피한 손맛 — 3.9 는 땅에 묻혀 뺐다
+    const runeSeed = []
+    const runeTone = new THREE.Color()
+    for (let i = 0; i < RUNE_N; i++) {
+      runeSeed.push({
+        a: RUNE_A[i] + idx * 0.1,
+        rad: 2.15 + hash(i * 4.7 + idx * 13) * 0.2,
+        ph: hash(i * 9.3 + idx) * 6.28,
+        tilt: (hash(i * 6.1 + idx * 7) - 0.5) * 0.5,
+        sz: 0.75 + hash(i * 3.7 + idx * 3) * 0.5,
+      })
+      runeTone.set(['#b0a48e', '#9c9080', '#a49884'][i % 3])
+      runes.setColorAt(i, runeTone)
+    }
+    root.add(runes)
+
+    // 빛 웅덩이 — 문이 바닥에 흘리는 빛. 문 앞쪽에 둔다(문 뒤는 땅이 꺼져 내려가 뜬다).
+    const pool = new THREE.Mesh(
+      new THREE.CircleGeometry(2.0, 24),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: tint, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    pool.rotation.x = -Math.PI / 2
+    pool.position.set(0, 0.05, 0.8)
+    root.add(pool)
+
+    // 부유 파편 — 링 평면을 도는 잔조각. 다음 세계의 부스러기가 문가에 흩어져 있다.
+    const SHARD_N = 10
     const shards = new THREE.InstancedMesh(
-      new THREE.OctahedronGeometry(0.07, 0),
-      new THREE.MeshBasicMaterial({ color: '#ffe9b0', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
-      SHARDS
+      new THREE.OctahedronGeometry(0.075, 0),
+      new THREE.MeshBasicMaterial({ color: bright, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+      SHARD_N
     )
     shards.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
     shards.frustumCulled = false
-    shards.visible = false
     root.add(shards)
+    const shardSeed = []
+    for (let i = 0; i < SHARD_N; i++) {
+      shardSeed.push({
+        a0: (i / SHARD_N) * Math.PI * 2 + idx * 0.7,
+        rad: 2.3 + hash(i * 3.1 + idx * 17) * 0.55,
+        sp: 0.1 + hash(i * 5.7 + idx) * 0.12,
+        sz: 0.7 + hash(i * 7.3 + idx) * 0.8,
+        wob: hash(i * 9.1 + idx) * 6.28,
+      })
+    }
+
+    // 발치 돌 받침 — 링이 땅에서 솟는 자리를 돌이 문다. 빛만 있으면 홀로그램, 돌이 있어야 구조물이다.
+    const stones = weld([
+      memb(gat(GB(0.52, 0.4, 0.46), -1.36, 0.18, 0.1, 0, 0.3), '#b0a48e'),
+      memb(gat(GB(0.34, 0.62, 0.3), -1.24, 0.28, -0.14, 0, -0.2), '#9c9080'),
+      memb(gat(GB(0.5, 0.34, 0.44), 1.34, 0.15, -0.06, 0, -0.35), '#b0a48e'),
+      memb(gat(GB(0.3, 0.56, 0.28), 1.25, 0.26, 0.12, 0, 0.25), '#a49884'),
+    ])
+    root.add(stones)
+    contactSpots.push({ x: -1.3, d: g, r: 0.55 }, { x: 1.3, d: g, r: 0.55 })
+
+    const cursor = gateTeaser(next, g)
 
     gateAnims.push((walked, t) => {
-      const near = g - walked // 아이템까지 남은 걸음
-      const pick = KK(walked - (g - 0.9), 0, 3.2) // 닿는 순간부터 흡수 완료까지
-      const glow = 1 - smooth01((near - 3) / 14) // 다가갈수록 밝아진다
-
-      item.visible = pick < 0.55
-      halo.visible = item.visible
-      orbit.visible = item.visible
-      if (item.visible) {
-        const bob = Math.sin(t * 1.6 + idx * 2) * 0.14
-        // 줍기 시작하면 로봇 가슴께로 빨려든다
-        const u = smooth01(pick / 0.55)
-        const ry = trackY(walked) - y0 + 1.15
-        item.position.set(0, (1.25 + bob) * (1 - u) + ry * u, (-(walked) + (g - 0.5)) * u)
-        item.rotation.y = t * (1.1 + glow * 2.2 + u * 6)
-        item.rotation.x = 0.3
-        item.scale.setScalar((0.85 + glow * 0.3) * (1 - u * 0.8))
-        shell.material.emissiveIntensity = 0.45 + glow * 0.9 + u * 1.5
-        halo.material.opacity = 0.3 * (1 - u)
-        halo.scale.setScalar(1 + Math.sin(t * 2.2 + idx) * 0.12 + glow * 0.4)
-        orbit.rotation.z = t * 0.8
-        orbit.material.opacity = 0.55 * (1 - u)
-      }
-      shards.visible = pick > 0.12 && pick < 1
-      if (shards.visible) {
-        const b = KK(pick, 0.12, 1)
-        for (let i = 0; i < SHARDS; i++) {
-          const a = (i / SHARDS) * Math.PI * 2 + i * 0.7
-          const el = (hash(i * 3.7) - 0.3) * 1.6
-          const r = 0.3 + b * (1.6 + hash(i * 5.1) * 1.4)
+      const near = g - walked
+      // 멀면 안개 속에서 서서히 깨어나고, 지나간 뒤에도 잠시 서 있다 — 뒤돌아봐도 문은 그대로다
+      const vis = (1 - smooth01((near - 26) / 20)) * (1 - smooth01((-near - 16) / 8))
+      root.visible = vis > 0.01
+      if (root.visible) {
+        const approach = 1 - smooth01((near - 4) / 20) // 다가설수록 문이 밝아진다
+        const breath = 0.5 + 0.5 * Math.sin(t * 1.7 + idx * 2.1)
+        const pass = Math.max(0, 1 - Math.abs(near) / 3) // 통과 순간 — main 의 성장 링과 같은 자리에서 겹친다
+        const core = Math.max(0, 1 - Math.abs(near) / 1.2) // 막을 실제로 찢고 지나는 반 박자
+        // 지나고 나면 빠르게 스러진다 — 카메라(로봇 뒤 8.8m)가 문틀에 닿기 전에.
+        // 안 그러면 화면을 가로지르는 거대한 호가 몇 걸음이나 남는다. walked 의 순수 함수라 되감아도 성립.
+        const linger = 1 - 0.9 * smooth01((-near - 1.5) / 4.5)
+        ring.material.opacity = (0.5 + 0.35 * approach + 0.05 * breath) * vis * linger
+        halo.material.opacity = (0.08 + 0.3 * approach * (0.55 + 0.45 * breath) + 0.55 * pass) * vis * linger
+        // 몸이 닿는 순간 막이 걷힌다 — 로봇을 가로지르는 절단면을 남기지 않는 방법이기도 하다
+        membrane.material.opacity = (0.42 + 0.4 * approach + 0.08 * breath) * (1 - 0.8 * core) * vis * linger
+        // 막 일렁임 — 둘레가 수면처럼 넘실대고, 안의 하늘은 좌우로 인다. t 만의 파형이라 되감아도 같다.
+        for (let i = 1; i < memPos.count; i++) {
+          const [r0, a0] = memBase[i]
+          const w = 1 + 0.06 * Math.sin(a0 * 3 + t * 1.5 + idx * 2.1) + 0.032 * Math.sin(a0 * 5 - t * 2.3)
+          memPos.setXY(i, Math.cos(a0) * r0 * w, Math.sin(a0) * r0 * w)
+        }
+        memPos.needsUpdate = true
+        membrane.material.map.rotation = 0.1 * Math.sin(t * 0.55 + idx * 1.7)
+        // 이중 호 — 반대 방향의 느린 회전. 통과 순간 안쪽 호가 같이 밝아진다.
+        arcsIn.rotation.z = t * 0.1 + idx * 1.3
+        arcsOut.rotation.z = -t * 0.07 + idx * 2.2
+        arcsIn.material.opacity = (0.14 + 0.3 * approach * (0.7 + 0.3 * breath) + 0.25 * pass) * vis * linger
+        arcsOut.material.opacity = (0.08 + 0.2 * approach + 0.15 * pass) * vis * linger
+        // 룬돌 — 제 각도 언저리에서 느리게 떠돈다. 다가서면 새김이 문 색으로 달아오른다.
+        runes.material.emissiveIntensity = 0.1 + 0.35 * approach + 0.5 * pass
+        for (let i = 0; i < RUNE_N; i++) {
+          const rs = runeSeed[i]
+          const a = rs.a + Math.sin(t * 0.4 + rs.ph) * 0.05
           seat.position.set(
-            Math.cos(a) * r,
-            1.25 + Math.sin(el) * r - b * b * 1.4,
-            Math.sin(a) * r * 0.7
+            Math.cos(a) * rs.rad,
+            CY + Math.sin(a) * rs.rad + Math.sin(t * 0.8 + rs.ph * 2) * 0.06,
+            0.12 * Math.sin(rs.ph)
           )
-          seat.rotation.set(t * 3 + i, t * 2, 0)
-          seat.scale.setScalar(Math.max(0.001, 1 - b))
+          seat.rotation.set(0, Math.sin(t * 0.45 + rs.ph) * 0.35, rs.tilt + Math.sin(t * 0.65 + rs.ph) * 0.08)
+          seat.scale.setScalar(rs.sz)
+          seat.updateMatrix()
+          runes.setMatrixAt(i, seat.matrix)
+        }
+        runes.instanceMatrix.needsUpdate = true
+        pool.material.opacity = (0.1 + 0.26 * approach + 0.5 * pass) * vis
+        const pop = 1 + 0.05 * pass
+        ring.scale.setScalar(pop)
+        membrane.scale.setScalar(pop)
+        halo.scale.setScalar(1 + 0.025 * breath + 0.12 * pass)
+        echo.material.opacity = (0.05 + 0.16 * approach + 0.2 * pass) * vis * linger
+        shards.material.opacity = (0.2 + 0.45 * approach) * vis * linger
+        for (let i = 0; i < SHARD_N; i++) {
+          const sd = shardSeed[i]
+          const a = sd.a0 + t * sd.sp
+          seat.position.set(
+            Math.cos(a) * sd.rad,
+            CY + Math.sin(a) * sd.rad * 0.9,
+            Math.sin(t * 0.7 + sd.wob) * 0.18
+          )
+          seat.rotation.set(t * 0.8 + i, t * 0.6 + i * 2.1, 0)
+          seat.scale.setScalar(sd.sz)
           seat.updateMatrix()
           shards.setMatrixAt(i, seat.matrix)
         }
-        shards.material.opacity = 0.95 * (1 - b * 0.8)
         shards.instanceMatrix.needsUpdate = true
       }
+      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
     })
   }
-  limitItem(0, '#7fd8a8') // 산뜻한 존 — 초록 결정
-  limitItem(1, '#e8b86a') // 황무지 — 호박빛 결정
-  limitItem(2, '#9fb8d8') // 도시 — 푸른 잿빛 결정
+  // ── 경계 1 전용 — 물의 문. 산뜻한 출발의 세계는 빛의 링이 아니라 물이 문을 연다. ──
+  // 좌우에서 솟은 두 갈래 물결이 마루에서 어긋나게 만나 아치가 되고, 마루에서 물보라가 흩날린다.
+  // 링 계열(이중 호·룬돌)은 존2~4 의 것 — 존1은 이 세계의 재료(바다)가 그대로 문이 된다.
+  function gateWavePortal() {
+    const g = gateOf(0)
+    const next = premises[1]
+    const root = new THREE.Group()
+    root.position.set(0, trackY(g), -g)
+    group.add(root)
+
+    const UP = new THREE.Vector3(0, 1, 0)
+    const DEEP = new THREE.Color('#1a5fb4')
+    const LIT = new THREE.Color('#7fb8e8')
+    // 물결 팔 하나 — 굵기가 잦아드는 원기둥 사슬. 곧은 튜브가 아니라 손으로 구부린 물줄기.
+    // lift·hook 으로 좌우 높이와 말림을 다르게 — 대칭 아치는 기계고, 어긋난 아치가 파도다.
+    function armParts(side, lift, hook) {
+      const P = [
+        [2.42, 0.02, 0], [2.34, 0.85, 0.05], [2.1, 1.7, -0.06], [1.66, 2.45, 0.05],
+        [1.0, 3.0, -0.04], [0.3, 3.3 * lift, 0.05], [-0.32, 3.42 * lift, 0], [-hook, 3.22 * lift, -0.05],
+      ].map(([x, y, z]) => new THREE.Vector3(side * x, y, z))
+      const parts = []
+      const col = new THREE.Color()
+      for (let i = 0; i < P.length - 1; i++) {
+        const u0 = i / (P.length - 1)
+        const dir = new THREE.Vector3().subVectors(P[i + 1], P[i])
+        const len = dir.length()
+        const r = (u) => 0.36 * (1 - 0.76 * u)
+        const seg = new THREE.CylinderGeometry(r((i + 1) / (P.length - 1)), r(u0), len, 6, 1, true)
+        seg.translate(0, len / 2, 0)
+        seg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, dir.normalize()))
+        seg.translate(P[i].x, P[i].y, P[i].z)
+        // 발치는 깊은 물, 마루로 갈수록 빛이 통과한 물 — 파도 단면의 명도 계단.
+        // 지수 1.8 — 아래 2/3 가 확실히 깊은 물이어야 유리 세공이 아니라 바닷물이다.
+        col.copy(DEEP).lerp(LIT, Math.pow(u0, 1.8))
+        parts.push(paint(seg.toNonIndexed(), '#' + col.getHexString()))
+      }
+      // 마루 물거품 — 부서지기 직전의 흰 살. 꼭대기 세 덩이가 실루엣을 깬다.
+      for (let k = 0; k < 3; k++) {
+        const p = P[P.length - 1 - k]
+        const f = new THREE.IcosahedronGeometry(0.17 - k * 0.035, 0)
+        f.translate(p.x + (hash(k * 7.1 + side) - 0.5) * 0.1, p.y + 0.12, p.z)
+        parts.push(paint(f.toNonIndexed(), '#eaf3fc'))
+      }
+      // 발치 물더미 — 물이 끌려 올라간 자리가 부풀어야 팔이 땅에서 "솟는다"
+      const mound = new THREE.IcosahedronGeometry(0.62, 0)
+      mound.scale(1.25, 0.5, 1.1)
+      mound.translate(side * 2.35, 0.06, 0)
+      parts.push(paint(mound.toNonIndexed(), '#3a7cc9'))
+      return parts
+    }
+    const arms = new THREE.Mesh(
+      mergeGeometries([...armParts(1, 1, 0.85), ...armParts(-1, 0.94, 0.55)], false),
+      // fog:false — 문은 안개 커튼 너머에서도 그 존의 색으로 서 있어야 한다(링과 같은 규칙)
+      std('#ffffff', {
+        vertexColors: true, roughness: 0.35, transparent: true, opacity: 0.92,
+        emissive: '#a6ccf2', emissiveIntensity: 0.1, fog: false,
+      })
+    )
+    root.add(arms)
+    const armsBase = arms.geometry.attributes.position.array.slice()
+
+    // 막 — 다음 존의 하늘. 아치 개구부(폭 ~3.6)에 맞춘 원판, 형태만 물의 문에 통합된다.
+    const membrane = new THREE.Mesh(
+      new THREE.CircleGeometry(1.75, 48),
+      // 존1 예외 — 막도 물빛. 깊은 파랑에서 밝은 물빛으로, 물의 문 안쪽은 물속이다.
+      new THREE.MeshBasicMaterial({ map: portalSkyTexture(0, ['#1a5fb4', '#7fb8e8']), transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide, fog: false })
+    )
+    membrane.position.y = 1.65
+    membrane.material.map.center.set(0.5, 0.5)
+    root.add(membrane)
+    const memPos = membrane.geometry.attributes.position
+    const memBase = []
+    for (let i = 0; i < memPos.count; i++) {
+      memBase.push([Math.hypot(memPos.getX(i), memPos.getY(i)), Math.atan2(memPos.getY(i), memPos.getX(i))])
+    }
+
+    // 물보라 — 마루에서 바깥으로 튀어 포물선을 그리는 물방울. 링의 궤도 파편과 문법이 다르다.
+    const SPRAY_N = 12
+    const spray = new THREE.InstancedMesh(
+      new THREE.OctahedronGeometry(0.055, 0),
+      new THREE.MeshBasicMaterial({ color: '#eef6fd', transparent: true, opacity: 0.8, depthWrite: false, fog: false }),
+      SPRAY_N
+    )
+    spray.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    spray.frustumCulled = false
+    root.add(spray)
+    const spraySeed = []
+    for (let i = 0; i < SPRAY_N; i++) {
+      const s = i % 2 ? 1 : -1
+      spraySeed.push({
+        s,
+        x0: -s * (0.1 + hash(i * 3.7) * 0.6), // 제 팔의 마루 언저리에서
+        y0: 3.0 + hash(i * 5.1) * 0.4,
+        z0: (hash(i * 11.3) - 0.5) * 0.3,
+        vx: -s * (0.5 + hash(i * 7.3) * 0.8), // 마루를 넘어 바깥으로
+        sp: 0.35 + hash(i * 9.7) * 0.3,
+        ph: hash(i * 13.1),
+      })
+    }
+
+    // 빛 웅덩이 — 젖은 바닥의 반사광. 문 앞에 고인다.
+    const pool = new THREE.Mesh(
+      new THREE.CircleGeometry(2.0, 24),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: '#7fb8e8', transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    pool.rotation.x = -Math.PI / 2
+    pool.position.set(0, 0.05, 0.8)
+    root.add(pool)
+
+    // 발치 표류목 — 물가에 밀려온 나무가 팔 밑동에 걸려 누워 있다. 세워 두면 공중에 뜬
+    // 막대로 읽힌다 — 거의 수평(rz≈1.5)으로 눕히고 바닥에 붙인다. 물의 문에도 뭍의 받침.
+    const drift = weld([
+      memb(gat(GC(0.06, 0.09, 1.6, 5), -2.66, 0.1, 0.3, 0, 0.55, 1.5), '#b6926a'),
+      memb(gat(GC(0.05, 0.075, 1.2, 5), -2.3, 0.08, -0.3, 0, -0.8, 1.52), '#a9885f'),
+      memb(gat(GC(0.055, 0.085, 1.45, 5), 2.58, 0.09, -0.2, 0, 0.95, -1.5), '#bb9770'),
+      memb(gat(GB(0.4, 0.28, 0.36), 2.32, 0.12, 0.34, 0, 0.4), '#b0a48e'),
+    ])
+    root.add(drift)
+    contactSpots.push({ x: -2.4, d: g, r: 0.6 }, { x: 2.4, d: g, r: 0.6 })
+
+    const cursor = gateTeaser(next, g)
+
+    gateAnims.push((walked, t) => {
+      const near = g - walked
+      const vis = (1 - smooth01((near - 26) / 20)) * (1 - smooth01((-near - 16) / 8))
+      root.visible = vis > 0.01
+      if (root.visible) {
+        const approach = 1 - smooth01((near - 4) / 20)
+        const breath = 0.5 + 0.5 * Math.sin(t * 1.7)
+        const pass = Math.max(0, 1 - Math.abs(near) / 3)
+        const core = Math.max(0, 1 - Math.abs(near) / 1.2)
+        const linger = 1 - 0.9 * smooth01((-near - 1.5) / 4.5)
+        // 물결 스웨이 — 정점이 높이에 비례해 파도의 위상을 탄다. t 만의 파형이라 되감아도 같다.
+        const ap = arms.geometry.attributes.position
+        for (let i = 0; i < ap.count; i++) {
+          const bx = armsBase[i * 3]
+          const by = armsBase[i * 3 + 1]
+          const bz = armsBase[i * 3 + 2]
+          const k = Math.min(1, by / 3.2)
+          ap.array[i * 3] = bx + Math.sin(by * 1.6 + t * 2.1) * 0.07 * k
+          ap.array[i * 3 + 1] = by + Math.sin(bx * 2.2 + t * 2.7) * 0.045 * k
+          ap.array[i * 3 + 2] = bz + Math.cos(by * 1.3 + t * 1.7) * 0.06 * k
+        }
+        ap.needsUpdate = true
+        arms.material.opacity = (0.58 + 0.34 * approach) * vis * linger
+        // 통과 순간 물이 빛을 머금는다 — 링의 후광 폭발에 해당하는 한 박자
+        arms.material.emissiveIntensity = 0.06 + 0.18 * approach * (0.6 + 0.4 * breath) + 0.7 * pass
+        // 막 — 링 게이트와 같은 문법: 접근하며 짙어지고, 몸이 닿는 순간 걷힌다
+        membrane.material.opacity = (0.42 + 0.4 * approach + 0.08 * breath) * (1 - 0.8 * core) * vis * linger
+        for (let i = 1; i < memPos.count; i++) {
+          const [r0, a0] = memBase[i]
+          const w = 1 + 0.06 * Math.sin(a0 * 3 + t * 1.5) + 0.032 * Math.sin(a0 * 5 - t * 2.3)
+          memPos.setXY(i, Math.cos(a0) * r0 * w, Math.sin(a0) * r0 * w)
+        }
+        memPos.needsUpdate = true
+        membrane.material.map.rotation = 0.1 * Math.sin(t * 0.55)
+        // 물보라 — 마루에서 솟아 바깥으로 떨어지는 포물선. 위상은 t 의 나머지 연산.
+        spray.material.opacity = (0.25 + 0.55 * approach) * vis * linger
+        for (let i = 0; i < SPRAY_N; i++) {
+          const sd = spraySeed[i]
+          const u = (t * sd.sp + sd.ph) % 1
+          seat.position.set(
+            sd.x0 + sd.vx * u,
+            sd.y0 + 1.1 * u - 2.4 * u * u,
+            sd.z0
+          )
+          seat.rotation.set(t * 1.3 + i, 0, t * 0.9 + i * 2.1)
+          seat.scale.setScalar(Math.max(0.001, (1 - u * 0.6) * (0.7 + hash(i * 5.3) * 0.6)))
+          seat.updateMatrix()
+          spray.setMatrixAt(i, seat.matrix)
+        }
+        spray.instanceMatrix.needsUpdate = true
+        pool.material.opacity = (0.08 + 0.2 * approach + 0.45 * pass) * vis
+      }
+      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
+    })
+  }
+
+  gateWavePortal()
+  for (let z = 1; z < chapterCount; z++) gatePortal(z)
 
 
 
@@ -1169,10 +1636,12 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
 
   // 존2 — 무너지지 말라고 쌓은 옹벽. 길과 나란한 연속 구조물이라 읽는 동안에도 조용하다.
+  // 시작은 게이트1 12m 뒤 — 문 앞 안개 커튼의 미포그 근접 영역(카메라 22m)에 벽이 들어오면
+  // 통과 전에 다음 존이 보인다. 끝은 원래대로 게이트2 너머 10m.
   {
     const z = 1
-    const from = INTRO_LEN + z * ZONE_LEN - 4
-    const to = from + ZONE_LEN + 2
+    const from = INTRO_LEN + z * ZONE_LEN // = 게이트1 + 12
+    const to = INTRO_LEN + 2 * ZONE_LEN - 2
     const rows = Math.floor((to - from) / 0.95)
     const wall = new THREE.InstancedMesh(new THREE.BoxGeometry(0.62, 0.45, 0.9), std('#ffffff'), rows * 6)
     const tone = ['#cbab7a', '#bd9a68', '#d6bb8d'].map((c) => new THREE.Color(c))
@@ -1609,7 +2078,8 @@ export function buildWorld(scene, chapterCount, premises = []) {
     if (hash(c * 9.1) > life * 0.75) continue
     const side = cd < 105 || hash(c * 2.3) < 0.6 ? 1 : -1 // 바다가 있는 동안 왼편에는 심지 않는다
     const cx = side * (1.5 + Math.pow(hash(c * 5.9), 1.3) * 3.2)
-    const size = clusterSize(hash(c * 3.7))
+    // 존1 은 큰 무리를 만들지 않는다 — 한두 포기까지. 8포기 덩어리가 곧 '징그러운 풀숲'이 된다.
+    const size = cd < gateOf(0) ? (hash(c * 3.7) < 0.7 ? 1 : 2) : clusterSize(hash(c * 3.7))
     const lead = 0.9 + hash(c * 11.3) * 0.35
     for (let k = 0; k < size && sn < SPROUT_MAX; k++) {
       const d = cd + (hash(c * 100 + k) - 0.5) * (0.7 + size * 0.22)
@@ -1642,6 +2112,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const d = 10 + hash(i * 2.9 + 13) * (TOTAL - 20)
     const lifeT = groundLife(d)
     if (lifeT < 0.12 || hash(i * 6.1) > lifeT * 0.9) continue
+    if (d < gateOf(0)) continue // 존1 에 풀포기 없음 — 첫 장면의 초록은 새싹 몇 포기로 충분하다
     const side = d < 105 || hash(i * 4.7) < 0.55 ? 1 : -1
     const x = side * (2.0 + Math.pow(hash(i * 8.3), 1.3) * 4.6)
     const s = 0.7 + Math.pow(hash(i * 12.7), 0.7) * 0.65
@@ -1872,7 +2343,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
   group.add(plazaGlow)
 
   // ----- 매 프레임 -----
-  function update(walked, dt, t) {
+  function update(walked, dt, t, talkZone = -1, talkK = 0) {
     const p = oceanGeo.attributes.position.array
     for (let i = 0; i < p.length; i += 3) {
       const x = oceanBase[i]
@@ -1905,16 +2376,20 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
     for (const a of gateAnims) a(walked, t)
 
-    for (const n of npcs) {
+    npcs.forEach((n, ni) => {
       const near = Math.abs(n.dist - walked) < 10
       if (near && !n.wasNear) n.excite = 1
       n.wasNear = near
       n.excite = Math.max(0, n.excite - dt * 2.5) // 읽기 시작과 겹치지 않게 빨리 멎는다
+      const talk = ni === talkZone ? talkK : 0
       const m = n.mark.material
-      m.opacity += ((near ? 1 : 0) - m.opacity) * Math.min(1, dt * 5)
+      // 상영이 시작되면 ? 는 내려간다 — 질문은 이미 화면이 하고 있다
+      m.opacity += ((near && talk < 0.15 ? 1 : 0) - m.opacity) * Math.min(1, dt * 5)
+      // 시전 몸 돌림 — 스크린을 향해 돌아서서 쏘고, 대화가 끝나면 제자리로 돌아온다
+      n.group.rotation.y = n.baseRot + (n.castRot - n.baseRot) * smooth01(talk)
       const hop = Math.abs(Math.sin(t * 9)) * 0.3 * n.excite
       n.group.position.y = n.baseY + 0.12 + hop + Math.sin(t * (near ? 4 : 1.6) + n.dist) * (near ? 0.12 : 0.05)
-    }
+    })
 
     dream.visible = walked > endD - 95
 
@@ -1962,10 +2437,11 @@ export function buildWorld(scene, chapterCount, premises = []) {
     const s = (SEA_Y - top) / (SEA_Y - 0.3 - top)
     const u = 0.5 - Math.sin(Math.asin(1 - 2 * Math.min(1, Math.max(0, s))) / 3)
     const wx = SHORE_X0 + (0.22 + 0.78 * u) * (SHORE_X1 - SHORE_X0)
+    const wet = 1 - seaGone(walked) // 물가가 닫히면 거품도 함께 잦아든다
     for (const f of foams) {
       const breathe = Math.sin(t * 0.9 + f.phase)
       f.mesh.position.x = wx + f.offset + breathe * 0.5
-      f.mesh.material.opacity = 0.28 + (breathe * 0.5 + 0.5) * 0.32
+      f.mesh.material.opacity = (0.28 + (breathe * 0.5 + 0.5) * 0.32) * wet
     }
 
     // 날씨 — 존2 모래바람, 존3 비. 카메라 주변만 돌면 된다.
@@ -2001,5 +2477,5 @@ export function buildWorld(scene, chapterCount, premises = []) {
     group.position.z = walked
   }
 
-  return { group, TOTAL, npcs, update, fogFarAt, skyPhaseAt, trackYAt: trackY }
+  return { group, TOTAL, npcs, projectors, update, fogFarAt, skyPhaseAt, trackYAt: trackY }
 }
