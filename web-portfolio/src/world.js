@@ -6,7 +6,8 @@
 
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { buildProjector, PROJ_TINT, PROJ_SCENES } from './projector.js'
+import { buildProjector, PROJ_TINT } from './projector.js'
+import { PROJ_SCENES, FILM_DUR } from './films.js'
 
 export const INTRO_LEN = 26
 export const ZONE_LEN = 60
@@ -1326,7 +1327,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     // 영사기 — 필름이 있는 존마다. NPC 보빙과 분리된 루트에 두어 스크린이 흔들리지 않는다.
     // 상영은 존1의 문법이 기준이다(2026-08-14) — 멈춤·소등·빔·한 번에 표시가 네 장 모두 같다.
     if (PROJ_SCENES[z]) {
-      const proj = buildProjector({ tint: PROJ_TINT[z], drawScene: PROJ_SCENES[z], side: nside, zone: z })
+      const proj = buildProjector({ tint: PROJ_TINT[z], drawScene: PROJ_SCENES[z], dur: FILM_DUR[z], side: nside, zone: z })
       proj.group.position.set(nside * 2.0, trackY(npcDist), -npcDist)
       group.add(proj.group)
       projectors.push(proj)
@@ -1996,6 +1997,209 @@ export function buildWorld(scene, chapterCount, premises = []) {
     })
   }
 
+  // ── 경계 3 전용 — 콘크리트의 문. 이 존의 재료는 슬래브와 비다. ──
+  // 도시는 문을 세우지 않는다. 건물 두 채가 길 위로 다가서서 남긴 틈이 문이다.
+  // 존3 내내 창은 거의 꺼져 있었다("켜진 창 하나가 외로움의 크기다") — 그 규칙을 여기서 뒤집는다.
+  // 문가의 두 벽에서만 창이 줄지어 켜지고, 틈 너머에서 노을이 든다.
+  // 좌우 높이를 다르게 둔 이유: 같으면 개선문이 되어 도시가 아니라 기념물이 된다.
+  function gateCityPortal() {
+    const g = gateOf(2)
+    const next = premises[3]
+    const tint = new THREE.Color('#e8987c') // 문3 너머 — portalSkyTexture(2) 의 낮게 가라앉은 노을과 같은 색
+    const root = new THREE.Group()
+    root.position.set(0, trackY(g), -g)
+    group.add(root)
+
+    const GAP = 2.15 // 틈의 반폭 — 로봇(|x|<0.4)과 카메라 통과선(x≈-2.1) 사이. 여기보다 좁히면 카메라가 벽을 뚫는다.
+    const WW = 3.4
+    const WD = 2.0
+    const WH = [9.6, 7.4] // 왼쪽이 더 높다
+    const walls = []
+    for (let s = 0; s < 2; s++) {
+      const sx = s === 0 ? -1 : 1
+      const h = WH[s]
+      const cx = sx * (GAP + WW / 2)
+      const wall = new THREE.Mesh(
+        bakeAO(new THREE.BoxGeometry(WW, h, WD, 2, 3, 2), { gradH: h * 0.5, strength: 0.35, upBoost: 0.12 }),
+        std(s === 0 ? '#9ba1a5' : '#8e9498', { vertexColors: true })
+      )
+      wall.position.set(cx, h / 2, 0)
+      // 파라펫 — 존3 건물과 같은 문법. 이 문이 남의 재료가 아니라 이 도시의 것임을 위에서 증명한다.
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(WW + 0.26, 0.24, WD + 0.26), std('#83898d'))
+      cap.position.set(cx, h + 0.12, 0)
+      root.add(wall, cap)
+      walls.push({ cx, h, sx })
+    }
+    // 인방 — 두 벽을 잇는 콘크리트 보. 이게 있어야 '틈'이 '문'이 된다.
+    // y=7.0 은 왼쪽 벽(9.6)보다 낮고 오른쪽 벽(7.4)보다도 낮아, 보가 두 벽에 걸쳐 물린 것으로 읽힌다.
+    const lintel = new THREE.Mesh(
+      bakeAO(new THREE.BoxGeometry(GAP * 2 + WW * 2 + 0.4, 0.9, WD * 0.62), { gradH: 0.9, strength: 0.3, upBoost: 0.1 }),
+      std('#a8adb0', { vertexColors: true })
+    )
+    lintel.position.set(0, 7.0, 0)
+    root.add(lintel)
+
+    // 켜진 창 — 틈을 마주보는 안쪽 면에만 붙는다. 걸어 들어가는 사람에게만 보이는 불빛이다.
+    const WIN_N = 14
+    const wins = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.5, 0.62, 0.06),
+      std('#ffe9a0', { emissive: '#ffce7a', emissiveIntensity: 1.1 }),
+      WIN_N
+    )
+    wins.frustumCulled = false
+    let wn = 0
+    for (const w of walls) {
+      for (let r = 0; r < 7 && wn < WIN_N; r++) {
+        if (hash(r * 5.3 + w.sx * 11) < 0.22) continue // 다 켜면 간판이 된다 — 몇 칸은 비운다
+        const wy = 1.5 + r * 1.02
+        if (wy > w.h - 0.7) continue
+        seat.position.set(w.cx - w.sx * (WW / 2 + 0.03), wy, (hash(r * 7.7 + w.sx * 3) - 0.5) * WD * 0.5)
+        seat.rotation.set(0, w.sx * Math.PI * 0.5, 0)
+        seat.scale.setScalar(1)
+        seat.updateMatrix()
+        wins.setMatrixAt(wn++, seat.matrix)
+      }
+    }
+    wins.count = wn
+    root.add(wins)
+
+    // 틈에 든 빛 — 이 문에는 막이 없다. 벽 사이의 공기가 노을빛으로 차오르는 것이 막을 대신한다.
+    // 판을 세우면 "문에 유리가 끼워졌다"가 되는데, 도시의 골목에는 유리가 없다.
+    const shaftGeo = new THREE.PlaneGeometry(GAP * 2, 7.0)
+    const shaftMat = new THREE.MeshBasicMaterial({
+      color: tint, transparent: true, opacity: 0.2,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false,
+    })
+    const shafts = []
+    for (let i = 0; i < 3; i++) {
+      const sh = new THREE.Mesh(shaftGeo, shaftMat.clone())
+      sh.position.set(0, 3.5, -0.55 + i * 0.55) // 세 겹 — 걸으면 시차로 벌어져 빛이 부피를 갖는다
+      root.add(sh)
+      shafts.push(sh)
+    }
+    // 젖은 바닥에 흘러내린 그 빛 — 비 오는 도시에서 빛은 반드시 바닥에 두 번 나온다.
+    const pool = new THREE.Mesh(
+      new THREE.PlaneGeometry(GAP * 2, 9),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: tint, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    pool.rotation.x = -Math.PI / 2
+    pool.position.set(0, 0.05, 2.6)
+    root.add(pool)
+
+    shadowed(root)
+    contactSpots.push({ x: -(GAP + WW / 2), d: g, r: 1.5 }, { x: GAP + WW / 2, d: g, r: 1.5 })
+    const cursor = gateTeaser(next, g)
+
+    gateAnims.push((walked, t) => {
+      const near = g - walked
+      const vis = (1 - smooth01((near - 30) / 22)) * (1 - smooth01((-near - 20) / 10))
+      root.visible = vis > 0.01
+      if (root.visible) {
+        const approach = 1 - smooth01((near - 4) / 22)
+        const pass = Math.max(0, 1 - Math.abs(near) / 3)
+        // 지나고 나면 스러진다 — 벽 자체는 남기고 빛만. 돌아봐도 골목은 그대로여야 도시가 거짓말을 안 한다.
+        const linger = 1 - 0.85 * smooth01((-near - 2) / 6)
+        wins.material.emissiveIntensity = 0.35 + 0.95 * approach + 0.6 * pass
+        for (let i = 0; i < shafts.length; i++) {
+          // 겹마다 다른 위상으로 흔들린다 — 빗속의 빛은 가만히 있지 않는다
+          const flick = 0.78 + 0.22 * Math.sin(t * (1.1 + i * 0.37) + i * 2.2)
+          // 세 겹이 가산이라 겹당 상한을 0.36 아래로 — 예전 값(0.72)에서는 셋이 겹쳐 2.1 이 되어
+          // 틈이 노을이 아니라 순백으로 터졌다. 색이 남으려면 총합이 1 을 크게 넘으면 안 된다.
+          shafts[i].material.opacity = (0.04 + 0.13 * approach + 0.19 * pass) * flick * vis * linger
+        }
+        pool.material.opacity = (0.05 + 0.2 * approach + 0.34 * pass) * vis
+      }
+      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
+    })
+  }
+
+  // ── 경계 4 전용 — 등롱의 문. 이 존의 재료는 부교 판재와 물과 등롱이다. ──
+  // 잔잔한 물에서는 문의 절반을 물이 그린다. 물 위로 나온 것은 낮은 문틀과 등롱뿐이고,
+  // 나머지 절반은 수면에 비친 불빛이다. 문을 세우지 않고 낮게 둔 이유:
+  // 5m 뒤에 도착 공간의 청록 링이 서 있어서, 여기서 높이를 쓰면 마지막 두 박자가 겹쳐 죽는다.
+  function gateWaterPortal() {
+    const g = gateOf(3)
+    const root = new THREE.Group()
+    root.position.set(0, trackY(g), -g)
+    group.add(root)
+
+    const HW = 2.0 // 문틀 반폭
+    const PH = 2.7 // 기둥 높이 — 로봇(1.5)보다 조금 높을 뿐이다
+    const post = (sx) => {
+      const p = new THREE.Mesh(
+        bakeAO(new THREE.BoxGeometry(0.22, PH, 0.22), { gradH: PH * 0.5, strength: 0.3, upBoost: 0.12 }),
+        std('#a98b6a', { vertexColors: true })
+      )
+      p.position.set(sx * HW, PH / 2, 0)
+      return p
+    }
+    // 인방은 부교 판재와 같은 비례(2.2×0.07)의 배수다 — 이 문은 발밑의 길을 세워 만든 것이다.
+    const beam = new THREE.Mesh(
+      bakeAO(new THREE.BoxGeometry(HW * 2 + 0.5, 0.16, 0.26), { gradH: 0.16, strength: 0.26, upBoost: 0.15 }),
+      std('#a98b6a', { vertexColors: true })
+    )
+    beam.position.set(0, PH - 0.08, 0)
+    root.add(post(-1), post(1), beam)
+
+    // 매달린 등롱 다섯 — 이 존 내내 부교를 밝히던 그 등롱이다. 간격을 균등하게 두지 않는다.
+    const LX = [-1.62, -0.86, 0.04, 0.82, 1.6]
+    const LDROP = [0.42, 0.62, 0.5, 0.68, 0.44]
+    const lamps = []
+    const cords = []
+    for (let i = 0; i < LX.length; i++) {
+      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, LDROP[i], 4), std('#7d6a52'))
+      cord.position.set(LX[i], PH - 0.16 - LDROP[i] / 2, 0)
+      const lamp = new THREE.Mesh(
+        new THREE.BoxGeometry(0.24, 0.3, 0.24),
+        std('#ffe9a0', { emissive: '#ffce7a', emissiveIntensity: 1.3 })
+      )
+      lamp.position.set(LX[i], PH - 0.16 - LDROP[i] - 0.15, 0)
+      root.add(cord, lamp)
+      lamps.push(lamp)
+      cords.push(cord)
+    }
+
+    // 수면에 비친 불빛 — 문의 나머지 절반. 실물을 뒤집어 복제하지 않고 빛만 비친다.
+    // 잔잔한 물에 비치는 것은 형태가 아니라 밝기라서, 형태를 복제하면 물이 유리가 된다.
+    const refl = new THREE.InstancedMesh(
+      new THREE.PlaneGeometry(0.5, 2.4),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: '#ffd9a0', transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+      LX.length
+    )
+    refl.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    refl.frustumCulled = false
+    root.add(refl)
+
+    shadowed(root)
+    contactSpots.push({ x: -HW, d: g, r: 0.5 }, { x: HW, d: g, r: 0.5 })
+
+    gateAnims.push((walked, t) => {
+      const near = g - walked
+      const vis = (1 - smooth01((near - 26) / 18)) * (1 - smooth01((-near - 14) / 8))
+      root.visible = vis > 0.01
+      if (!root.visible) return
+      const approach = 1 - smooth01((near - 3) / 18)
+      const pass = Math.max(0, 1 - Math.abs(near) / 3)
+      for (let i = 0; i < lamps.length; i++) {
+        // 등롱마다 다른 위상으로 아주 느리게 — 잔잔함은 정지가 아니라 느림이다
+        const sway = Math.sin(t * 0.5 + i * 1.7) * 0.05
+        lamps[i].position.x = LX[i] + sway
+        cords[i].position.x = LX[i] + sway * 0.5
+        cords[i].rotation.z = -sway * 0.6
+        lamps[i].material.emissiveIntensity = 0.9 + 0.5 * approach + 0.7 * pass + 0.08 * Math.sin(t * 1.3 + i)
+        // 반사는 물결에 따라 길이가 늘었다 줄었다 한다 — 이 흔들림이 '수면'을 만든다
+        const stretch = 1 + 0.18 * Math.sin(t * 0.9 + i * 2.1) + 0.1 * Math.sin(t * 1.7 - i)
+        seat.position.set(LX[i] + sway * 0.7, 0.05, 1.5)
+        seat.rotation.set(-Math.PI / 2, 0, 0)
+        seat.scale.set(1, stretch, 1)
+        seat.updateMatrix()
+        refl.setMatrixAt(i, seat.matrix)
+      }
+      refl.instanceMatrix.needsUpdate = true
+      refl.material.opacity = (0.1 + 0.22 * approach + 0.3 * pass) * vis
+    })
+  }
+
   // ── 경계 2 전용 — 모래의 문. 이 존의 재료는 사암과 바람이다. ──
   // 마주 기울어 선 두 사암 기둥. 꼭대기는 끝내 닿지 않고, 그 틈을 바람이 실어 온 모래가 건너
   // 아치를 잇는다 — 문을 완성하는 건 돌이 아니라 계속 부는 바람이다.
@@ -2253,9 +2457,13 @@ export function buildWorld(scene, chapterCount, premises = []) {
     })
   }
 
+  // 네 문은 전부 전용이다 — 원칙 하나: 그 존의 재료가 그대로 문이 된다.
+  // 물(존1) / 사암(존2) / 콘크리트(존3) / 부교 판재와 등롱(존4).
+  // 범용 빛의 링(gatePortal)은 더 이상 쓰지 않는다. 같은 링이 두 번 나오면 세계가 한 겹 얇아진다.
   gateWavePortal()
   gateSandPortal()
-  for (let z = 2; z < chapterCount; z++) gatePortal(z)
+  gateCityPortal()
+  gateWaterPortal()
 
 
 

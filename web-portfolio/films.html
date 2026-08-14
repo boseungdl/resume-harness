@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>필름 콘택트시트 — 4장 × 8프레임</title>
+  <style>
+    body { background: #1b1a18; color: #e8dcc2; font-family: 'IBM Plex Sans KR', sans-serif; margin: 0; padding: 18px; }
+    h2 { font-size: 15px; margin: 18px 0 8px; font-weight: 600; }
+    .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    figure { margin: 0; }
+    canvas { width: 100%; height: auto; display: block; background: #f3e6c8; }
+    figcaption { font-size: 10px; opacity: 0.55; padding: 2px 1px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div id="sheet"></div>
+  <script type="module">
+    import { PROJ_SCENES, FILM_DUR } from '/src/films.js'
+    const TITLES = ['01 시작 — 화면에서 기계의 벽까지', '02 기술 — 줍는 만큼 흘리고, 그것이 넘어간다', '03 문제 — 흘린 것으로 다시 세운다', '04 방향 — 거친 것 하나가 셋을 지나 매끈해진다']
+    // ?blind — 제목을 빼고 굽는다. 판독 검증은 제목이 인쇄된 시트로 하면 오염된다(2026-08-14 실측).
+    const blind = new URLSearchParams(location.search).has('blind')
+    const sheet = document.getElementById('sheet')
+    PROJ_SCENES.forEach((scene, z) => {
+      const DUR = FILM_DUR[z]
+      const h = document.createElement('h2')
+      h.textContent = blind ? `— ${z + 1} —` : TITLES[z]
+      sheet.appendChild(h)
+      const row = document.createElement('div')
+      row.className = 'row'
+      for (let f = 0; f < 8; f++) {
+        const fig = document.createElement('figure')
+        const cv = document.createElement('canvas')
+        cv.width = 512
+        cv.height = 288
+        const ctx = cv.getContext('2d')
+        try { scene(ctx, f, 512, 288) } catch (e) {
+          ctx.fillStyle = '#c33'; ctx.fillRect(0, 0, 512, 288)
+          ctx.fillStyle = '#fff'; ctx.font = '16px monospace'; ctx.fillText(String(e.message).slice(0, 52), 12, 40)
+        }
+        const cap = document.createElement('figcaption')
+        cap.textContent = `f${f} · ${DUR[f]}s`
+        fig.append(cv, cap)
+        row.appendChild(fig)
+      }
+      sheet.appendChild(row)
+    })
+  </script>
+</body>
+</html>

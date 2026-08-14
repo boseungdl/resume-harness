@@ -7,11 +7,11 @@
   <!-- 링크를 메신저·메일에 붙였을 때 뜨는 카드. og:image 와 og:url 은 절대 URL 이어야 한다 —
        카카오톡 스크래퍼는 상대경로를 해석하지 못하고 썸네일을 통째로 비운다.
        주소를 바꾸면(커스텀 도메인 등) 여기 두 줄도 같이 바꾼다. -->
-  <meta name="description" content="데이터 플랫폼 엔지니어 한승보의 포트폴리오. 스크롤로 함께 걸으며 시작·성장·경험·방향 네 장을 읽습니다." />
+  <meta name="description" content="데이터 플랫폼 엔지니어 한승보의 포트폴리오. 스크롤로 함께 걸으며 시작·기술·문제·방향 네 장을 읽습니다." />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:title" content="한승보 — 걷는 사람" />
-  <meta property="og:description" content="데이터 플랫폼 엔지니어 한승보의 포트폴리오. 스크롤로 함께 걸으며 시작·성장·경험·방향 네 장을 읽습니다." />
+  <meta property="og:description" content="데이터 플랫폼 엔지니어 한승보의 포트폴리오. 스크롤로 함께 걸으며 시작·기술·문제·방향 네 장을 읽습니다." />
   <meta property="og:url" content="https://han-portfolio-delta.vercel.app/" />
   <meta property="og:image" content="https://han-portfolio-delta.vercel.app/og.png" />
   <meta property="og:image:width" content="1200" />
@@ -323,9 +323,12 @@
       bottom: 2.1rem;
       transform: translateX(-50%);
       width: min(1180px, 92vw);
-      max-height: 38vh;
+      /* 46vh — 03(문제)은 관점이 바뀌는 자리라 비트가 넷이고 문장이 길다. 38vh 에서는 마지막 줄이 잘렸다. */
+      max-height: 46vh;
       overflow: hidden;
-      padding: 1.4rem 1.9rem 1.5rem;
+      /* 아래 2.5rem 은 힌트(SPACE 계속 걷기)의 자리다 — 답 세 줄이 한 번에 뜨는 oneShot 에서
+         마지막 줄이 힌트 밑으로 들어가 겹쳤다. 글이 그 띠를 침범하지 않게 비워 둔다. */
+      padding: 1.4rem 1.9rem 2.5rem;
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
@@ -341,7 +344,7 @@
       border-left: 1px dashed rgba(14, 168, 184, 0.32);
       padding: 0.1rem 0 0.1rem 1.7rem;
     }
-    #popup .a p { margin: 0 0 0.8rem; font-size: 0.95em; line-height: 1.75; animation: beat-in 0.45s ease both; }
+    #popup .a p { margin: 0 0 0.62rem; font-size: 0.95em; line-height: 1.68; animation: beat-in 0.45s ease both; }
 
     /* 문답 단계 + 스페이스 안내 */
     #popup .hint .step {
@@ -591,7 +594,7 @@
       <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
       <p class="lead">주어진 상황 속에서 더 좋은 방법을 매순간 고민하고, 언제나 <b>진심으로</b> 다가갑니다</p>
       <p class="nums">
-        <span class="kpi"><b>8</b>회 협업 경험</span>
+        <span class="kpi"><b>7</b>회 협업 경험</span>
         <span class="kpi"><b>4</b>회 수상</span>
       </p>
       <!-- [지원처별 수정 지점 ②] 소개 문단 — 스펙이 아니라 사람·가치관을 말하는 자리 -->
@@ -600,7 +603,7 @@
         요즘은 AI로 더 명확한 소통과 빠른 이해로 생산성을 높이면서 변하는 속도에 발맞춰 나아가고 있습니다.
       </p>
       <dl class="meta">
-        <div><dt>경력</dt><dd><b>CloudPC/VDI 솔루션</b> — 1년 · 운영팀 및 1인 상주 · <b>191명</b> 서비스 오픈</dd></div>
+        <div><dt>경력</dt><dd><b>CloudPC/VDI 솔루션</b> — 1년 · 운영팀 및 1인 상주</dd></div>
         <div><dt>경로</dt><dd>UI <i>→</i> 서버 <i>→</i> 인프라 <i>→</i> <span class="now"><em></em>데이터</span></dd></div>
         <div><dt>자격</dt><dd><b>CKA</b> · <b>AWS SAA</b> · <b>RHCSA</b> · 정보처리기사 · SQLD</dd></div>
         <div><dt>학력</dt><dd>국립한경대학교 졸업</dd></div>
@@ -657,8 +660,8 @@
   <section id="outro-panel" class="panel hud hidden-panel">
     <div class="verdict">
       <span id="outro-record">여기까지 함께 걸어주셨습니다.</span>
-      <span>문제 → 설계 → 기술 → 해결</span>
-      <span>데이터 플랫폼 엔지니어. 다음 구간은, 만나서 걷고 싶습니다.</span>
+      <span>DATA PLATFORM ENGINEER</span>
+      <span>Problem · Data · Infrastructure · AI — 다음 구간은, 만나서 걷고 싶습니다.</span>
     </div>
     <div class="links">
       <a href="#" target="_blank" rel="noreferrer">기술 포트폴리오</a>
