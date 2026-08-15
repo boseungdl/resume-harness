@@ -24,7 +24,12 @@ echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 const spacer = document.getElementById('spacer')
 // 정거장당 스크롤 분량(vh) — 값이 클수록 걸음이 느긋해진다
-const SCROLL_PER_STOP = 700
+// 700 → 160 (2026-08-15). 예전 총량은 (4+2.4)×700 = 4,480vh, 1600×900 에서 40,320px = 44.8 화면분.
+// 그 안의 읽을 글이 1,475자였고, 정거장 사이 60m 가 9 화면분이라 **44.8 화면 중 36 화면에 글자가 0개**였다.
+// 입력에 출력이 없는 구간을 사람은 몰입이 아니라 고장으로 읽는다. 그리고 스크롤바 손잡이가
+// 손톱만 해지면 독자는 남은 양을 계산하기 시작하고, 계산하면 닫는다.
+// 160 → 1,024vh = 10.2 화면분, 정거장 사이 2.1 화면. 세계는 그대로고 걷는 속도만 4.4배다.
+const SCROLL_PER_STOP = 160
 spacer.style.height = `${(PREMISES.length + 2.4) * SCROLL_PER_STOP}vh`
 
 const landingEl = document.getElementById('landing')
@@ -538,36 +543,16 @@ if (!webglAvailable()) {
   }
   const growSeat = new THREE.Object3D()
 
-  // 레벨 배지 — 머리 위에 떠서, 한계를 깰 때마다 오른다
-  const lvCv = document.createElement('canvas')
-  lvCv.width = 256
-  lvCv.height = 96
-  const lvCtx = lvCv.getContext('2d')
-  const lvTex = new THREE.CanvasTexture(lvCv)
-  lvTex.colorSpace = THREE.SRGBColorSpace
-  function drawLevel(n) {
-    lvCtx.clearRect(0, 0, 256, 96)
-    lvCtx.font = '700 44px "IBM Plex Sans KR", sans-serif'
-    lvCtx.textAlign = 'center'
-    lvCtx.textBaseline = 'middle'
-    lvCtx.lineWidth = 7
-    lvCtx.strokeStyle = 'rgba(22, 48, 60, 0.8)'
-    lvCtx.strokeText(`Lv.${n}`, 128, 47)
-    lvCtx.fillStyle = '#ffe9a0'
-    lvCtx.fillText(`Lv.${n}`, 128, 47)
-    lvTex.needsUpdate = true
-  }
-  drawLevel(1)
-  const lvSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lvTex, transparent: true, depthWrite: false }))
-  lvSprite.scale.set(1.1, 0.41, 1)
-  lvSprite.position.y = 2.35
-  let curLv = 1
+  // Lv 배지 삭제(2026-08-15). 화면에 숫자 체계가 넷 돌고 있었다 —
+  // Lv.1~5 / 미니맵 1~4 / 패널 1 / 5 / 걸은 거리 m. 어느 것도 다른 것을 설명하지 않았다.
+  // 게다가 이 레벨은 뭘 해서 오른 게 아니라 스크롤을 굴리면 저절로 올랐다(보상이 아니라 진행바),
+  // 3D 월드 안에 글자를 두지 않는다는 규칙과 '성장'이라는 말을 쓰지 않는다는 규칙에도 함께 걸렸다.
+  // 문을 지났다는 신호는 통과 링·불꽃·몸집 5% 증가가 이미 셋이서 한다.
 
   const walker = new THREE.Group()
   walker.position.set(0, 0.05, 0) // 발이 흙길 윗면에 선다
   walker.rotation.y = -0.49 // 랜딩에서는 관람자를 바라본다
   scene.add(walker)
-  walker.add(lvSprite)
 
   // 접지 얼룩 — 그림자맵만으로는 밤에 발이 땅에서 떨어진다. 해가 저각(존4)이면 그림자가
   // 그림자 카메라(±26m) 밖으로 뻗어 잘리고, 미지의 밤에는 광원 자체가 약해 아예 사라진다.
@@ -729,6 +714,9 @@ if (!webglAvailable()) {
   }
   const startBtn = document.getElementById('start-walk')
   startBtn.addEventListener('click', startWalk)
+  // 같은 행동으로 가는 문이 둘이다 — 3D 팻말(분위기)과 DOM 버튼(접근성·명시성).
+  // 텍스처에 구워진 글자는 확대하면 뭉개지고 스크린리더가 못 읽으므로, 팻말만으로는 CTA 가 못 된다.
+  document.getElementById('walk-cta')?.addEventListener('click', startWalk)
   // 호버 — 간판이 반갑게 반응한다
   startBtn.addEventListener('pointerenter', () => {
     sign.scale.setScalar(0.89)
@@ -937,6 +925,12 @@ if (!webglAvailable()) {
     if ((window.getSelection()?.toString() ?? '').length) return
     if (talkCooldown()) advanceMeet()
   })
+  // 버튼은 패널 핸들러로 버블링돼 같은 일을 한다 — 여기서 또 부르면 두 조각이 넘어간다.
+  // 다만 키보드 Enter/Space 로 눌렀을 때는 버블링 click 이 나므로 별도 처리가 필요 없다.
+  popupEl.querySelector('.go')?.addEventListener('click', (e) => e.stopPropagation())
+  popupEl.querySelector('.go')?.addEventListener('click', () => {
+    if (talkCooldown()) advanceMeet()
+  })
 
   function typeQuestion(index) {
     const text = PREMISES[index].premise
@@ -1075,16 +1069,38 @@ if (!webglAvailable()) {
         chips[i].innerHTML = `<b>${i + 1}</b><span>${passed ? PREMISES[i].chip : PREMISES[i].kicker}</span>`
       }
     }
-    // 읽기 표면은 셋(결론·대화·엔딩)이고 한 번에 하나만 켜진다. 결론이 가장 낮은 우선순위다 —
-    // 대화가 시작되면 남은 래치를 버리고 즉시 끈다. 대화 뒤에 다시 띄우면 '돌아왔다'로 읽힌다.
+    // 읽기 표면은 셋(상단 한 줄·대화·엔딩)이고 한 번에 하나만 켜진다.
     if (talkingNow() >= 0 || atEnd) verdict = -1
-    if (verdict !== ui.verdict) {
-      ui.verdict = verdict
+
+    // ── 상단 한 줄의 두 번째 상태: 다음 질문 ──
+    // 예전에는 이 슬롯이 '지나간 결론'만 4초 띄우고 껐고, 그 뒤 정거장까지의 구간은 글자가 0개였다.
+    // 개방 루프가 정거장 안에서 열리고 정거장 안에서 닫히니, 문을 나서는 순간 다음 방으로 갈
+    // 이유가 0이 됐다. 루프의 경계를 정거장이 아니라 문턱으로 옮긴다 —
+    // 결론(닫힘)이 사라진 자리에 다음 질문(열림)이 들어와, 도착할 때까지 미완결로 남는다.
+    // 남은 거리는 전체 진행률의 분모가 아니라 '이 질문의 답까지'라는 국소 좌표다.
+    // inJourney 게이트가 없으면 랜딩 화면 위에 '42m 앞'이 떠 있다 — 아직 걷지도 않았는데.
+    let ahead = -1
+    if (verdict < 0 && !atEnd && inJourney && talkingNow() < 0) {
+      for (let i = 0; i < PREMISES.length; i++) {
+        const stopD = world.npcs[i].dist - 2.1
+        // 아직 안 들른 자리 중 가장 가까운 것. 도착 6m 전에는 끈다(대화 패널과 겹치지 않게).
+        if (meets[i].state !== 2 && walked < stopD - 6) { ahead = i; break }
+      }
+    }
+    const key = verdict >= 0 ? `v${verdict}` : ahead >= 0 ? `a${ahead}:${Math.round((world.npcs[ahead].dist - 2.1 - walked) / 4)}` : ''
+    if (key !== ui.verdict) {
+      ui.verdict = key
       if (verdict >= 0) {
         const line = PREMISES[verdict].conclusion
+        verdictEl.className = [...line].length > 38 ? 'long' : ''
         verdictEl.textContent = line
-        // 예산(38자)을 넘는 결론은 글이 아니라 크기를 내린다 — 03 의 결론이 55자다
-        verdictEl.classList.toggle('long', [...line].length > 38)
+        verdictEl.style.opacity = '1'
+      } else if (ahead >= 0) {
+        const left = Math.max(0, Math.round(world.npcs[ahead].dist - 2.1 - walked))
+        verdictEl.className = 'ahead'
+        verdictEl.innerHTML =
+          `<span class="lead-q">${PREMISES[ahead].premise}</span>` +
+          `<span class="dist">${left}m 앞</span>`
         verdictEl.style.opacity = '1'
       } else {
         verdictEl.style.opacity = '0'
@@ -1196,15 +1212,6 @@ if (!webglAvailable()) {
       if (u > 0 && u < 1) burstU = u
     }
     walker.scale.setScalar(1 + 0.05 * grown)
-    const lvNow = 1 + GATES.filter((g) => walked > g + 2.2).length
-    if (lvNow !== curLv) {
-      curLv = lvNow
-      drawLevel(curLv)
-    }
-    // 레벨업 순간 배지가 한 번 부풀었다 돌아온다
-    const lvPop = burstU >= 0 ? Math.sin(Math.PI * Math.min(1, burstU * 1.6)) * 0.35 : 0
-    lvSprite.scale.set(1.1 * (1 + lvPop), 0.41 * (1 + lvPop), 1)
-    lvSprite.position.y = 2.35 + Math.sin(t * 1.8) * 0.05
     if (burstU >= 0) {
       const ringU = Math.min(1, burstU * 1.4)
       growRing.visible = true
