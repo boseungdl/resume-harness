@@ -33,18 +33,20 @@ const SCROLL_PER_STOP = 160
 spacer.style.height = `${(PREMISES.length + 2.4) * SCROLL_PER_STOP}vh`
 
 const landingEl = document.getElementById('landing')
-const miniEl = document.getElementById('mini')
 const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
 const outroEl = document.getElementById('outro-panel')
-const routeEl = document.getElementById('route')
-const routeDone = document.getElementById('route-done')
-const mapNodes = document.getElementById('map-nodes')
-const mapMe = document.getElementById('map-me')
-const qlistEl = document.getElementById('qlist')
-// 머문 시간·읽은 문단 지표는 제거했다(2026-08-15) — 분모는 견적서고 시계는 압박이다.
-// 지도와 칩은 남는다: 남은 양이 아니라 얻은 것을 세기 때문이다.
+// #mini(지도·칩) 전면 삭제(2026-08-15).
+//   지도는 클릭이 안 되니 이동에 못 쓰고, 곡선은 3D 지형과 무관한 임의의 선이라 위치도 못 알려준다.
+//   남는 정보는 "장이 넷"뿐이라 그 하나만 챕터 표시 아래 네 칸 대시로 옮겼다.
+//   칩(chip)은 변별력이 0이었다 — "문제를 먼저 바라봅니다"는 3장에도 4장에도 참이고,
+//   "기술을 쌓는 데 집중했습니다"는 1장에도 참이다. 넷 중 셋이 다른 장에서도 성립하는 요약은
+//   이동을 지우고 도착점만 남긴 문장이라, 누구나 쓸 수 있다.
+const chapEl = document.getElementById('chapter')
+const chapNo = chapEl.querySelector('.no')
+const chapNm = chapEl.querySelector('.nm')
+const chapDots = [...chapEl.querySelectorAll('.dots i')]
 const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
@@ -55,17 +57,6 @@ function liftVeil() {
 }
 setTimeout(liftVeil, 3200) // 로드가 늦어도 여정은 시작된다
 
-// 우상단 요약 — 지나기 전엔 자리 이름(kicker)만 보인다. 네 전제를 미리 다 깔면
-// 문마다의 발견이 죽는다. 통과하면 그 자리에서 "무엇을 바꿨는가"(chip)가 남는다.
-const chips = PREMISES.map((item, i) => {
-  const li = document.createElement('li')
-  li.innerHTML = `<b>${i + 1}</b><span>${item.kicker}</span>`
-  qlistEl.appendChild(li)
-  return li
-})
-const chipShown = [false, false, false, false]
-// 만남 게이트 — 클릭해서 '수집'해야 걸음이 다시 열린다
-const collected = PREMISES.map(() => false)
 
 // ---------- 랜딩 인터랙션 (WebGL 여부와 무관) ----------
 
@@ -144,7 +135,6 @@ if (!webglAvailable()) {
   // 3D 가 없으면 여정도 없다 — 빈 스크롤과 유령 계기판을 남기지 않는다
   document.body.classList.add('no-webgl')
   spacer.style.height = '0'
-  miniEl.classList.add('hidden-panel')
 } else {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -495,29 +485,6 @@ if (!webglAvailable()) {
   // 느린 기기에서만 해상도를 단계적으로 낮춘다 (45fps 이상이면 아무것도 하지 않는다)
   const quality = createQualityGovernor({ renderer, onDisableBloom: () => {} })
 
-  // 하단 여정 바 — 7개 노드와 달리는 점
-  // 지도 — 굽은 경로 하나에 자리 4개를 얹고, 걸은 만큼 실선이 따라온다
-  const NS = 'http://www.w3.org/2000/svg'
-  const routeLen = routeEl.getTotalLength()
-  routeDone.style.strokeDasharray = `0 ${routeLen}`
-  const journeyNodes = world.npcs.map((n) => {
-    const pt = routeEl.getPointAtLength((n.dist / world.TOTAL) * routeLen)
-    const c = document.createElementNS(NS, 'circle')
-    c.setAttribute('class', 'node')
-    c.setAttribute('r', '3')
-    c.setAttribute('cx', pt.x.toFixed(1))
-    c.setAttribute('cy', pt.y.toFixed(1))
-    mapNodes.appendChild(c)
-    return c
-  })
-  function drawMap(progress) {
-    const at = Math.min(1, Math.max(0, progress)) * routeLen
-    routeDone.style.strokeDasharray = `${at} ${routeLen}`
-    const pt = routeEl.getPointAtLength(at)
-    mapMe.setAttribute('cx', pt.x.toFixed(1))
-    mapMe.setAttribute('cy', pt.y.toFixed(1))
-  }
-
   // ---------- 걷는 로봇 ----------
 
   // 성장 연출 — 한계를 깰 때마다 발밑에서 빛 고리가 퍼지고 불꽃이 오르며, 로봇이 실제로 조금 자란다
@@ -672,6 +639,7 @@ if (!webglAvailable()) {
   // ---------- 스크롤 = 걸음 ----------
 
   let walked = 0
+  const GATES = [0, 1, 2, 3].map((i) => 26 + i * 60 + 48)
   const verdictHold = PREMISES.map(() => -1) // 결론 최소 노출 시한 — 창을 뛰어넘어도 4초는 보인다
   // 발동·결론 판정 전용. prevWalked(groundSpeed 용)와 갱신 시점이 달라 공유하면 안 된다 —
   // 그 값은 판정 시점에 walked 와 같아서 곱이 항상 제곱이 되고 교차가 영영 잡히지 않는다.
@@ -787,13 +755,16 @@ if (!webglAvailable()) {
   // 그 견적은 "다 읽거나 안 읽거나"의 이진 결정이 된다. 40초 예산인 사람에게 기본값은 '안 읽기'다.
   // 한 화면에 한 줄이면 잴 면적이 없고, 다음 한 줄은 언제나 싸다.
   // 분할선은 원문의 <br> 이다 — 쉼표 호흡에서 끊으라고 이미 표시돼 있던 자리다.
+  // 조각 = beat 하나. 예전에는 <br> 마다 쪼개 조각이 5·6·9·4 = 24개였고, 여정 전체가
+  // SPACE 24연타였다 — 넘길 때마다 독자는 "몇 번 더"를 계산한다. beat 단위면 13번이고,
+  // <br> 은 문단 안 줄바꿈으로 남아 한 조각이 최대 3줄이다(.a 의 min-height 3줄과 정확히 맞는다).
   const splitBeats = (beats) =>
-    beats.flatMap((b) =>
+    beats.map((b) =>
       String(b.text)
         .split('<br>')
         .map((line) => line.trim())
         .filter(Boolean)
-        .map((line) => [{ ...b, text: line }])
+        .map((line) => ({ ...b, text: line }))
     )
   const meetChunks = PREMISES.map((p2) => splitBeats(p2.beats))
   const popupStep = popupEl.querySelector('.hint .step')
@@ -956,17 +927,8 @@ if (!webglAvailable()) {
   // 이름을 collect 로 되돌리지 말 것 — echarts 가 최상위에 같은 이름의 함수를 갖고 있어
   // 번들에서 충돌한다("Identifier 'collect' has already been declared"). dev 서버는 모듈을
   // 따로 두어 멀쩡하고, 프로덕션 빌드에서만 스크립트 전체가 파싱 단계에서 죽는다.
-  function markCollected(i) {
-    if (collected[i]) return
-    collected[i] = true
-    chips[i]?.classList.add('done')
-    journeyNodes[i]?.classList.add('done')
-  }
-
   // 매 프레임 같은 값을 다시 쓰면 레이아웃이 무효화된다 — 바뀔 때만 손댄다
-  const ui = { pct: -1, title: '', dist: -1, time: '', fade: -1, inJourney: null, beatKey: '', nowChip: -1, read: -1, verdict: -1 }
-
-  const verdictEl = document.getElementById('verdict')
+  const ui = { dist: -1, fade: -1, inJourney: null, beatKey: '', verdict: '' }
   let veilOn = false
   let arrived = 0 // 자리 도착 계수 — 몸 돌림·카메라·비네트가 함께 탄다
 
@@ -985,12 +947,7 @@ if (!webglAvailable()) {
       }
     }
 
-    // 계기판·여정 바는 여정에 들어선 뒤에만
     const inJourney = window.scrollY > journeyBase() * 0.72
-    if (inJourney !== ui.inJourney) {
-      ui.inJourney = inJourney
-      miniEl.classList.toggle('hidden-panel', !inJourney)
-    }
 
     // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
     const wasEnd = atEnd
@@ -1005,11 +962,6 @@ if (!webglAvailable()) {
         outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${m}m</b>.`
       }
     }
-
-    // 칩 적립은 팝업과 무관 — 지나친 정거장은 무조건 쌓인다 (점프 스크롤 포함)
-    world.npcs.forEach((n, i) => {
-      if (!collected[i] && walked > n.dist - 2) markCollected(i)
-    })
 
     // 만남 팝업: 대화 중(state 1)에만 뜬다 — 창이 곧 이벤트다. 걸어오는 길에 미리 보이면 김이 샌다.
     // 다시 읽는 방법은 텍스트 잔류가 아니라 되돌아와서 상영을 다시 여는 것(양방향 재무장).
@@ -1036,80 +988,36 @@ if (!webglAvailable()) {
     if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
       renderMeet(near) // 대화는 멈춰 선 문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
     }
-    if (near !== ui.nowChip) {
-      chips[ui.nowChip]?.classList.remove('now')
-      ui.nowChip = near
-      chips[near]?.classList.add('now')
-      chips[near]?.style.setProperty('--zone-c', PREMISES[near]?.themeColor ?? '') // 현재 존 한 줄만 존 색
-    }
-    // 결론 — 전제가 무너진 직후에만 잔해 위에 선다. 걸음의 순수 함수라 되감아도 성립한다.
-    // 결론 — 전제가 무너진 직후에만 잔해 위에 선다.
-    // 창을 13m 에서 26m 로 넓히고, 그 창을 뛰어넘는 속도에 대비해 교차 래치를 둔다.
-    // 예전에는 폭 13m 를 매 프레임 점 샘플링해서 빠른 스크롤에서 결론 네 줄이 전부 안 떴다 —
-    // 이 페이지에서 가장 인용 가치가 높은 문장들이 구조적으로 가장 잘 스킵되고 있었다.
-    // 창의 오른쪽 끝이 다음 자리를 0.1m 차이로 삼키고 있었다:
-    //   창① = [76, 102], 다음 정지점 = npcDist(104) - 2.1 = 101.9.
-    // 걸음이 101.9 에 수렴해 멈추므로 walked < 102 가 계속 참이고, 결론①이 대화② 내내
-    // 상단에 떠 있었다(자리 2·3·4 전부). 다음 자리보다 8m 앞에서 닫는다.
+    // ── 상단 챕터 표시 — 여정 중 유일한 상시 텍스트 ──
+    // 예전에는 이 자리에 다음 정거장의 premise 전문 + "42m 앞"이 떠 있었다. 두 가지가 틀렸다:
+    //   ① 도착하면 패널이 같은 문장을 제목으로 다시 준다 — 두 번째 만남에서 독자는 읽지 않고
+    //      대조한다("뭐가 달라졌지"). 대조는 읽기보다 비싸고 소득이 0이라 매번 손해다.
+    //   ② 27~36자 문장이 40~60m 내내 시야 상단에 못박혀 있고, 거리 숫자가 4m마다 바뀌었다.
+    //      다 읽었는데 안 사라지는 문장은 몇 초마다 눈을 되돌리고, 움직이는 숫자는 주변시가
+    //      의지와 무관하게 잡는다.
+    // 지금 남은 것은 갱신되지 않는 고정 문자열 하나 — 장 번호와 이름, 그리고 네 칸 대시.
+    // 모든 구간에서 형태가 같다.
+    const chapIdx = Math.min(PREMISES.length - 1, GATES.filter((g) => walked > g).length)
+    // 문을 지나는 3초 동안만 크게 — 그 뒤 같은 문자열이 제자리로 축소 이동한다.
+    // 같은 글자가 작아지는 동선이 "이게 그거다"를 말없이 설명한다(44:18 = 2.4:1).
+    // 시계는 walkTime 이 아니라 실시간이다 — walkTime 은 20초 이상 멈춰 서면 누적을 멈춘다
     const nowSec = performance.now() / 1000
-    let verdict = -1
-    for (let i = 0; i < PREMISES.length; i++) {
-      const gate = 26 + i * 60 + 48
-      const nextStop = i + 1 < PREMISES.length ? world.npcs[i + 1].dist - 2.1 : Infinity
-      const winEnd = Math.min(gate + 28, nextStop - 8)
-      if (walked > gate + 2 && walked < winEnd) verdict = i
-      // 창을 통째로 건너뛴 경우: 교차한 순간부터 4초를 보장한다.
-      // 시계는 walkTime(t)이 아니라 실시간이다 — walkTime 은 20초 이상 멈춰 서면 누적을 멈춰,
-      // 서 있는 동안 래치가 영영 안 풀렸다.
-      if ((checkedWalked - (gate + 2)) * (walked - (gate + 2)) <= 0) verdictHold[i] = nowSec + 4
-      if (verdict < 0 && nowSec < verdictHold[i]) verdict = i
-      const passed = walked > gate + 2
-      if (passed !== chipShown[i]) {
-        chipShown[i] = passed
-        chips[i].innerHTML = `<b>${i + 1}</b><span>${passed ? PREMISES[i].chip : PREMISES[i].kicker}</span>`
-      }
+    let big = false
+    for (let i = 0; i < GATES.length; i++) {
+      if ((checkedWalked - GATES[i]) * (walked - GATES[i]) <= 0) verdictHold[i] = nowSec + 3
+      if (nowSec < verdictHold[i]) big = true
     }
-    // 읽기 표면은 셋(상단 한 줄·대화·엔딩)이고 한 번에 하나만 켜진다.
-    if (talkingNow() >= 0 || atEnd) verdict = -1
-
-    // ── 상단 한 줄의 두 번째 상태: 다음 질문 ──
-    // 예전에는 이 슬롯이 '지나간 결론'만 4초 띄우고 껐고, 그 뒤 정거장까지의 구간은 글자가 0개였다.
-    // 개방 루프가 정거장 안에서 열리고 정거장 안에서 닫히니, 문을 나서는 순간 다음 방으로 갈
-    // 이유가 0이 됐다. 루프의 경계를 정거장이 아니라 문턱으로 옮긴다 —
-    // 결론(닫힘)이 사라진 자리에 다음 질문(열림)이 들어와, 도착할 때까지 미완결로 남는다.
-    // 남은 거리는 전체 진행률의 분모가 아니라 '이 질문의 답까지'라는 국소 좌표다.
-    // inJourney 게이트가 없으면 랜딩 화면 위에 '42m 앞'이 떠 있다 — 아직 걷지도 않았는데.
-    let ahead = -1
-    if (verdict < 0 && !atEnd && inJourney && talkingNow() < 0) {
-      for (let i = 0; i < PREMISES.length; i++) {
-        const stopD = world.npcs[i].dist - 2.1
-        // 아직 안 들른 자리 중 가장 가까운 것. 도착 6m 전에는 끈다(대화 패널과 겹치지 않게).
-        if (meets[i].state !== 2 && walked < stopD - 6) { ahead = i; break }
-      }
+    const chapOn = inJourney && !atEnd && talkingNow() < 0
+    const chapKey = `${chapIdx}:${big ? 1 : 0}:${chapOn ? 1 : 0}`
+    if (chapKey !== ui.verdict) {
+      ui.verdict = chapKey
+      chapNo.textContent = String(chapIdx + 1).padStart(2, '0')
+      chapNm.textContent = PREMISES[chapIdx].kicker
+      chapEl.style.setProperty('--zone-c', PREMISES[chapIdx].themeColor ?? '')
+      chapEl.classList.toggle('big', big)
+      chapEl.classList.toggle('on', chapOn)
+      chapDots.forEach((d, i) => d.classList.toggle('done', i <= chapIdx))
     }
-    const key = verdict >= 0 ? `v${verdict}` : ahead >= 0 ? `a${ahead}:${Math.round((world.npcs[ahead].dist - 2.1 - walked) / 4)}` : ''
-    if (key !== ui.verdict) {
-      ui.verdict = key
-      if (verdict >= 0) {
-        // 문을 지나는 반 박자는 읽는 시간이 아니라 각인되는 시간이다 — 문장이 아니라 도장 한 단어.
-        // 예전에는 conclusion(최장 55자)을 4초 띄웠는데, 한글 4초는 넉넉히 잡아도 40자다.
-        verdictEl.className = 'seal'
-        verdictEl.textContent = PREMISES[verdict].seal
-        verdictEl.style.opacity = '1'
-      } else if (ahead >= 0) {
-        const left = Math.max(0, Math.round(world.npcs[ahead].dist - 2.1 - walked))
-        verdictEl.className = 'ahead'
-        verdictEl.innerHTML =
-          `<span class="lead-q">${PREMISES[ahead].premise}</span>` +
-          `<span class="dist">${left}m 앞</span>`
-        verdictEl.style.opacity = '1'
-      } else {
-        verdictEl.style.opacity = '0'
-      }
-    }
-
-    drawMap(progress)
-
   }
 
   // ── 문을 지나는 순간의 가속 ──
@@ -1118,7 +1026,6 @@ if (!webglAvailable()) {
   // 진행률만의 순수 함수라 되감아도 같은 자리다(상태 없음 = 역스크롤 멱등).
   // 기울기 1 + (A/W)(1-u²)e^(-u²/2) 의 최솟값이 1 - 0.446(A/W) — A/W = 0.9 면 0.6배까지만
   // 느려지고 절대 뒤로 가지 않는다. 문턱에서는 1.9배.
-  const GATES = [0, 1, 2, 3].map((i) => 26 + i * 60 + 48)
   const DASH_W = 5.5
   const DASH_A = DASH_W * 0.9
   function gateWarp(d) {

@@ -44,7 +44,7 @@
       --fs-4: clamp(1.000rem, 0.24vw + 0.884rem, 1.125rem);  /* 16   → 18   */
       --fs-5: clamp(1.094rem, 0.42vw + 0.892rem, 1.313rem);  /* 17.5 → 21   */
       --fs-6: clamp(1.188rem, 0.72vw + 0.841rem, 1.563rem);  /* 19   → 25   */
-      --fs-7: clamp(1.375rem, 1.08vw + 0.856rem, 1.938rem);  /* 22   → 31   */
+      --fs-7: clamp(1.875rem, 1.68vw + 1.068rem, 2.75rem);   /* 30   → 44   — 문 통과 카드 전용 */
       --fs-8: clamp(3.000rem, 4.80vw + 0.693rem, 5.500rem);  /* 48   → 88   */
 
       /* 행장은 em 으로만 잰다. ch 는 숫자 0 의 폭(≈0.55em)이라 한글에 쓰면 절반으로 센다 —
@@ -319,9 +319,9 @@
       .land-fade { opacity: 1; transform: none; }
       .land-fade.in { transition: none; }
       /* 읽는 자리는 흔들리지 않는다 — 무한 반복 모션은 전부 끈다 */
+      #chapter, #chapter * { transition: none !important; }
       #popup, #popup .who::before,
       #thanks-bubble.show svg { animation: none !important; }
-      #mini, #mini * { transition: none !important; }
       #popup .a { transition: none; }
     }
 
@@ -348,46 +348,41 @@
     }
     #talk-veil.on { opacity: 1; }
 
-    /* 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장.
-       패널 없이 하늘 위에 서는 유일한 텍스트라, 좁은 흰 테(2px) + 넓은 흰 번짐(24px)의
-       이중 섀도로 움직이는 배경에서도 윤곽이 산다. nowrap 은 모바일에서 긴 결론이 넘쳐 해제. */
-    #verdict {
-      position: fixed; top: 16vh; left: 50%; transform: translateX(-50%);
+    /* ── 챕터 표시 — 여정 중 유일한 상시 텍스트 ──
+       예전 이 자리(#verdict)에는 세 가지가 번갈아 떴다: 지나간 결론 문장 / 다음 질문 전문 +
+       남은 거리 / 도장 한 단어. 상시 표면은 갱신되지 않는 고정 문자열 하나여야 한다 —
+       다 읽었는데 안 사라지는 문장은 몇 초마다 눈을 되돌리고, 움직이는 숫자는 주변시가 잡는다. */
+    #chapter {
+      position: fixed; top: 1.6rem; left: 50%; transform: translateX(-50%);
       z-index: 3; pointer-events: none;
-      font-size: var(--fs-7); font-weight: 700; line-height: 1.38;
-      letter-spacing: -0.018em; color: var(--accent-ink);
-      text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 6px rgba(255, 255, 255, 0.8), 0 4px 24px rgba(255, 255, 255, 0.6);
-      opacity: 0; transition: opacity 0.5s ease;
-      white-space: normal; word-break: keep-all; text-wrap: balance;
-      width: max-content; max-width: min(88vw, var(--measure-lead)); text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 0.42em;
+      opacity: 0; transition: opacity 0.45s ease, top 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+      text-shadow: 0 0 2px rgba(255,255,255,0.9), 0 1px 6px rgba(255,255,255,0.8), 0 4px 22px rgba(255,255,255,0.6);
     }
-    /* 아직 답하지 않은 질문 — 정거장 사이 내내 떠 있다. 결론보다 한 단 작고 조용하게:
-       이건 성취가 아니라 예고이므로, 같은 무게로 두면 도착했을 때의 차이가 사라진다. */
-    #verdict.ahead {
-      font-size: var(--fs-5); font-weight: 600; letter-spacing: -0.005em;
-      color: var(--ink-70); max-width: min(88vw, 26em);
-      display: flex; flex-direction: column; align-items: center; gap: 0.5em;
-    }
-    #verdict.ahead .lead-q { display: block; }
-    #verdict.ahead .dist {
+    #chapter.on { opacity: 1; }
+    #chapter .no {
       font-family: var(--mono); font-size: var(--fs-2); font-weight: 600;
-      letter-spacing: 0.1em; color: var(--accent-ink); opacity: 0.85;
-      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.14em; color: var(--zone-c, var(--accent-ink));
+      transition: font-size 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    /* 도장 — 문을 지나는 순간 찍히는 한 단어. 문장이 아니므로 크기를 크게 쓸 수 있고,
-       크게 쓸 수 있으므로 읽지 않고 알아본다. 아래 짧은 규칙선이 '낱말'을 '도장'으로 만든다. */
-    #verdict.seal {
-      font-size: clamp(2.4rem, 4.4vw, 4rem);
-      font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
-      display: flex; flex-direction: column; align-items: center; gap: 0.3em;
+    #chapter .nm {
+      font-size: var(--fs-4); font-weight: 600; letter-spacing: 0.06em; color: var(--ink);
+      transition: font-size 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    #verdict.seal::after {
-      content: ''; width: 2.4em; height: 3px; border-radius: 2px;
-      background: currentColor; opacity: 0.5;
+    /* 네 칸 — 삭제한 지도가 갖고 있던 유일한 정보("장이 넷")만 여기로 옮겼다.
+       분모가 아니라 눈금이다: 숫자를 세지 않고 형태로 안다. */
+    #chapter .dots { display: flex; gap: 6px; }
+    #chapter .dots i {
+      display: block; width: 15px; height: 2px; border-radius: 1px;
+      background: rgba(22, 48, 60, 0.28); transition: background 0.4s ease;
     }
-    /* 긴 결론 강등 — 지금은 seal 이 그 자리를 쓰지만, 문장을 되돌릴 때를 위해 남긴다. */
-    #verdict.long { font-size: var(--fs-6); max-width: min(92vw, 26em); line-height: 1.42;
-    }
+    #chapter .dots i.done { background: var(--zone-c, var(--accent-ink)); }
+    /* 문을 지나는 3초 — 같은 문자열이 커졌다가 제자리로 내려앉는다.
+       44:18 = 2.4:1 이라 "같은 것이 작아졌다"로 읽힌다. 3.6:1 이면 "다른 두 개"가 된다. */
+    #chapter.big { top: 16vh; }
+    #chapter.big .no { font-size: var(--fs-4); }
+    #chapter.big .nm { font-size: var(--fs-7); letter-spacing: 0.02em; }
+    #chapter.big .dots { opacity: 0; transition: opacity 0.3s; }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
     /* 대사창 — 화면 하단 가로. 세계가 위쪽을 전부 쓴다 */
@@ -398,11 +393,11 @@
       transform: translateX(-50%);
       width: min(680px, 92vw);
       /* 46vh — 03(문제)은 관점이 바뀌는 자리라 비트가 넷이고 문장이 길다. 38vh 에서는 마지막 줄이 잘렸다. */
-      max-height: 46vh;
+      max-height: 52vh;
       overflow: hidden;
-      /* 아래 2.5rem 은 힌트(SPACE 계속 걷기)의 자리다 — 답 세 줄이 한 번에 뜨는 oneShot 에서
-         마지막 줄이 힌트 밑으로 들어가 겹쳤다. 글이 그 띠를 침범하지 않게 비워 둔다. */
-      padding: 1.4rem 1.9rem 2.5rem;
+      /* 아래 3.6rem 은 진행 버튼의 자리다. 조각을 beat 단위로 바꾸면서 한 조각이 최대 3줄이 됐고,
+         2.5rem 에서는 세 번째 줄이 버튼 띠와 같은 높이에서 만났다. 글이 그 띠를 침범하지 않게 비워 둔다. */
+      padding: 1.4rem 1.9rem 3.6rem;
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
@@ -526,37 +521,6 @@
     }
     #popup .a.on { opacity: 1; transform: none; }
 
-    /* 우상단 — 지도와 지나온 자리 */
-    #mini {
-      position: fixed; top: 1.5rem; right: 1.5rem; z-index: 4;
-      width: 16.5rem; padding: 1.05rem 1.1rem 1rem;
-      display: flex; flex-direction: column; gap: 0.95rem;
-    }
-    /* #mini .stats 삭제(2026-08-15) — 자식(머문 시간·읽은 문단)을 지운 뒤에도
-       빈 div 와 CSS 가 남아 flex gap 0.95rem 을 그대로 먹고 지도 위에 죽은 여백을 만들었다. */
-
-    #mini svg { display: block; width: 100%; height: auto; }
-    #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.16); stroke-width: 2.4; stroke-linecap: round; }
-    #mini .route-done { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; }
-    #mini .node {
-      fill: #ffffff; stroke: rgba(22, 48, 60, 0.28); stroke-width: 1.6;
-      transition: fill 0.32s ease, stroke 0.32s ease;
-    }
-    #mini .node.done { fill: var(--accent); stroke: var(--accent); }
-    #mini .me { fill: var(--coral); stroke: #ffffff; stroke-width: 2; }
-    #mini ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.34rem; }
-    #mini li {
-      display: grid; grid-template-columns: 1.15rem 1fr; gap: 0.4rem; align-items: baseline;
-      font-size: var(--fs-3); line-height: 1.5; color: var(--ink-45); word-break: keep-all;
-      transition: color 0.4s;
-    }
-    #mini li b { font-weight: 700; color: var(--ink-45); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
-    #mini li.done { color: var(--ink-70); }
-    #mini li.done b { color: var(--accent-ink); }
-    #mini li.now { color: var(--zone-c, var(--ink)); font-weight: 600; }
-    #mini li.now b { color: var(--zone-c, var(--coral)); }
-    @media (max-width: 900px) { #mini { display: none; } }
-
     /* 엔딩 */
     #outro-panel {
       position: fixed;
@@ -651,7 +615,7 @@
         left: 1rem; right: 1rem; max-width: none;
         top: auto; bottom: 5.2rem; transform: none;
         animation: none;
-        max-height: 46vh;
+        max-height: 52vh;
         padding: 1.4rem 1.5rem;
       }
       #popup.hidden-panel { transform: translateY(12px) scale(0.98); }
@@ -717,8 +681,13 @@
   <!-- 대화 비네트 — 대화 중 주변이 어두워져 두 사람에게 시선이 모인다 -->
   <div id="talk-veil"></div>
 
-  <!-- 결론 — 전제가 무너진 직후, 잔해 위에 서는 한 문장 -->
-  <div id="verdict" aria-live="polite"></div>
+  <!-- 여정 중 유일한 상시 텍스트. 형태는 모든 구간에서 같다 — 장 번호·장 이름·네 칸.
+       문을 지나는 3초 동안만 크게 떴다가 제자리로 축소 이동한다. -->
+  <div id="chapter" aria-live="polite">
+    <span class="no"></span>
+    <span class="nm"></span>
+    <span class="dots"><i></i><i></i><i></i><i></i></span>
+  </div>
 
   <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길 위의 자리">
     <div class="head">
@@ -729,21 +698,6 @@
     <div class="hint"><span class="step"></span><button type="button" class="go"><span class="verb">다음</span><kbd>SPACE</kbd></button></div>
   </section>
   <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
-  <aside id="mini" class="panel hidden-panel" aria-label="지도와 지나온 자리">
-    <!-- 머문 시간·읽은 문단 제거(2026-08-15).
-         분모는 견적서고 시계는 압박이다 — 둘 다 관객이 아니라 주인을 위한 숫자였다.
-         게다가 분모가 /24 로 하드코딩돼 있었고 실제 비트는 13 이라, 전부 읽은 사람이
-         마지막에 보는 숫자가 "13 / 24" 였다. 가장 성실하게 읽은 사람에게 실패를 통보하고 있었다.
-         컨테이너(div.stats)까지 지운다 — 자식 없는 div 가 flex gap 0.95rem 을 그대로 먹어
-         지도 위에 죽은 여백 15px 를 남기고 있었다. -->
-    <svg viewBox="0 0 150 150" aria-hidden="true">
-      <path class="route" id="route" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
-      <path class="route-done" id="route-done" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
-      <g id="map-nodes"></g>
-      <circle class="me" id="map-me" r="4" cx="20" cy="14" />
-    </svg>
-    <ol id="qlist"></ol>
-  </aside>
   <section id="outro-panel" class="panel hud hidden-panel">
     <div class="verdict">
       <span id="outro-record">여기까지 함께 걸어주셨습니다.</span>
