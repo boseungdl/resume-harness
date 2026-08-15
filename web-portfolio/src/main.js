@@ -57,6 +57,44 @@ const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
 
+// 연락 경로. 빈 메일창은 이 화면 최대의 이탈 지점이다 — 8분을 읽고도 첫 문장이 안 나온다.
+// 채울 칸은 둘까지가 상한이다. 셋부터는 서식이 되고, 서식은 "나중에"가 된다.
+// 한글은 손으로 인코딩하지 않는다(encodeURIComponent).
+const MAIL_TO = '96tmdtmd@gmail.com'
+const MAIL_SUB = '한승보 포트폴리오를 보고 연락드립니다'
+// 개행은 이스케이프 없이 만든다 — 소스에 직접 쓰면 편집 중에 실제 제어문자로 굳는다
+const CRLF = String.fromCharCode(13, 10)
+const MAIL_BODY = [
+  '안녕하세요, 한승보님.', '',
+  '포트폴리오를 끝까지 보고 연락드립니다.', '',
+  '· 소속 / 직함:', '· 하고 싶은 이야기:', '',
+].join(CRLF)
+{
+  const mailA = document.getElementById('outro-mail')
+  if (mailA) {
+    mailA.href = `mailto:${MAIL_TO}?subject=${encodeURIComponent(MAIL_SUB)}&body=${encodeURIComponent(MAIL_BODY)}`
+  }
+  // 메일 클라이언트가 없는 사람(Gmail 웹·회사 PC)에게는 복사가 유일한 탈출구다.
+  const copyBtn = document.getElementById('outro-copy')
+  const cap = document.getElementById('outro-cap')
+  copyBtn?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(MAIL_TO)
+    } catch {
+      // http·구형 브라우저 — 선택만 시켜 주면 Ctrl+C 한 번이면 된다
+      const r = document.createRange()
+      r.selectNodeContents(copyBtn)
+      const sel = getSelection()
+      sel.removeAllRanges()
+      sel.addRange(r)
+      return
+    }
+    if (!cap) return
+    cap.textContent = '주소를 복사했습니다'
+    setTimeout(() => { cap.textContent = '제목과 첫 문장은 채워 두었습니다' }, 1600)
+  })
+}
+
 const veil = document.getElementById('veil')
 function liftVeil() {
   veil.classList.add('off')
@@ -539,6 +577,8 @@ if (!webglAvailable()) {
       stayFrom = -1
     }
   })
+  const staySeconds = () =>
+    Math.round((stayMs + (stayFrom >= 0 ? performance.now() - stayFrom : 0)) / 1000)
   function tickStay(running) {
     if (stayFrozen) return
     const now = performance.now()
@@ -818,8 +858,10 @@ if (!webglAvailable()) {
   // ---------- UI 갱신 (만남 팝업 · 대시보드 · 인트로/엔딩) ----------
 
   let activePopup = -1
-  let outroFilled = false
   let atEnd = false
+  let endT0 = -1 // atEnd 가 선 프레임의 sceneTime — 판 등장·HUD 소등의 기준
+  let outroTimer = null
+  let endF = 0 // 엔딩 프레이밍 보간 — 판이 하단 340px 를 쓰므로 카메라가 그만큼 비켜 준다
   let farthest = 0 // 가장 멀리 간 지점 — 되돌아 걸어도 기록은 줄지 않는다
 
   // 만남 — 로봇은 자리에 멈춰 NPC 를 마주 보고, 스페이스로 문답을 넘긴다. 최대 3문답.
@@ -1003,7 +1045,7 @@ if (!webglAvailable()) {
   // 번들에서 충돌한다("Identifier 'collect' has already been declared"). dev 서버는 모듈을
   // 따로 두어 멀쩡하고, 프로덕션 빌드에서만 스크립트 전체가 파싱 단계에서 죽는다.
   // 매 프레임 같은 값을 다시 쓰면 레이아웃이 무효화된다 — 바뀔 때만 손댄다
-  const ui = { dist: -1, fade: -1, inJourney: null, beatKey: '', verdict: '', stops: -1 }
+  const ui = { dist: '', fade: -1, inJourney: null, beatKey: '', verdict: '', stops: -1 }
   let veilOn = false
   let arrived = 0 // 자리 도착 계수 — 몸 돌림·카메라·비네트가 함께 탄다
 
@@ -1022,10 +1064,30 @@ if (!webglAvailable()) {
       }
     }
 
+    // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
+    const wasEnd = atEnd
+    atEnd = atEnd ? progress > 0.945 : progress > 0.955
+    if (atEnd !== wasEnd) {
+      clearTimeout(outroTimer)
+      if (atEnd) {
+        endT0 = sceneTime
+        // 0.35s — 로봇이 관람자를 향해 도는 0.6초의 앞머리를 판이 가리지 않게.
+        // 그 이상 늦추면 "도착하고 누를 것이 없는 화면"이 되어, 예전에 한 번 고친 문제로 되돌아간다.
+        outroTimer = setTimeout(() => {
+          if (atEnd) outroEl.classList.remove('hidden-panel')
+        }, 350)
+      } else {
+        outroEl.classList.add('hidden-panel')
+      }
+    }
+
+    // 도착 +0.6초에 계기판을 끈다 — 종점 노드가 채워지는 것을 보여준 뒤다.
+    // 엔딩 위에 계기판이 켜져 있으면 안 되고, 이걸 꺼야 화면에 남는 UI 가 판 하나가 된다.
     const inJourney = window.scrollY > journeyBase() * 0.72
-    if (inJourney !== ui.inJourney) {
-      ui.inJourney = inJourney
-      miniEl.classList.toggle('hidden-panel', !inJourney)
+    const miniOn = inJourney && !(atEnd && sceneTime > endT0 + 0.6)
+    if (miniOn !== ui.inJourney) {
+      ui.inJourney = miniOn
+      miniEl.classList.toggle('hidden-panel', !miniOn)
     }
 
     let stops = 0
@@ -1049,17 +1111,16 @@ if (!webglAvailable()) {
       stayFrozen = true
     }
 
-    // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
-    const wasEnd = atEnd
-    atEnd = atEnd ? progress > 0.945 : progress > 0.955
-    if (atEnd !== wasEnd) outroEl.classList.toggle('hidden-panel', !atEnd)
-    // 예전에는 임계에 닿는 순간 1회만 채웠다. 그 시점의 farthest 가 0.955 × 296 = 282.7 이라
-    // 끝까지 걸어도 숫자가 "283m" 에서 굳었고, 총 거리를 알 방법이 없어 "다 못 걸었다"로 읽혔다.
+    // 기록 — 문장이 아니라 영수증이다. "여기까지 함께 걸어주셨습니다 — 296m." 는
+    // 한 줄을 쓰고도 "그래서?"가 남지만, 296m · 4분 21초 는 읽는 비용이 0이다.
     if (atEnd && outroRecord) {
       const m = Math.round(farthest)
-      if (m !== ui.dist) {
-        ui.dist = m
-        outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${m}m</b>.`
+      const sec = staySeconds()
+      const key = `${m}:${sec}`
+      if (key !== ui.dist) {
+        ui.dist = key
+        const t = sec < 60 ? `${sec}<i>초</i>` : `${Math.floor(sec / 60)}<i>분</i> ${sec % 60}<i>초</i>`
+        outroRecord.innerHTML = `${m}<i>m</i> · ${t}`
       }
     }
 
@@ -1303,6 +1364,12 @@ if (!webglAvailable()) {
       THREE.MathUtils.lerp(1.05, 1.15, ph) - talkF * 0.15,
       THREE.MathUtils.lerp(-9, -2.5, ph) + talkF * 1.2
     )
+    // 엔딩 프레이밍 — 판이 하단 약 340px 를 쓴다. 보정이 없으면 로봇 발이 판 상단에 먹힌다.
+    // 카메라가 물러나며 올라가고, 겨냥점은 내려가 로봇을 화면 위쪽으로 밀어 올린다(시정수 0.5s).
+    endF += ((atEnd ? 1 : 0) - endF) * Math.min(1, dt * 2)
+    camera.position.y += 0.35 * endF
+    camera.position.z += 0.8 * endF
+    lookTarget.y -= 0.4 * endF
     lookNow.lerp(lookTarget, Math.min(1, dt * 2.2))
     camera.lookAt(lookNow)
     // 문턱의 화각 킥 — 걸음이 제일 빠른 지점에서 시야가 벌어졌다 닫힌다. 속도는 다리보다
