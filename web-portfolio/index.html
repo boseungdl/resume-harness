@@ -374,7 +374,18 @@
       letter-spacing: 0.1em; color: var(--accent-ink); opacity: 0.85;
       font-variant-numeric: tabular-nums;
     }
-    /* 긴 결론 강등 — 글을 고치지 않고 크기만 내린다. 03 의 결론이 55자다. */
+    /* 도장 — 문을 지나는 순간 찍히는 한 단어. 문장이 아니므로 크기를 크게 쓸 수 있고,
+       크게 쓸 수 있으므로 읽지 않고 알아본다. 아래 짧은 규칙선이 '낱말'을 '도장'으로 만든다. */
+    #verdict.seal {
+      font-size: clamp(2.4rem, 4.4vw, 4rem);
+      font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+      display: flex; flex-direction: column; align-items: center; gap: 0.3em;
+    }
+    #verdict.seal::after {
+      content: ''; width: 2.4em; height: 3px; border-radius: 2px;
+      background: currentColor; opacity: 0.5;
+    }
+    /* 긴 결론 강등 — 지금은 seal 이 그 자리를 쓰지만, 문장을 되돌릴 때를 위해 남긴다. */
     #verdict.long { font-size: var(--fs-6); max-width: min(92vw, 26em); line-height: 1.42;
     }
 

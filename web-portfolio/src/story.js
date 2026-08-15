@@ -24,7 +24,15 @@
 // 대화 문법 (4장 공통, 존1이 기준): 멈춤 → 소등 → NPC가 빔을 쏴 상영 → q(타이핑=선언)와 답 3줄이 한 번에.
 //   네 장 모두 oneShot 이다 — 스페이스로 쪼개 읽히던 존2~4를 존1의 상영 문법으로 통일했다.
 // beats 의 <br> 은 쉼표 호흡에서 줄을 끊는다 (renderMeet 은 innerHTML — premise 에는 절대 금지, 타이핑이 깨진다).
-// conclusion 은 문을 지난 뒤 뜨는 한 줄이다 — 그래서 02 의 결론이 "그러다 데이터 분석 프로젝트를 시작했습니다"다.
+// seal — 문을 지나는 순간 화면 위에 크게 찍히는 한 단어. (2026-08-15)
+//   전에는 conclusion(30·23·55·36자)을 그 자리에 띄웠는데, 노출이 4초라 55자는 물리적으로 못 읽는다.
+//   문을 지나는 반 박자는 읽는 시간이 아니라 각인되는 시간이라, 문장이 아니라 도장이어야 한다.
+//   넷을 순서대로 읽으면 그 자체가 관통 축이다: 인프라 → 데이터 → 도구 → 문제.
+//   ("기술을 쌓는 것에서, 문제를 해결하기 위해 기술을 선택하는 것으로"의 네 정거장)
+//   앞 장의 패널을 방금 읽고 나온 자리라 한 단어로도 지시가 성립한다.
+//
+// conclusion 은 사용자 확정 원문이라 지우지 않는다 — seal 의 출처이자, 문장이 필요한 자리가
+//   생기면 여기서 가져온다. 지금은 화면에 띄우지 않는다.
 //   전환은 다음 장의 첫 줄이 아니라 문턱에서 떨어져야 걸음과 이야기가 같이 넘어간다.
 
 export const PREMISES = [
@@ -34,6 +42,7 @@ export const PREMISES = [
     themeColor: '#1A5FB4', // 깊은 바다 파랑
     premise: '정해진 길보다, 새로운 길을 선택해보고 싶었습니다',
     conclusion: '그렇게 개발에서 인프라까지, 관심의 범위를 넓혀갔습니다',
+    seal: '인프라',
     chip: '스스로 길을 만들어보고 싶었습니다',
     oneShot: true, // 영사기 상영과 함께 세 줄이 한 번에 자리한다
     beats: [
@@ -48,6 +57,7 @@ export const PREMISES = [
     themeColor: '#8A5A00', // 다크 오커 — 사구의 그늘
     premise: '기술을 익히는 것과 문제를 해결하는 것은 달랐습니다',
     conclusion: '그러다 데이터 분석 프로젝트를 시작했습니다',
+    seal: '데이터',
     chip: '기술을 쌓는 데 집중했습니다',
     oneShot: true,
     beats: [
@@ -62,6 +72,7 @@ export const PREMISES = [
     themeColor: '#44607A', // 비 젖은 강청
     premise: '처음으로, 무엇을 해결해야 하는지가 보이기 시작했습니다',
     conclusion: '기술은 더 이상 익혀야 할 대상이 아니라, 문제를 해결하기 위해 선택하고 조합하는 도구가 되었습니다',
+    seal: '도구',
     chip: '문제를 먼저 바라봅니다',
     oneShot: true,
     // 이 장만 비트가 넷이다 — 관점이 바뀌는 자리라 문장을 줄이면 변화의 과정이 사라진다.
@@ -78,6 +89,7 @@ export const PREMISES = [
     themeColor: '#C2410C', // 번트 오렌지 — 노을의 심지
     premise: '문제를 정의하고, 필요한 기술을 연결하는 엔지니어가 되고 싶습니다',
     conclusion: '기술을 쌓는 것에서, 문제를 해결하기 위해 기술을 선택하는 것으로',
+    seal: '문제',
     chip: '문제를 중심으로 연결합니다',
     oneShot: true,
     beats: [
@@ -105,7 +117,8 @@ if (import.meta.env?.DEV) {
       if (n < lo || n > hi) console.warn(`[story] ${p.id}.${name} ${n}자 (예산 ${lo}~${hi})`)
     }
     chk('premise', p.premise, 20, 36)
-    chk('conclusion', p.conclusion, 18, 38)
+    chk('seal', p.seal, 2, 5)
+    chk('conclusion', p.conclusion, 18, 60) // 화면에 안 뜨므로 상한이 느슨하다
     chk('chip', p.chip, 10, 18)
     p.beats.forEach((b, i) =>
       String(b.text).split('<br>').forEach((line, j) => chk(`beats[${i}].${j}`, line, 12, 78))

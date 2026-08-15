@@ -1091,9 +1091,10 @@ if (!webglAvailable()) {
     if (key !== ui.verdict) {
       ui.verdict = key
       if (verdict >= 0) {
-        const line = PREMISES[verdict].conclusion
-        verdictEl.className = [...line].length > 38 ? 'long' : ''
-        verdictEl.textContent = line
+        // 문을 지나는 반 박자는 읽는 시간이 아니라 각인되는 시간이다 — 문장이 아니라 도장 한 단어.
+        // 예전에는 conclusion(최장 55자)을 4초 띄웠는데, 한글 4초는 넉넉히 잡아도 40자다.
+        verdictEl.className = 'seal'
+        verdictEl.textContent = PREMISES[verdict].seal
         verdictEl.style.opacity = '1'
       } else if (ahead >= 0) {
         const left = Math.max(0, Math.round(world.npcs[ahead].dist - 2.1 - walked))
