@@ -37,6 +37,7 @@ const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
 const outroEl = document.getElementById('outro-panel')
+const scrimEl = document.getElementById('outro-scrim')
 // 우상단 지도 — 글자 없는 그래픽 하나. 칩 목록은 되살리지 않았다(2026-08-15):
 //   "문제를 먼저 바라봅니다"는 3장에도 4장에도 참이고 "기술을 쌓는 데 집중했습니다"는 1장에도
 //   참이라, 넷 중 셋이 다른 장에서도 성립했다 — 이동을 지우고 도착점만 남긴 요약은 변별력이 0이다.
@@ -1079,6 +1080,8 @@ if (!webglAvailable()) {
       } else {
         outroEl.classList.add('hidden-panel')
       }
+      // 스크림은 판보다 먼저 든다 — 세계가 먼저 가라앉고 그 위에 마감이 올라온다
+      scrimEl?.classList.toggle('on', atEnd)
     }
 
     // 도착 +0.6초에 계기판을 끈다 — 종점 노드가 채워지는 것을 보여준 뒤다.

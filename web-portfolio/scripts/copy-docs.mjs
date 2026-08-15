@@ -17,6 +17,12 @@ const JOBS = [
   { from: resolve(repo, '입사지원서/한승보_이력서.html'), to: resolve(out, '이력서.html') },
   { from: resolve(repo, '입사지원서/한승보_경력기술서.html'), to: resolve(out, '경력기술서.html') },
   { from: resolve(repo, '입사지원서/han2.png'), to: resolve(out, 'han2.png') },
+  // PDF 는 web-portfolio 루트에 있다 — vite 루트라 dev 에서는 열리지만 빌드 산출물에는 안 들어간다.
+  // 내려받기용 원본이므로 public 으로 옮겨 dist 에 실린다.
+  // 사본 파일명은 ASCII 로 둔다 — 비ASCII 경로는 정적 호스팅(S3·CDN)에서 깨지는 사례가 흔하다.
+  // 저장될 때의 한글 이름은 <a download="..."> 가 정한다.
+  { from: resolve(here, '../한승보_portfolio.pdf'), to: resolve(out, 'han-portfolio.pdf') },
+  { from: resolve(here, '../한승보_이력서.pdf'), to: resolve(out, 'han-resume.pdf') },
 ]
 
 await rm(out, { recursive: true, force: true })

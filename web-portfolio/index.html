@@ -211,6 +211,18 @@
     .meta .tools img.aws { width: auto; height: 20px; }
     /* 문서 버튼 — secondary: 종이 카드 필. 코랄 primary와 시선을 다투지 않는다 */
     .links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .dl {
+      display: flex; align-items: baseline; gap: 0.85em; flex-wrap: wrap;
+      margin-top: 0.9rem; font-size: var(--fs-2);
+    }
+    .dl span { color: var(--ink-45); letter-spacing: 0.04em; }
+    .dl a {
+      color: var(--ink); text-decoration: none; font-weight: 600;
+      border-bottom: 1px solid rgba(22, 48, 60, 0.35);
+    }
+    .dl a::after { content: ' ↓'; opacity: 0.55; } /* 새 탭이 아니라 저장이라는 예고 */
+    .dl a:hover { border-bottom-color: var(--ink); }
+    .dl a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
     /* 1차 행동은 하나다. 나머지 셋은 문서라서 같은 무게로 두면 무엇을 먼저 할지 못 정한다. */
     .links .primary {
       font: inherit; font-size: var(--fs-3); font-weight: 700; cursor: pointer;
@@ -579,6 +591,21 @@
       #mini .node.done { animation: none; }
     }
 
+    /* 마감 스크림 — 끝났다는 신호는 판이 아니라 세계가 준다.
+       가운데(로봇·착륙 원반)는 그대로 두고 가장자리만 눌러 시선을 모으는 비네트라,
+       대화용 전면 소등(#talk-veil)과 성격이 다르다. 도착 공간은 계속 보인다. */
+    #outro-scrim {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: radial-gradient(125% 92% at 50% 40%,
+        rgba(8, 18, 28, 0) 0%,
+        rgba(8, 18, 28, 0.10) 42%,
+        rgba(8, 18, 28, 0.34) 74%,
+        rgba(8, 18, 28, 0.58) 100%);
+      opacity: 0; transition: opacity 0.9s ease;
+    }
+    #outro-scrim.on { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { #outro-scrim { transition: opacity 0.25s; } }
+
     /* ── 엔딩 = 다섯 번째 정거장 ──────────────────────────────────────────────
        예전에는 화면 왼쪽 세로 중앙(모달의 자리)에 366px 카드였다. 두 가지가 틀렸다:
        ① 화면에 중심이 둘이 됐다 — 296m 의 보상인 도착 공간(로봇·착륙 원반)과
@@ -589,9 +616,12 @@
        앞의 넷은 그가 말했고, 여기서는 상대에게 넘긴다. 문항도 `1 / 3` 도 오지 않고,
        여정이 13번 "여길 누르면 다음"이라고 가르친 그 우하단 자리에 연락이 앉는다. */
     #outro-panel {
-      position: fixed; left: 50%; bottom: 2.1rem; transform: translateX(-50%);
-      width: min(780px, 92vw); padding: 1.4rem 1.9rem 1.5rem; z-index: 3;
-      display: grid; row-gap: 0.85rem;
+      /* 바닥에 붙은 판은 도구 막대로 읽힌다 — 7vh 띄우면 카드가 된다.
+         모서리도 정거장(10px)보다 크게 — 같은 재료라도 마감은 조금 더 둥글다. */
+      position: fixed; left: 50%; bottom: 7vh; transform: translateX(-50%);
+      width: min(760px, 92vw); padding: 1.9rem 2.3rem 2rem; z-index: 3;
+      display: grid; row-gap: 1rem;
+      border-radius: 14px;
       /* 밤(판 밝기 Y 0.33)이 최저 대비 케이스다 — 재료는 정거장과 같고 흰빛만 0.72 → 0.90 */
       background: linear-gradient(150deg, rgba(255,255,255,0.90), rgba(228,247,251,0.74));
     }
@@ -814,6 +844,13 @@
         <a href="./docs/이력서.html" target="_blank" rel="noreferrer">이력서</a>
         <a href="./docs/경력기술서.html" target="_blank" rel="noreferrer">경력 기술서</a>
       </div>
+      <!-- 내려받기 — 알약(HTML, 훑기·Ctrl+F 가 사는 쪽)과 분리한다.
+           1차 표적 개수를 늘리지 않으면서 저장·전달 경로를 연다. -->
+      <p class="dl">
+        <span>내려받기</span>
+        <a href="./docs/han-portfolio.pdf" download="한승보_portfolio.pdf">포트폴리오 PDF</a>
+        <a href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
+      </p>
     </div>
     <div class="cta-wrap land-fade">
       <button id="start-walk" class="sign-hotspot" aria-label="한 걸음씩 소개하겠습니다 — 함께 걷기 시작"></button>
@@ -868,6 +905,7 @@
       </div>
     </div>
   </aside>
+  <div id="outro-scrim" aria-hidden="true"></div>
   <!-- 다섯 번째 정거장. 정거장 패널과 자리·크기·재료가 같고, 역할만 반대다 —
        앞의 넷은 그가 말했고 여기서는 상대에게 넘긴다.
        href 에 평문 mailto 를 남겨 둔다: JS 가 죽어도 연락 경로가 살고 Ctrl+F·인쇄에도 잡힌다. -->
@@ -887,7 +925,7 @@
         <span class="cap" id="outro-cap">제목과 첫 문장은 채워 두었습니다</span>
       </div>
       <div class="acts">
-        <a class="doc" href="./docs/이력서.html" target="_blank" rel="noreferrer">이력서</a>
+        <a class="doc" href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
         <a class="send" id="outro-mail" href="mailto:96tmdtmd@gmail.com">메일 쓰기</a>
       </div>
     </div>
