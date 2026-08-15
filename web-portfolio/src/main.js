@@ -38,11 +38,8 @@ const routeDone = document.getElementById('route-done')
 const mapNodes = document.getElementById('map-nodes')
 const mapMe = document.getElementById('map-me')
 const qlistEl = document.getElementById('qlist')
-const stTime = document.getElementById('st-time')
-const stRead = document.getElementById('st-read')
-// 분모는 story.js 가 소유한다 — 문단을 늘리면 지표가 따라온다
-const BEATS_TOTAL = PREMISES.reduce((n, p) => n + p.beats.length, 0)
-stRead.innerHTML = `00<i> / ${BEATS_TOTAL}</i>`
+// 머문 시간·읽은 문단 지표는 제거했다(2026-08-15) — 분모는 견적서고 시계는 압박이다.
+// 지도와 칩은 남는다: 남은 양이 아니라 얻은 것을 세기 때문이다.
 const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
@@ -161,7 +158,7 @@ if (!webglAvailable()) {
     [0.0, new THREE.Color('#cfe9f8')],  // 존1 산뜻한 출발 — 맑은 바다 아침
     [0.26, new THREE.Color('#eeddc0')], // 존2 황무지 — 마르고 뜨거운 흙먼지
     [0.5, new THREE.Color('#c6cacd')],  // 존3 외로움 — 회색빛 도시
-    [0.75, new THREE.Color('#ffd2b0')], // 존4 잔잔함 — 낮게 가라앉은 노을
+    [0.75, new THREE.Color('#ffc79a')], // 존4 잔잔함 — 해가 물에 닿는 시각. 옅은 살구는 '흐린 낮'으로 읽혀 노을이 안 됐다
     [0.88, new THREE.Color('#b98098')], // 황혼
     [1.0, new THREE.Color('#8b8dc8')],  // 너머 — 미지의 어스름 (밝은 라벤더)
   ]
@@ -202,26 +199,34 @@ if (!webglAvailable()) {
     [0.0, new THREE.Color('#1180d6')],  // 산뜻 — 쨍한 한여름 파랑(천정). 지평선 흰 헤이즈와의 낙차가 "푸름"을 만든다
     [0.26, new THREE.Color('#c2ad84')], // 황무지 — 먼지 낀 누런 하늘
     [0.5, new THREE.Color('#8d97a2')],  // 외로움 — 잿빛
-    [0.75, new THREE.Color('#e8987c')], // 잔잔 — 노을
+    [0.75, new THREE.Color('#8f5c96')], // 잔잔 — 노을. 천정을 장미보라까지 밀어야 지평선의 금빛이 '띠'가 된다
     [0.88, new THREE.Color('#6f5a92')],
-    [1.0, new THREE.Color('#4a4e8a')],
+    // 천정을 심우주까지 내린다. 미지가 '우주'로 안 읽혔던 진짜 이유는 형태가 아니라 값이었다 —
+    // 천정(#4a4e8a)과 지평선(#8b8dc8)의 명도차가 작아 하늘 전체가 한 겹 라벤더 판이었고,
+    // 그 위에서는 별도 행성도 배경과 같은 값이라 안 보인다. 지평선 라벤더는 그대로 두고
+    // 위쪽만 어둡게 벌려, 화면이 '어두운 위 / 밝은 아래'로 갈라지게 한다.
+    [1.0, new THREE.Color('#1e1f42')],
   ]
-  const SKY_BEND = [0.34, 0.55, 0.55, 0.55, 0.55, 0.55]
+  // 존4 만 0.5 — 굽힘이 낮을수록 천정색이 지평선 가까이 내려온다. 노을은 색이 아니라
+  // "위에서 내려온 보라"와 "아래 남은 금빛"의 폭 싸움이라, 이 값 하나가 진하기를 정한다.
+  const SKY_BEND = [0.34, 0.55, 0.55, 0.42, 0.55, 0.42]
   // 광원·태양 스프라이트도 같은 키를 탄다 — 하늘만 밤이고 해가 높으면 무대조명이 된다
   const KEY_T = [0, 0.26, 0.5, 0.75, 0.88, 1]
   // 광원은 화면에 보이는 해와 같은 쪽에 서야 한다 — 존1·2 는 해가 왼쪽 앞(SUN2D 의 -x, -z)에 걸리는데
   // 광원만 오른쪽 뒤(6, 9, 4)에 있어 그림자가 해를 향해 뻗었다. 방위각을 SUN2D 와 맞추고(왼쪽 29°)
   // 고도만 40° 로 남겨(스프라이트는 낮게 걸려 있어도 그림자는 짧게) 그림자가 오른쪽 앞으로 눕게 한다.
   // world.js 의 SUN_XZ(접지 그림자 방향)와 짝이다 — 해를 옮기면 거기도 옮긴다.
-  const SUN_POS = [[-5.4, 9, -9.6], [-5.6, 9.5, -10.3], [1, 12.5, -1], [-14, 4.2, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
-  const SUN_INT = [1.6, 1.8, 0.55, 1.35, 0.75, 0.85] // 존1 은 구역 분리 이전 값(1.6)
-  const SUN_COL = ['#fff6e4', '#ffe9c0', '#eef0f2', '#ffbe8c', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
+  const SUN_POS = [[-5.4, 9, -9.6], [-5.6, 9.5, -10.3], [1, 12.5, -1], [-16, 3.0, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
+  const SUN_INT = [1.6, 1.8, 0.55, 1.2, 0.75, 0.85] // 존1 은 구역 분리 이전 값(1.6)
+  const SUN_COL = ['#fff6e4', '#ffe9c0', '#eef0f2', '#ffb478', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
   // 존1 의 하늘빛 앰비언트는 흰색이 아니라 파랑이어야 한다 — 흰 앰비언트가 채도를 씻어낸다
-  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffdcc0', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
-  const HEMI_GND = ['#c2d4c4', '#c9b58e', '#9aa0a4', '#c89a84', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
-  const HEMI_INT = [1.15, 1.05, 1.25, 1.1, 0.78, 1.2] // 존1 은 구역 분리 이전 값(1.15)
+  const HEMI_SKY = ['#eaf6ff', '#f2e2c2', '#c9ced4', '#ffc39c', '#c8b0d0', '#c6c8f2'].map((c) => new THREE.Color(c))
+  const HEMI_GND = ['#c2d4c4', '#c9b58e', '#9aa0a4', '#8f7a86', '#8a6a80', '#8e96bc'].map((c) => new THREE.Color(c))
+  // 존4 를 0.95 로 — 앰비언트가 밝으면 그림자 쪽이 안 어두워지고, 그늘이 없으면 저녁이 아니다
+  const HEMI_INT = [1.15, 1.05, 1.25, 0.95, 0.78, 1.2] // 존1 은 구역 분리 이전 값(1.15)
   // 존1 은 구역 분리 이전의 해 스프라이트 — 높이 55, 크기 60 (수평선 위에 낮게 걸리지 않는다)
-  const SUN2D = [[-120, 55, -220, 60, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-150, 26, -250, 74, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
+  // 존4 의 해는 크고 낮다 — 원반이 클수록 가깝게(=지고 있는 것으로) 읽힌다
+  const SUN2D = [[-120, 55, -220, 60, 1], [-130, 62, -240, 56, 1], [-60, 96, -220, 44, 0.9], [-152, 14, -252, 96, 1], [-160, 8, -255, 66, 0.5], [-160, 4, -255, 60, 0]]
   function keyLerp(t, get, set) {
     for (let i = 0; i < KEY_T.length - 1; i++) {
       if (t <= KEY_T[i + 1]) {
@@ -269,37 +274,121 @@ if (!webglAvailable()) {
     clouds.push(cl)
   }
 
-  // ----- 미지의 밤 — 별과 행성 (아웃트로에서만 떠오른다) -----
-  const starGeo = new THREE.BufferGeometry()
-  const starPos = new Float32Array(220 * 3)
-  for (let k = 0; k < 220; k++) {
-    const a = Math.random() * Math.PI * 2
-    const e = 0.16 + Math.random() * 1.3
-    const r = 230 + Math.random() * 40
-    starPos[k * 3] = Math.cos(a) * Math.cos(e) * r
-    starPos[k * 3 + 1] = 40 + Math.sin(e) * r * 0.6
-    starPos[k * 3 + 2] = Math.sin(a) * Math.cos(e) * r
+  // ----- 미지의 밤 — 별·성운·행성 (아웃트로에서만 떠오른다) -----
+  // 220개 1.6px 로는 하늘이 '별이 있는 밤'이 되지 않았다. 눈은 밀도로 밤을 판정한다.
+  // 두 급으로 나눈다: 자잘한 것이 바탕을 만들고, 굵은 것 몇 개가 깊이를 만든다.
+  function starLayer(n, size, color, op) {
+    const geo = new THREE.BufferGeometry()
+    const pos = new Float32Array(n * 3)
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * Math.PI * 2
+      const e = 0.1 + Math.random() * 1.35
+      const r = 230 + Math.random() * 40
+      pos[k * 3] = Math.cos(a) * Math.cos(e) * r
+      pos[k * 3 + 1] = 30 + Math.sin(e) * r * 0.7
+      pos[k * 3 + 2] = Math.sin(a) * Math.cos(e) * r
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    const p = new THREE.Points(
+      geo,
+      new THREE.PointsMaterial({ color, size, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })
+    )
+    p.userData.op = op
+    scene.add(p)
+    return p
   }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
-  const stars = new THREE.Points(
-    starGeo,
-    new THREE.PointsMaterial({ color: '#e4e0ff', size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })
+  const starLayers = [
+    starLayer(640, 1.5, '#cfd4ff', 0.72), // 바탕 — 셀 수 없어야 밤이다
+    starLayer(120, 2.6, '#ffffff', 0.95), // 앞 별 — 크기 차가 곧 거리 차다
+    starLayer(46, 3.8, '#ffe8c8', 0.9), // 따뜻한 몇 개 — 전부 같은 색이면 인쇄물이 된다
+  ]
+
+  // 은하수 띠 — 별만 뿌리면 균질한 소금이 된다. 밀도가 뭉친 한 줄이 있어야 '우리 은하 안'이 된다.
+  const bandCv = document.createElement('canvas')
+  bandCv.width = 256
+  bandCv.height = 64
+  const bctx = bandCv.getContext('2d')
+  const bgrad = bctx.createLinearGradient(0, 0, 0, 64)
+  bgrad.addColorStop(0, 'rgba(90,110,190,0)')
+  bgrad.addColorStop(0.42, 'rgba(126,140,220,0.55)')
+  bgrad.addColorStop(0.56, 'rgba(168,214,226,0.72)')
+  bgrad.addColorStop(1, 'rgba(90,110,190,0)')
+  bctx.fillStyle = bgrad
+  bctx.fillRect(0, 0, 256, 64)
+  // 양 끝을 지워 띠가 하늘 밖에서 끊기지 않게 — 사각 판의 모서리가 보이면 즉시 판때기가 된다
+  bctx.globalCompositeOperation = 'destination-in'
+  const bmask = bctx.createLinearGradient(0, 0, 256, 0)
+  bmask.addColorStop(0, 'rgba(0,0,0,0)')
+  bmask.addColorStop(0.3, 'rgba(0,0,0,1)')
+  bmask.addColorStop(0.7, 'rgba(0,0,0,1)')
+  bmask.addColorStop(1, 'rgba(0,0,0,0)')
+  bctx.fillStyle = bmask
+  bctx.fillRect(0, 0, 256, 64)
+  const milkyWay = new THREE.Mesh(
+    new THREE.PlaneGeometry(620, 150),
+    new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(bandCv), transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+    })
   )
-  scene.add(stars)
+  milkyWay.position.set(-40, 150, -270)
+  milkyWay.rotation.z = -0.42 // 지평선과 나란하면 띠가 아니라 구름층이 된다
+  scene.add(milkyWay)
+
+  // 행성 — "저건 행성이다"라고 이름 붙일 수 있는 물체 하나. 미지를 설명하는 가장 싼 방법이고,
+  // 은유가 아니라 사물이다. 예전 것은 #cfc4e8 단색이라 라벤더 하늘과 값이 같아 사실상 안 보였다.
+  const plCv = document.createElement('canvas')
+  plCv.width = plCv.height = 256
+  const pctx = plCv.getContext('2d')
+  // 보라 일색이면 라벤더 하늘에 묻힌다. 지나온 노을의 호박색을 띠로 섞어 색상 대비를 만든다 —
+  // 밤하늘에서 유일하게 따뜻한 물체 하나가 '저기 다른 세계가 있다'를 색으로 말한다.
+  const bands = [
+    [0.0, '#7a5f92'], [0.14, '#c79a68'], [0.27, '#6d5386'], [0.4, '#e0b784'],
+    [0.52, '#8a6b9c'], [0.66, '#54406e'], [0.79, '#b08a72'], [1.0, '#43335c'],
+  ]
+  const pg = pctx.createLinearGradient(0, 0, 0, 256)
+  for (const [s, c] of bands) pg.addColorStop(s, c)
+  pctx.fillStyle = pg
+  pctx.fillRect(0, 0, 256, 256)
+  // 종결선 — 구가 구로 보이는 건 띠가 아니라 이 명암 경계 하나 때문이다. 해가 지는 쪽(왼쪽)이 밝다.
+  const term = pctx.createLinearGradient(0, 0, 256, 0)
+  term.addColorStop(0, 'rgba(255,226,190,0.34)')
+  term.addColorStop(0.34, 'rgba(255,226,190,0.04)')
+  term.addColorStop(0.62, 'rgba(14,14,34,0.42)')
+  term.addColorStop(1, 'rgba(10,10,26,0.76)')
+  pctx.fillStyle = term
+  pctx.fillRect(0, 0, 256, 256)
+  const planetTex = new THREE.CanvasTexture(plCv)
+  planetTex.colorSpace = THREE.SRGBColorSpace
   const planet = new THREE.Mesh(
-    new THREE.SphereGeometry(26, 16, 12),
-    new THREE.MeshBasicMaterial({ color: '#cfc4e8', transparent: true, opacity: 0, fog: false })
+    new THREE.SphereGeometry(24, 28, 20),
+    new THREE.MeshBasicMaterial({ map: planetTex, transparent: true, opacity: 0, fog: false })
   )
-  planet.position.set(-150, 62, -300)
+  planet.position.set(122, 30, -300)
   scene.add(planet)
+  // 고리 — 행성 뒤가 아니라 앞을 가로지르는 조각이 있어야 고리가 '행성을 감았다'로 읽힌다.
+  // 토러스 하나를 기울여 두면 구가 뒤쪽 절반을 가려 주므로 별도 처리가 필요 없다.
   const planetRing = new THREE.Mesh(
-    new THREE.TorusGeometry(38, 1.6, 6, 40),
-    new THREE.MeshBasicMaterial({ color: '#9fd4e0', transparent: true, opacity: 0, fog: false })
+    new THREE.TorusGeometry(37, 1.9, 4, 56),
+    new THREE.MeshBasicMaterial({ color: '#b6a6e2', transparent: true, opacity: 0, fog: false, side: THREE.DoubleSide })
   )
   planetRing.position.copy(planet.position)
-  planetRing.rotation.x = 1.25
-  planetRing.rotation.y = 0.3
+  planetRing.rotation.set(1.32, 0.3, 0.22)
   scene.add(planetRing)
+  const planetRing2 = new THREE.Mesh(
+    new THREE.TorusGeometry(44, 0.85, 4, 56),
+    new THREE.MeshBasicMaterial({ color: '#8fc6d6', transparent: true, opacity: 0, fog: false, side: THREE.DoubleSide })
+  )
+  planetRing2.position.copy(planet.position)
+  planetRing2.rotation.copy(planetRing.rotation)
+  scene.add(planetRing2)
+  // 달 — 하나짜리 하늘은 그림이고, 둘이면 계(系)다. 크기 차가 거리를 만든다.
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(7.5, 16, 12),
+    new THREE.MeshBasicMaterial({ color: '#d8d2ee', transparent: true, opacity: 0, fog: false })
+  )
+  moon.position.set(-104, 116, -250)
+  scene.add(moon)
 
   const hemi = new THREE.HemisphereLight('#eaf6ff', '#8fa08c', 0.72) // 바운스가 밝으면 아래면이 안 어두워진다
   scene.add(hemi)
@@ -591,6 +680,10 @@ if (!webglAvailable()) {
   // ---------- 스크롤 = 걸음 ----------
 
   let walked = 0
+  const verdictHold = PREMISES.map(() => -1) // 결론 최소 노출 시한 — 창을 뛰어넘어도 4초는 보인다
+  // 발동·결론 판정 전용. prevWalked(groundSpeed 용)와 갱신 시점이 달라 공유하면 안 된다 —
+  // 그 값은 판정 시점에 walked 와 같아서 곱이 항상 제곱이 되고 교차가 영영 잡히지 않는다.
+  let checkedWalked = 0
 
   // 랜딩을 다 지나야 여정이 시작된다
   function journeyBase() {
@@ -704,14 +797,20 @@ if (!webglAvailable()) {
   // 만남 — 로봇은 자리에 멈춰 NPC 를 마주 보고, 스페이스로 문답을 넘긴다. 최대 3문답.
   // state 0 대기 / 1 대화 중(걸음·스크롤 잠금) / 2 끝(다시 걸음)
   const meets = PREMISES.map(() => ({ state: 0, step: 1, t0: 0, shownAll: false }))
-  // 비트를 3묶음으로 — 한 번에 한두 문단씩. oneShot 존은 쪼개지 않는다(상영과 함께 전부 한 번에).
-  const chunk3 = (beats) => {
-    const per = Math.ceil(beats.length / 3)
-    const chunks = []
-    for (let i = 0; i < beats.length; i += per) chunks.push(beats.slice(i, i + per))
-    return chunks
-  }
-  const meetChunks = PREMISES.map((p2) => (p2.oneShot ? [p2.beats] : chunk3(p2.beats)))
+  // 한 번에 한 문장 (2026-08-15).
+  // 예전에는 문단 3~4개를 한꺼번에 띄웠다. 그러면 독자는 첫 글자를 읽기 전에 덩어리의 면적을 재고,
+  // 그 견적은 "다 읽거나 안 읽거나"의 이진 결정이 된다. 40초 예산인 사람에게 기본값은 '안 읽기'다.
+  // 한 화면에 한 줄이면 잴 면적이 없고, 다음 한 줄은 언제나 싸다.
+  // 분할선은 원문의 <br> 이다 — 쉼표 호흡에서 끊으라고 이미 표시돼 있던 자리다.
+  const splitBeats = (beats) =>
+    beats.flatMap((b) =>
+      String(b.text)
+        .split('<br>')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => [{ ...b, text: line }])
+    )
+  const meetChunks = PREMISES.map((p2) => splitBeats(p2.beats))
   const popupStep = popupEl.querySelector('.hint .step')
   const popupHint = popupEl.querySelector('.hint')
   const popupVerb = popupEl.querySelector('.hint .verb')
@@ -726,21 +825,19 @@ if (!webglAvailable()) {
   function renderMeet(i) {
     const m = meets[i]
     const chunks = meetChunks[i]
-    const oneShot = !!PREMISES[i].oneShot
+    // 진행 표시는 국소적이다 — 전체가 아니라 지금 이 자리의 몇/몇. 먼 지평선은 그만둘 이유가 된다.
     popupStep.textContent = chunks.length > 1 ? `${Math.min(m.step, chunks.length)} / ${chunks.length}` : ''
     popupHint.classList.add('on')
-    // oneShot: 힌트는 두 박자 늦게 — 즉시 띄우면 재촉으로 읽힌다
-    popupHint.style.transitionDelay = oneShot && m.step === 1 ? '2s' : '0s'
+    // 힌트는 즉시 뜬다. 예전에는 2s 를 지연시켰는데(+opacity 0.4s = 2.4초),
+    // 그동안 화면은 어두워졌고 휠은 무응답이고 안내는 없었다. 그 조합의 표준 해석은
+    // "몰입하라"가 아니라 "페이지가 멈췄다"다. 재촉으로 읽힐 위험보다 고장으로 읽힐 위험이 크다.
+    popupHint.style.transitionDelay = '0s'
     popupVerb.textContent = m.step >= chunks.length ? '계속 걷기' : '다음'
     const shown = chunks[Math.min(m.step, chunks.length) - 1] || []
     ui.beatKey = `meet:${i}:${m.step}`
-    // oneShot: 장면(0s) → 답 첫 줄(0.6s) → 둘째 줄(1.05s) — 시선이 한 번씩만 지나가는 스태거
-    popupA.innerHTML = shown
-      .map(
-        (b, j) =>
-          `<p class="${b.kind === 'cost' ? 'cost' : ''}"${oneShot ? ` style="animation-delay:${(0.6 + j * 0.45).toFixed(2)}s"` : ''}>${b.text}</p>`
-      )
-      .join('')
+    // 스태거는 없앴다 — 벽이 조립되는 과정을 1.5초 보여주는 연출이었는데, 벽이 없어지면 필요 없다.
+    // 한 줄은 즉시 자리에 있어야 한다. 기다림 뒤에 오는 글은 그 기다림만큼 비싸 보인다.
+    popupA.innerHTML = shown.map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`).join('')
     popupA.classList.add('on')
   }
   function endMeet(i) {
@@ -761,19 +858,7 @@ if (!webglAvailable()) {
     const i = talkingNow()
     if (i < 0) return false
     const m = meets[i]
-    // 성급한 첫 입력은 닫기가 아니라 전부 보여주기 — 스태거를 건너뛰고 상영은 결말로 빨리감기
-    if (PREMISES[i].oneShot && !m.shownAll && sceneTime - m.t0 < 1.8) {
-      m.shownAll = true
-      popupA.querySelectorAll('p').forEach((p) => {
-        p.style.animation = 'none'
-        p.style.opacity = '1'
-        p.style.transform = 'none'
-      })
-      world.projectors?.forEach((p) => {
-        if (p.zone === i) p.fast()
-      })
-      return true
-    }
+    // 한 줄씩 넘기는 구조에서는 '전부 보여주기'가 필요 없다 — 다음 줄이 이미 한 번의 입력이다.
     if (m.step >= meetChunks[i].length) endMeet(i)
     else {
       m.step += 1
@@ -781,31 +866,33 @@ if (!webglAvailable()) {
     }
     return true
   }
-  // 대화 중 스크롤 잠금 — 걸음이 잠겨 있는데 화면만 흐르면 어긋난다.
-  // 탈출구는 있으되, 걸어오던 관성 스크롤이 대화를 스치듯 끝내면 안 된다:
-  // 만남 1.5초 경과 후, 직전 휠과 350ms 이상 떨어진 "새 플릭"만 세어 두 번이면 계속 걷기.
-  let talkWheelN = 0
+  function backMeet() {
+    const i = talkingNow()
+    if (i < 0) return false
+    const m = meets[i]
+    if (m.step <= 1) return false
+    m.step -= 1
+    renderMeet(i)
+    return true
+  }
+  // 대화 중 휠 — 죽이지 않고 뜻을 바꾼다 (2026-08-15).
+  // 예전에는 preventDefault 만 하고 아무것도 안 했다. 실측으로 입력 54,000px 에 이동 0px.
+  // 손이 움직이는데 화면이 대꾸를 안 하는 상태가 네 번 반복됐고, 탈출 규칙(1.5초 경과 +
+  // 350ms 간격 플릭 2회)은 화면 어디에도 없었다. 배우지 못한 규칙은 고장으로 읽힌다.
+  // 지금은 같은 동작(굴리기)이 같은 뜻(앞으로)을 유지한다 — 대상만 걸음에서 줄로 바뀐다.
+  // 위로 굴리면 되돌아간다: 되돌릴 수 있어야 마음 놓고 빨리 굴리고, 걸린 문장에서 되돌아온다.
   let talkWheelT = 0
   const blockIfTalking = (e) => {
     const i = talkingNow()
     if (i < 0) return
     e.preventDefault()
-    if (e.type === 'wheel') {
-      const now = performance.now()
-      const fresh = now - talkWheelT > 350
-      talkWheelT = now
-      if (sceneTime - meets[i].t0 < 1.5) {
-        talkWheelN = 0 // 진입 관성은 탈출 의사가 아니다
-        return
-      }
-      if (fresh) {
-        talkWheelN += 1
-        if (talkWheelN >= 2) {
-          talkWheelN = 0
-          endMeet(i)
-        }
-      }
-    }
+    if (e.type !== 'wheel') return
+    const now = performance.now()
+    // 걸어오던 관성이 한 번에 여러 줄을 삼키지 않게 — 트랙패드 한 스와이프가 8줄이 되면 안 된다
+    if (now - talkWheelT < 110) return
+    talkWheelT = now
+    if (e.deltaY > 0) advanceMeet()
+    else backMeet()
   }
   window.addEventListener('wheel', blockIfTalking, { passive: false })
   window.addEventListener('touchmove', blockIfTalking, { passive: false })
@@ -852,20 +939,11 @@ if (!webglAvailable()) {
     popupA.innerHTML = ''
     popupA.classList.remove('on')
     ui.beatKey = ''
-    popupQ.innerHTML = '<span class="caret"></span>'
-    if (reduceMotion) {
-      popupQ.innerHTML = `“${text}”`
-      return
-    }
-    let k = 0
-    typeTimer = setInterval(() => {
-      k++
-      popupQ.innerHTML = `“${text.slice(0, k)}”<span class="caret"></span>`
-      if (k >= text.length) {
-        stopTyping()
-        popupQ.innerHTML = `“${text}”`
-      }
-    }, 42) // 쏟아지지 않고 새겨지는 속도 — 첫 문장이 손글씨의 리듬으로 적힌다
+    // 타이핑 폐기 (2026-08-15). 42ms/자 × 25자 = 1.3초인데, 그 구간에 영사기 빔이 발사된다
+    // (오브 예열 0.4s → 임팩트 → 결상 1.4s). 훅으로 설계한 한 줄이 화면에서 가장 강한 모션과
+    // 정면으로 겹쳤고, 훅이 졌다. 그리고 이미 존재하는 정보를 1.3초 감추는 연출이기도 했다 —
+    // 이 사이트에서 가장 중요한 문장이 가장 늦게 완성되고 있었다.
+    popupQ.innerHTML = `“${text}”`
   }
 
   // 이름을 collect 로 되돌리지 말 것 — echarts 가 최상위에 같은 이름의 함수를 갖고 있어
@@ -953,30 +1031,19 @@ if (!webglAvailable()) {
       chips[near]?.classList.add('now')
       chips[near]?.style.setProperty('--zone-c', PREMISES[near]?.themeColor ?? '') // 현재 존 한 줄만 존 색
     }
-    // 머문 시간 — 분모도 목표도 붙이지 않는다. 재는 값이 아니라 적는 값이다
-    const sec = Math.floor(t)
-    const clockStr = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
-    if (clockStr !== ui.time) {
-      ui.time = clockStr
-      stTime.firstChild.textContent = clockStr.slice(0, 2)
-      stTime.querySelector('i').textContent = clockStr.slice(2)
-    }
-    // 읽은 문단 — 진행을 세계의 단위(m·%)가 아니라 읽기의 단위로 말한다
-    let read = 0
-    for (let i = 0; i < PREMISES.length; i++) {
-      const rel = walked - world.npcs[i].dist
-      for (const b of PREMISES[i].beats) if (rel >= b.at) read++
-    }
-    if (read !== ui.read) {
-      ui.read = read
-      stRead.firstChild.textContent = String(read).padStart(2, '0')
-    }
     // 결론 — 전제가 무너진 직후에만 잔해 위에 선다. 걸음의 순수 함수라 되감아도 성립한다.
+    // 결론 — 전제가 무너진 직후에만 잔해 위에 선다.
+    // 창을 13m 에서 26m 로 넓히고, 그 창을 뛰어넘는 속도에 대비해 교차 래치를 둔다.
+    // 예전에는 폭 13m 를 매 프레임 점 샘플링해서 빠른 스크롤에서 결론 네 줄이 전부 안 떴다 —
+    // 이 페이지에서 가장 인용 가치가 높은 문장들이 구조적으로 가장 잘 스킵되고 있었다.
     let verdict = -1
     for (let i = 0; i < PREMISES.length; i++) {
       const gate = 26 + i * 60 + 48
-      if (walked > gate + 3 && walked < gate + 16) verdict = i
-      const passed = walked > gate + 3
+      if (walked > gate + 2 && walked < gate + 28) verdict = i
+      // 창을 통째로 건너뛴 경우: 교차한 순간부터 4초를 보장한다
+      if ((checkedWalked - (gate + 2)) * (walked - (gate + 2)) <= 0) verdictHold[i] = t + 4
+      if (verdict < 0 && t < verdictHold[i]) verdict = i
+      const passed = walked > gate + 2
       if (passed !== chipShown[i]) {
         chipShown[i] = passed
         chips[i].innerHTML = `<b>${i + 1}</b><span>${passed ? PREMISES[i].chip : PREMISES[i].kicker}</span>`
@@ -1058,12 +1125,16 @@ if (!webglAvailable()) {
           m.shownAll = false
         }
         // 발동권(±6m)에 들어서면 스크롤과 무관하게 자동으로 NPC 앞까지 걸어가 멈춘다 — 상영관이 된다
-        if (m.state === 0 && !PREMISES[i].flow && Math.abs(walked - stopD) < 6 && !atEnd) {
+        // 교차 판정 — 속도와 무관하게 반드시 걸린다. 예전의 Math.abs(walked-stopD)<6 은
+        // 폭 12m 창을 매 프레임 점 샘플링해서, 스크롤바 드래그·End·플링으로 간격이 100m 를 넘으면
+        // 프레임당 전진(간격×최대 27%)이 창보다 커져 3·4번째 멈춤이 통째로 건너뛰어졌다.
+        const crossed = (checkedWalked - stopD) * (walked - stopD) <= 0 || Math.abs(walked - stopD) < 6
+        if (m.state === 0 && !PREMISES[i].flow && crossed && !atEnd) {
           m.state = 1
           m.step = 1
           m.t0 = sceneTime // 성급한 입력·관성 스크롤 판정 기준
           projZone = i // 이 존의 영사기가 소등 페이드까지 주인이다
-          talkWheelN = 0
+          talkWheelT = 0 // 휠 연타 필터 초기화 — 걸어오던 관성이 첫 줄을 넘기지 않게
           lockScrollY = window.scrollY // 대화 동안 화면도 여기 선다
         }
         if (m.state === 1) target = stopD // 남은 걸음은 자동 — 스페이스로 끝내야 풀린다
@@ -1071,6 +1142,7 @@ if (!webglAvailable()) {
       if (talkingNow() >= 0 && lockScrollY >= 0 && Math.abs(window.scrollY - lockScrollY) > 2) {
         window.scrollTo(0, lockScrollY)
       }
+      checkedWalked = walked // 판정 기준점을 이 프레임의 갱신 전 값으로 — 다음 프레임이 이 구간을 본다
       walked += (target - walked) * Math.min(1, dt * 4.5)
     }
     farthest = Math.max(farthest, walked)
@@ -1233,9 +1305,16 @@ if (!webglAvailable()) {
     hemi.intensity *= 1 - 0.28 * talkF
     // 밤이 오면 별과 행성이 떠오르고, 구름은 어둡게 물러난다
     const night = Math.max(0, (skyPhase - 0.86) / 0.14)
-    stars.material.opacity = night * 0.9
-    planet.material.opacity = night * 0.85
-    planetRing.material.opacity = night * 0.5
+    for (const sl of starLayers) {
+      sl.material.opacity = night * sl.userData.op
+      sl.visible = night > 0.02
+    }
+    milkyWay.material.opacity = night * night * 0.5 // 띠는 마지막에 뜬다 — 황혼에 겹치면 구름으로 읽힌다
+    milkyWay.visible = night > 0.15
+    planet.material.opacity = night * 0.95
+    planetRing.material.opacity = night * 0.6
+    planetRing2.material.opacity = night * 0.4
+    moon.material.opacity = night * 0.8
     cloudMat.opacity = 0.62 - night * 0.3
     cloudMat.color.copy(cloudDay).lerp(cloudNight, night)
     skyUniforms.bottom.value.copy(skyNow)

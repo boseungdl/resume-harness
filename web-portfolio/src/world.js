@@ -1393,42 +1393,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
   }
 
   // ----- 경계 — 전제가 무너지는 자리 -----
-  // 일차원(기둥 2개+판때기)의 원인은 둘이었다: 카메라가 부재를 뚫었고, 드로우콜이 아까워 얇게 눌렀다.
-  // 해법: 카메라 통로(x -3.0~-1.2, y 2.3~3.9)를 비우는 2열 구성 + 안 움직이는 부재는 전부 하나로 용접.
-  function premiseTexture(text, W = 512, H = 256) {
-    const cv = document.createElement('canvas')
-    cv.width = W
-    cv.height = H
-    const ctx = cv.getContext('2d')
-    ctx.fillStyle = '#e9dfc8'
-    ctx.fillRect(0, 0, W, H)
-    ctx.strokeStyle = 'rgba(90, 74, 52, 0.5)'
-    ctx.lineWidth = Math.max(3, H * 0.02)
-    const M = W * 0.035
-    ctx.strokeRect(M, M, W - M * 2, H - M * 2)
-    ctx.fillStyle = '#4a3c2c'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    let size = H * 0.22
-    ctx.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`
-    while (ctx.measureText(text).width > W * 0.86 && size > H * 0.1) {
-      size -= 2
-      ctx.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`
-    }
-    if (ctx.measureText(text).width > W * 0.86) {
-      const mid = Math.ceil(text.length / 2)
-      let cut2 = text.lastIndexOf(' ', mid)
-      if (cut2 < 4) cut2 = mid
-      ctx.fillText(text.slice(0, cut2), W / 2, H * 0.375)
-      ctx.fillText(text.slice(cut2 + (text[cut2] === ' ' ? 1 : 0)), W / 2, H * 0.633)
-    } else {
-      ctx.fillText(text, W / 2, H / 2)
-    }
-    const tex = new THREE.CanvasTexture(cv)
-    tex.colorSpace = THREE.SRGBColorSpace
-    return tex
-  }
-
   // 부재 하나 — 색을 정점에 굽고 병합 가능한 형태로
   const _mc = new THREE.Color()
   function memb(geo, hex, ao) {
@@ -1465,59 +1429,20 @@ export function buildWorld(scene, chapterCount, premises = []) {
     m.receiveShadow = true
     return m
   }
-  function premisePlate(text, w, h, W, H) {
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(w, h),
-      std('#ffffff', { roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -1 })
-    )
-    m.material.map = premiseTexture(text, W, H)
-    return m
-  }
+
   const gateAnims = []
 
   // ── 경계 1~4 — 다음 세계로 넘어가는 포탈 ──
   // 길 위에 선 발광 링. 색은 다음 존의 테마색, 안쪽 막에는 다음 존의 하늘이 비친다 —
   // 통과가 "다음 세계로 넘어가는 사건"으로 읽히되, 로봇은 멈추지 않는다.
   // 성장(스케일·Lv·불꽃)은 main 이 walked 의 순수 함수로 계산한다 — 여기서는 상태를 만들지 않는다(역스크롤 멱등).
-  function teaserTexture(text, tintHex, W = 512, H = 176) {
-    const cv = document.createElement('canvas')
-    cv.width = W
-    cv.height = H
-    const ctx = cv.getContext('2d')
-    const tint = new THREE.Color(tintHex)
-    // 바탕은 다음 존 테마색을 어둡게 누른 판 — 원색 면적이 크면 예고가 아니라 광고판이 된다
-    ctx.fillStyle = tint.clone().multiplyScalar(0.24).getStyle()
-    ctx.fillRect(0, 0, W, H)
-    ctx.strokeStyle = tint.clone().lerp(new THREE.Color('#ffffff'), 0.3).getStyle()
-    ctx.lineWidth = Math.max(3, H * 0.03)
-    const M = W * 0.03
-    ctx.strokeRect(M, M, W - M * 2, H - M * 2)
-    ctx.fillStyle = '#f2ead8'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    let size = H * 0.3
-    ctx.font = `600 ${size}px "IBM Plex Sans KR", sans-serif`
-    while (ctx.measureText(text).width > W * 0.78 && size > H * 0.14) {
-      size -= 2
-      ctx.font = `600 ${size}px "IBM Plex Sans KR", sans-serif`
-    }
-    ctx.fillText(text, W / 2, H * 0.52)
-    const tex = new THREE.CanvasTexture(cv)
-    tex.colorSpace = THREE.SRGBColorSpace
-    // 커서가 앉을 자리 — 문장 끝 바로 뒤(0~1 정규화). 점멸은 캔버스가 아니라 발광 바 메시가 맡는다.
-    return {
-      tex,
-      cursorU: Math.min(0.95, (W / 2 + ctx.measureText(text).width / 2 + size * 0.28) / W),
-      sizeV: size / H,
-    }
-  }
 
   // 다음 존의 하늘 — main.js SKY/SKY_TOP 의 존 키와 같은 값(포탈 막 전용 사본).
   // 막에 다음 존의 하늘이 비쳐야 "저 너머는 다른 세계"가 문 하나로 읽힌다.
   const NEXT_SKY = [
     ['#c2ad84', '#eeddc0'], // 문1 너머 — 사막의 먼지 낀 하늘
     ['#8d97a2', '#c6cacd'], // 문2 너머 — 잿빛 도시
-    ['#e8987c', '#ffd2b0'], // 문3 너머 — 낮게 가라앉은 노을
+    ['#8f5c96', '#ffc79a'], // 문3 너머 — 해가 물에 닿는 노을 (main.js SKY_TOP[3]/SKY[3] 와 같은 값)
     ['#6f5a92', '#b98098'], // 문4 너머 — 황혼 (SF 청록은 부두 포털의 예약색, 여기 못 쓴다)
   ]
   function portalSkyTexture(idx, overrideSky) {
@@ -1569,44 +1494,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     ctx.fillRect(0, 0, 128, 128)
     return new THREE.CanvasTexture(cv)
   })()
-
-  // 다음 질문 예고판 — 게이트 너머 길가에 다음 전제의 앞 절반만.
-  // 문장이 끝나기 전에 끊겨야 예고다 — 나머지는 걸어가서 듣는다. 마지막 존은 다음이 없어 생략.
-  function gateTeaser(next, g) {
-    if (!next?.premise) return null
-    const teaser = next.premise.slice(0, Math.ceil(next.premise.length * 0.45)) + '…'
-    const nextTint = new THREE.Color(next.themeColor ?? '#ffffff')
-    const { tex, cursorU, sizeV } = teaserTexture(teaser, next.themeColor ?? '#ffffff')
-    const pd = g + 4.5
-    const pw = 1.7
-    const phh = 0.6
-    const holder = new THREE.Group()
-    // 포탈 옆 — 문틀(반폭 ~2.4)과 겹치면 예고판이 문에 먹힌다. 문을 나서면 오른쪽에 서 있다.
-    holder.position.set(3.3, trackY(pd), -pd)
-    holder.rotation.y = -0.3 // 살짝 길 쪽으로 — 정면 판은 걷는 이가 아니라 카메라를 향한 광고가 된다
-    const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 1.05, 6), std('#8a7358'))
-    stake.position.y = 0.52
-    const board = new THREE.Mesh(
-      new THREE.PlaneGeometry(pw, phh),
-      std('#ffffff', { map: tex, transparent: true, opacity: 0.85, roughness: 0.7, side: THREE.DoubleSide })
-    )
-    board.position.y = 1.18
-    // 깜빡이는 커서 — 다음 질문이 아직 적히는 중이라는 신호
-    const cursor = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.035, phh * sizeV),
-      new THREE.MeshBasicMaterial({
-        color: nextTint.clone().lerp(new THREE.Color('#ffffff'), 0.55),
-        transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
-      })
-    )
-    cursor.position.set((cursorU - 0.5) * pw, -0.01, 0.012)
-    board.add(cursor)
-    holder.add(stake, board)
-    shadowed(holder)
-    group.add(holder)
-    contactSpots.push({ x: 3.3, d: pd, r: 0.4 })
-    return cursor
-  }
 
   function gatePortal(idx) {
     const g = gateOf(idx)
@@ -1746,8 +1633,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     root.add(stones)
     contactSpots.push({ x: -1.3, d: g, r: 0.55 }, { x: 1.3, d: g, r: 0.55 })
 
-    const cursor = gateTeaser(next, g)
-
     gateAnims.push((walked, t) => {
       const near = g - walked
       // 멀면 안개 속에서 서서히 깨어나고, 지나간 뒤에도 잠시 서 있다 — 뒤돌아봐도 문은 그대로다
@@ -1816,7 +1701,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
         }
         shards.instanceMatrix.needsUpdate = true
       }
-      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
     })
   }
   // ── 경계 1 전용 — 물의 문. 산뜻한 출발의 세계는 빛의 링이 아니라 물이 문을 연다. ──
@@ -1939,8 +1823,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
     root.add(drift)
     contactSpots.push({ x: -2.4, d: g, r: 0.6 }, { x: 2.4, d: g, r: 0.6 })
 
-    const cursor = gateTeaser(next, g)
-
     gateAnims.push((walked, t) => {
       const near = g - walked
       const vis = (1 - smooth01((near - 26) / 20)) * (1 - smooth01((-near - 16) / 8))
@@ -1993,7 +1875,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
         spray.instanceMatrix.needsUpdate = true
         pool.material.opacity = (0.08 + 0.2 * approach + 0.45 * pass) * vis
       }
-      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
     })
   }
 
@@ -2005,7 +1886,10 @@ export function buildWorld(scene, chapterCount, premises = []) {
   function gateCityPortal() {
     const g = gateOf(2)
     const next = premises[3]
-    const tint = new THREE.Color('#e8987c') // 문3 너머 — portalSkyTexture(2) 의 낮게 가라앉은 노을과 같은 색
+    // 문3 너머 — 존4 노을. 예전 값(#e8987c)은 채도가 낮아, 틈을 아무리 채워도 회색 하늘과
+    // 구분이 안 되는 밝은 중성색으로 수렴했다(실측: 틈 픽셀 R196 G191 B188 — 사실상 무채색).
+    // 노을은 밝기가 아니라 채도로 읽힌다. 지평선 금빛의 심지를 그대로 가져온다.
+    const tint = new THREE.Color('#ef8a4e')
     const root = new THREE.Group()
     root.position.set(0, trackY(g), -g)
     group.add(root)
@@ -2065,10 +1949,14 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
     // 틈에 든 빛 — 이 문에는 막이 없다. 벽 사이의 공기가 노을빛으로 차오르는 것이 막을 대신한다.
     // 판을 세우면 "문에 유리가 끼워졌다"가 되는데, 도시의 골목에는 유리가 없다.
+    // 가산이 아니라 일반 블렌딩이다. 가산은 바탕이 어두울 때만 색이고, 낮 하늘(회색 0.6 언저리)
+    // 위에서는 무엇을 더해도 채널이 1 로 몰려 흰색이 된다 — 상한을 아무리 낮춰도 색이 안 남았다.
+    // 틈을 "노을빛으로 물들이려면" 더하는 게 아니라 덮어야 한다. 세 겹은 유지 — 시차가 부피를 만든다.
     const shaftGeo = new THREE.PlaneGeometry(GAP * 2, 7.0)
     const shaftMat = new THREE.MeshBasicMaterial({
-      color: tint, transparent: true, opacity: 0.2,
-      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false,
+      // 밝히지 않는다 — 밝히면 채도가 빠져 틈이 다시 흰 구멍이 된다. 채도만 반 단 올린다.
+      color: tint.clone().offsetHSL(0, 0.08, -0.02),
+      transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, fog: false,
     })
     const shafts = []
     for (let i = 0; i < 3; i++) {
@@ -2077,6 +1965,16 @@ export function buildWorld(scene, chapterCount, premises = []) {
       root.add(sh)
       shafts.push(sh)
     }
+    // 빛다움은 단 한 겹의 가산이 맡는다 — 세 겹이 하던 일을 한 겹이 하면 흰색까지 가지 않는다
+    const shaftBloom = new THREE.Mesh(
+      new THREE.PlaneGeometry(GAP * 2 + 0.6, 7.4),
+      new THREE.MeshBasicMaterial({
+        color: tint.clone().offsetHSL(0.03, 0, 0.24), transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false,
+      })
+    )
+    shaftBloom.position.set(0, 3.5, 0.7)
+    root.add(shaftBloom)
     // 젖은 바닥에 흘러내린 그 빛 — 비 오는 도시에서 빛은 반드시 바닥에 두 번 나온다.
     const pool = new THREE.Mesh(
       new THREE.PlaneGeometry(GAP * 2, 9),
@@ -2088,8 +1986,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
     shadowed(root)
     contactSpots.push({ x: -(GAP + WW / 2), d: g, r: 1.5 }, { x: GAP + WW / 2, d: g, r: 1.5 })
-    const cursor = gateTeaser(next, g)
-
     gateAnims.push((walked, t) => {
       const near = g - walked
       const vis = (1 - smooth01((near - 30) / 22)) * (1 - smooth01((-near - 20) / 10))
@@ -2103,61 +1999,106 @@ export function buildWorld(scene, chapterCount, premises = []) {
         for (let i = 0; i < shafts.length; i++) {
           // 겹마다 다른 위상으로 흔들린다 — 빗속의 빛은 가만히 있지 않는다
           const flick = 0.78 + 0.22 * Math.sin(t * (1.1 + i * 0.37) + i * 2.2)
-          // 세 겹이 가산이라 겹당 상한을 0.36 아래로 — 예전 값(0.72)에서는 셋이 겹쳐 2.1 이 되어
-          // 틈이 노을이 아니라 순백으로 터졌다. 색이 남으려면 총합이 1 을 크게 넘으면 안 된다.
-          shafts[i].material.opacity = (0.04 + 0.13 * approach + 0.19 * pass) * flick * vis * linger
+          // 일반 블렌딩 3겹은 1-(1-a)^3 로 쌓인다 — a=0.24 면 합쳐 0.56, 틈이 반쯤 노을색이 된다.
+          shafts[i].material.opacity = (0.07 + 0.17 * approach + 0.1 * pass) * flick * vis * linger
         }
+        shaftBloom.material.opacity = (0.02 + 0.06 * approach + 0.16 * pass) * vis * linger
         pool.material.opacity = (0.05 + 0.2 * approach + 0.34 * pass) * vis
       }
-      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
     })
   }
 
   // ── 경계 4 전용 — 등롱의 문. 이 존의 재료는 부교 판재와 물과 등롱이다. ──
-  // 잔잔한 물에서는 문의 절반을 물이 그린다. 물 위로 나온 것은 낮은 문틀과 등롱뿐이고,
-  // 나머지 절반은 수면에 비친 불빛이다. 문을 세우지 않고 낮게 둔 이유:
-  // 5m 뒤에 도착 공간의 청록 링이 서 있어서, 여기서 높이를 쓰면 마지막 두 박자가 겹쳐 죽는다.
+  //
+  // v2 (2026-08-15). v1 은 기둥 0.22 각재 두 개 + 인방 하나 + 등롱 다섯이 전부여서
+  // 노을 하늘을 배경으로 두면 실루엣이 "가는 막대 셋"으로 남았다 — 문이 아니라 톱질용 목마로 읽혔다.
+  // v1 이 낮았던 이유는 5m 뒤에 도착 공간의 청록 링이 서 있었기 때문인데, 그 링을 지웠으므로
+  // 이 문이 마지막 경계를 혼자 감당한다. 높이와 질량을 되찾는다.
+  //
+  // 초라함의 원인은 개수가 아니라 명도였다. 그래서 순서를 이렇게 둔다:
+  //   ① 나무를 어둡게 내린다(#a98b6a → #5c4130). 밝은 노을 위에서 어두운 형태만이 실루엣이 된다.
+  //   ② 닫힌 사각형을 만든다. 기둥 둘 + 인방 하나는 열린 ∏ 라 '틀'이 아니다 — 중방을 하나 더 걸어
+  //      기둥·인방·중방이 사각을 이루면 그제야 '통과할 구멍'이 생긴다.
+  //   ③ 질량을 발치에 둔다. 돌 초석과 버팀대가 위쪽 모서리를 메워 문이 물에 박혀 선 것으로 읽힌다.
+  // 새 재료는 하나도 쓰지 않았다 — 부교 판재(나무)·물·등롱·갈대·판석, 존4 가 이미 가진 것뿐이다.
   function gateWaterPortal() {
     const g = gateOf(3)
     const root = new THREE.Group()
     root.position.set(0, trackY(g), -g)
     group.add(root)
 
-    const HW = 2.0 // 문틀 반폭
-    const PH = 2.7 // 기둥 높이 — 로봇(1.5)보다 조금 높을 뿐이다
-    const post = (sx) => {
-      const p = new THREE.Mesh(
-        bakeAO(new THREE.BoxGeometry(0.22, PH, 0.22), { gradH: PH * 0.5, strength: 0.3, upBoost: 0.12 }),
-        std('#a98b6a', { vertexColors: true })
-      )
-      p.position.set(sx * HW, PH / 2, 0)
-      return p
-    }
-    // 인방은 부교 판재와 같은 비례(2.2×0.07)의 배수다 — 이 문은 발밑의 길을 세워 만든 것이다.
-    const beam = new THREE.Mesh(
-      bakeAO(new THREE.BoxGeometry(HW * 2 + 0.5, 0.16, 0.26), { gradH: 0.16, strength: 0.26, upBoost: 0.15 }),
-      std('#a98b6a', { vertexColors: true })
-    )
-    beam.position.set(0, PH - 0.08, 0)
-    root.add(post(-1), post(1), beam)
+    const HW = 2.24 // 문틀 반폭 — 카메라 통과선(x≈-2.1) 바깥. 안쪽으로 들이면 카메라가 기둥을 뚫는다.
+    const PH = 4.8 // 기둥 높이 — 로봇(1.5)의 3.2배. 사람 키의 세 배가 넘어야 구조물로 읽힌다.
+    const TIE = 3.28 // 중방 — 인방과의 사이가 사각 틀의 윗변이 된다
+    const WOOD = '#5c4130' // 물에 젖었다 마르기를 반복한 부교 판재. 밝은 노을에 대한 실루엣 값.
+    const WOOD2 = '#6b4c37'
+    const STONE = '#8d8375'
 
-    // 매달린 등롱 다섯 — 이 존 내내 부교를 밝히던 그 등롱이다. 간격을 균등하게 두지 않는다.
-    const LX = [-1.62, -0.86, 0.04, 0.82, 1.6]
-    const LDROP = [0.42, 0.62, 0.5, 0.68, 0.44]
-    const lamps = []
-    const cords = []
-    for (let i = 0; i < LX.length; i++) {
-      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, LDROP[i], 4), std('#7d6a52'))
-      cord.position.set(LX[i], PH - 0.16 - LDROP[i] / 2, 0)
-      const lamp = new THREE.Mesh(
-        new THREE.BoxGeometry(0.24, 0.3, 0.24),
-        std('#ffe9a0', { emissive: '#ffce7a', emissiveIntensity: 1.3 })
-      )
-      lamp.position.set(LX[i], PH - 0.16 - LDROP[i] - 0.15, 0)
-      root.add(cord, lamp)
-      lamps.push(lamp)
-      cords.push(cord)
+    // 문틀 전체를 하나로 용접한다 — 안 움직이는 부재는 드로우콜을 나눠 가질 이유가 없다.
+    const frame = []
+    for (const sx of [-1, 1]) {
+      // 기둥 — 아래가 굵고 위가 가늘다(민흘림). 같은 굵기 각재는 기성품으로 보인다.
+      frame.push(memb(gat(GC(0.17, 0.24, PH, 6), sx * HW, PH / 2, 0), WOOD, { gradH: PH * 0.55, strength: 0.34, upBoost: 0.1 }))
+      // 초석 — 물가에 세운 기둥은 반드시 돌을 밟고 선다. 발치의 질량이 문을 물에 박아 넣는다.
+      frame.push(memb(gat(GB(0.66, 0.42, 0.66), sx * HW, 0.19, 0), STONE, { gradH: 0.42, strength: 0.3, upBoost: 0.18 }))
+      frame.push(memb(gat(GB(0.5, 0.16, 0.5), sx * HW, 0.46, 0), STONE))
+      // 버팀대 — 중방과 기둥 사이 빗대. 위쪽 두 모서리를 메워 열린 ∏ 를 닫힌 틀로 만든다.
+      frame.push(memb(gat(GB(0.13, 1.02, 0.13), sx * (HW - 0.33), TIE + 0.5, 0, 0, 0, sx * 0.72), WOOD2))
+      // 쐐기 — 인방이 기둥을 관통해 나온 자리를 문 쪽이 아니라 바깥으로 물린다
+      frame.push(memb(gat(GB(0.1, 0.26, 0.4), sx * (HW + 0.42), PH - 0.3, 0), WOOD2))
     }
+    // 인방 — 기둥 바깥으로 0.62 씩 내민다. 내밀지 않으면 H 자가 되고, 내밀어야 문이 된다.
+    frame.push(memb(gat(GB(HW * 2 + 1.24, 0.3, 0.4), 0, PH - 0.15, 0), WOOD, { gradH: 0.3, strength: 0.28, upBoost: 0.16 }))
+    // 갓 — 인방 위에 얹은 얇은 덮개널. 부교 갓널과 같은 문법이라 이 문이 길에서 왔음을 위에서 증명한다.
+    frame.push(memb(gat(GB(HW * 2 + 1.7, 0.09, 0.54), 0, PH + 0.04, 0), '#4d372a'))
+    // 중방 — 등롱이 매달리는 가로대. 이것 하나로 개구부가 사각형이 된다.
+    frame.push(memb(gat(GB(HW * 2 + 0.16, 0.18, 0.28), 0, TIE, 0), WOOD2, { gradH: 0.18, strength: 0.26, upBoost: 0.15 }))
+    const gateFrame = weld(frame)
+    root.add(gateFrame)
+
+    // 갈대 다발 — 초석 옆에 기대 묶어 둔 것. 존4 물가의 갈대와 같은 재료다.
+    // 문의 수직선(기둥)에 다른 각도의 선을 몇 개 섞어야 실루엣이 기계도면에서 풍경으로 넘어간다.
+    const reedParts = []
+    for (let i = 0; i < 9; i++) {
+      const sx = i < 5 ? -1 : 1
+      const h = 1.1 + hash(i * 3.7) * 0.9
+      const lean = (hash(i * 5.3) - 0.5) * 0.5
+      reedParts.push(
+        memb(
+          gat(GC(0.012, 0.028, h, 4), sx * (HW + 0.34 + hash(i * 7.1) * 0.3), h / 2, 0.24 + hash(i * 9.7) * 0.5, 0, 0, lean),
+          i % 3 === 0 ? '#8b7f52' : '#6f6a43'
+        )
+      )
+    }
+    root.add(weld(reedParts))
+
+    // 매달린 등롱 일곱 — 존4 내내 부교를 밝히던 그 등롱이다. 크기를 두 급으로 나눈다:
+    // 큰 둘이 문의 양 어깨를 잡고, 작은 다섯이 그 사이를 잇는다. 같은 크기 다섯은 리듬이 아니라 반복이다.
+    const LX = [-1.86, -1.18, -0.52, 0.16, 0.84, 1.5, 1.94]
+    const LDROP = [0.3, 0.62, 0.44, 0.7, 0.5, 0.66, 0.32]
+    const LBIG = [1, 0, 0, 0, 0, 0, 1]
+    const lamps = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.24, 0.32, 0.24),
+      std('#ffe9a0', { emissive: '#ffce7a', emissiveIntensity: 1.3 }),
+      LX.length
+    )
+    lamps.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    lamps.frustumCulled = false
+    // 줄 — 등롱과 같은 수. 흔들림의 위상을 공유해야 매달린 것으로 보인다.
+    const cords = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.011, 0.011, 1, 4), std('#4b3d2c'), LX.length)
+    cords.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    cords.frustumCulled = false
+    root.add(lamps, cords)
+
+    // 등롱빛 — 발광 재질만으로는 '불'이 안 된다. 각 등롱 자리에 후광 판을 한 장씩 세운다.
+    const halos = new THREE.InstancedMesh(
+      new THREE.PlaneGeometry(0.86, 0.86),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: '#ffcf86', transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+      LX.length
+    )
+    halos.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    halos.frustumCulled = false
+    root.add(halos)
 
     // 수면에 비친 불빛 — 문의 나머지 절반. 실물을 뒤집어 복제하지 않고 빛만 비친다.
     // 잔잔한 물에 비치는 것은 형태가 아니라 밝기라서, 형태를 복제하면 물이 유리가 된다.
@@ -2170,33 +2111,88 @@ export function buildWorld(scene, chapterCount, premises = []) {
     refl.frustumCulled = false
     root.add(refl)
 
+    // 기둥이 물에 드리운 그림자 — 빛만 비추면 물이 밝기만 있는 판이 된다.
+    // 어두운 세로 얼룩 두 줄이 있어야 "물 위에 선 문"이고, 그래야 반사광이 빛으로 읽힌다.
+    const shade = new THREE.InstancedMesh(
+      new THREE.PlaneGeometry(0.62, 3.6),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: '#3a3348', transparent: true, opacity: 0.22, depthWrite: false, fog: false }),
+      2
+    )
+    shade.frustumCulled = false
+    for (let i = 0; i < 2; i++) {
+      seat.position.set((i ? 1 : -1) * HW, 0.04, 2.1)
+      seat.rotation.set(-Math.PI / 2, 0, 0)
+      seat.scale.set(1, 1, 1)
+      seat.updateMatrix()
+      shade.setMatrixAt(i, seat.matrix)
+    }
+    root.add(shade)
+
+    // 막 — 문 안쪽에만 든 황혼. 다른 세 문과 같은 문법이고, 이 문에만 없으면 마지막 경계가
+    // 경계로 안 읽힌다. 개구부(기둥 안쪽 × 중방 아래)에 맞춘 사각이라 '유리 낀 창'이 되지 않는다.
+    const OPEN_W = HW * 2 - 0.34
+    const membrane = new THREE.Mesh(
+      new THREE.PlaneGeometry(OPEN_W, TIE - 0.2),
+      new THREE.MeshBasicMaterial({ map: portalSkyTexture(3), transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide, fog: false })
+    )
+    membrane.position.set(0, (TIE - 0.2) / 2 + 0.08, 0)
+    membrane.material.map.center.set(0.5, 0.5)
+    root.add(membrane)
+
     shadowed(root)
-    contactSpots.push({ x: -HW, d: g, r: 0.5 }, { x: HW, d: g, r: 0.5 })
+    contactSpots.push({ x: -HW, d: g, r: 0.7 }, { x: HW, d: g, r: 0.7 })
 
     gateAnims.push((walked, t) => {
       const near = g - walked
-      const vis = (1 - smooth01((near - 26) / 18)) * (1 - smooth01((-near - 14) / 8))
+      // 돌·나무는 안개 속에 먼저 서 있고 지나온 뒤에도 남는다 — 되돌아보면 문은 그대로다.
+      const vis = (1 - smooth01((near - 34) / 20)) * (1 - smooth01((-near - 16) / 8))
       root.visible = vis > 0.01
       if (!root.visible) return
-      const approach = 1 - smooth01((near - 3) / 18)
+      const approach = 1 - smooth01((near - 3) / 20)
       const pass = Math.max(0, 1 - Math.abs(near) / 3)
-      for (let i = 0; i < lamps.length; i++) {
+      const core = Math.max(0, 1 - Math.abs(near) / 1.4) // 몸이 닿는 반 박자 — 막이 걷힌다
+      const linger = 1 - 0.9 * smooth01((-near - 1.5) / 5)
+      for (let i = 0; i < LX.length; i++) {
         // 등롱마다 다른 위상으로 아주 느리게 — 잔잔함은 정지가 아니라 느림이다
         const sway = Math.sin(t * 0.5 + i * 1.7) * 0.05
-        lamps[i].position.x = LX[i] + sway
-        cords[i].position.x = LX[i] + sway * 0.5
-        cords[i].rotation.z = -sway * 0.6
-        lamps[i].material.emissiveIntensity = 0.9 + 0.5 * approach + 0.7 * pass + 0.08 * Math.sin(t * 1.3 + i)
+        const big = LBIG[i] ? 1.55 : 1
+        const drop = LDROP[i] * (LBIG[i] ? 0.8 : 1)
+        const ly = TIE - 0.09 - drop - 0.16 * big
+        seat.position.set(LX[i] + sway, ly, 0)
+        seat.rotation.set(0, 0, 0)
+        seat.scale.setScalar(big)
+        seat.updateMatrix()
+        lamps.setMatrixAt(i, seat.matrix)
+        // 줄은 중방 밑에서 등롱 머리까지 — 길이를 스케일로 주고 아래를 등롱에 붙인다
+        seat.position.set(LX[i] + sway * 0.5, TIE - 0.09 - drop / 2, 0)
+        seat.rotation.set(0, 0, -sway * 0.6)
+        seat.scale.set(1, drop, 1)
+        seat.updateMatrix()
+        cords.setMatrixAt(i, seat.matrix)
+        // 후광 — 등롱과 같은 자리, 카메라를 향해 눕히지 않는다(문은 정면에서만 본다)
+        seat.position.set(LX[i] + sway, ly, 0.16)
+        seat.rotation.set(0, 0, 0)
+        seat.scale.setScalar(big * (0.9 + 0.1 * Math.sin(t * 1.1 + i * 2.3)))
+        seat.updateMatrix()
+        halos.setMatrixAt(i, seat.matrix)
         // 반사는 물결에 따라 길이가 늘었다 줄었다 한다 — 이 흔들림이 '수면'을 만든다
         const stretch = 1 + 0.18 * Math.sin(t * 0.9 + i * 2.1) + 0.1 * Math.sin(t * 1.7 - i)
         seat.position.set(LX[i] + sway * 0.7, 0.05, 1.5)
         seat.rotation.set(-Math.PI / 2, 0, 0)
-        seat.scale.set(1, stretch, 1)
+        seat.scale.set(big, stretch * big, 1)
         seat.updateMatrix()
         refl.setMatrixAt(i, seat.matrix)
       }
+      lamps.instanceMatrix.needsUpdate = true
+      cords.instanceMatrix.needsUpdate = true
+      halos.instanceMatrix.needsUpdate = true
       refl.instanceMatrix.needsUpdate = true
+      lamps.material.emissiveIntensity = 0.9 + 0.5 * approach + 0.7 * pass + 0.08 * Math.sin(t * 1.3)
+      halos.material.opacity = (0.12 + 0.16 * approach + 0.24 * pass) * vis
       refl.material.opacity = (0.1 + 0.22 * approach + 0.3 * pass) * vis
+      shade.material.opacity = (0.08 + 0.16 * approach) * vis
+      membrane.material.opacity = (0.22 + 0.34 * approach) * (1 - 0.85 * core) * vis * linger
+      membrane.material.map.rotation = 0.06 * Math.sin(t * 0.35)
     })
   }
 
@@ -2270,7 +2266,9 @@ export function buildWorld(scene, chapterCount, premises = []) {
     ])
     root.add(fallen)
 
-    // 막 — 틈 너머로 비치는 잿빛 도시. 돌은 이 존의 것이고, 문 안쪽만 다음 존이다.
+    // 막 — 틈 너머로 이는 열기. 잿빛 도시 하늘(NEXT_SKY[1])을 그대로 비췄더니
+    // 볕 센 모래 한가운데 회색 유리 한 장이 박힌 꼴이 됐다 — 이 존의 색으로 되돌린다.
+    // "다른 세계"는 색이 아니라 명도로 말한다: 바깥 모래보다 반 단 어두운 테라코타.
     // 원판을 늘여 놓으면 문이 아니라 알이 된다. 두 기둥의 안쪽 면과 지면이 만드는
     // 실제 개구부 모양 그대로 부채꼴을 짠다 — 틈이 곧 문의 형태여야 한다.
     const MEM_CY = 1.6
@@ -2328,7 +2326,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
       openingGeo,
       // color 로 한 단 눌러 놓는다 — 볕 센 사막 한가운데서 밝은 막은 유리구슬로 읽힌다.
       // 문 안쪽이 바깥보다 어두워야 "저쪽은 다른 세계"가 명암으로 먼저 읽힌다.
-      new THREE.MeshBasicMaterial({ color: '#77828e', map: portalSkyTexture(1), transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide, fog: false })
+      new THREE.MeshBasicMaterial({ color: '#b5834a', map: portalSkyTexture(1, ['#845a2e', '#e2aa6a']), transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide, fog: false })
     )
     membrane.position.y = MEM_CY
     membrane.material.map.center.set(0.5, 0.5)
@@ -2399,8 +2397,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
     contactSpots.push({ x: -2.4, d: g, r: 0.7 }, { x: 2.4, d: g, r: 0.7 })
 
-    const cursor = gateTeaser(next, g)
-
     gateAnims.push((walked, t) => {
       const near = g - walked
       // 돌은 안개 속에 먼저 서 있다 — 멀리서 보이는 목적지가 곧 걷는 이유가 된다.
@@ -2453,7 +2449,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
         falls.instanceMatrix.needsUpdate = true
         pool.material.opacity = (0.08 + 0.18 * approach + 0.4 * pass) * vis
       }
-      if (cursor) cursor.material.opacity = (t % 1.06) < 0.55 ? 0.9 : 0.05
     })
   }
 
@@ -2468,37 +2463,6 @@ export function buildWorld(scene, chapterCount, premises = []) {
 
 
 
-  // ── 경계 4 (d=254) — 부두 끝 토리이. 막을 판이 처음부터 없는 문 — 그 사실이 형태다. ──
-  {
-    const g4 = gateOf(3)
-    const root = new THREE.Group()
-    root.position.set(0, trackY(g4 - 0.5), -(g4 - 0.5))
-    group.add(root)
-    const ringGrp = new THREE.Group()
-    ringGrp.position.set(0, trackY(g4 + 5) + 2.45, -(g4 + 5))
-    const ringMain = new THREE.Mesh(
-      new THREE.TorusGeometry(2.35, 0.09, 8, 48),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.9, fog: false })
-    )
-    const ringSub = new THREE.Mesh(
-      new THREE.TorusGeometry(2.62, 0.035, 6, 40),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.32, fog: false })
-    )
-    ringSub.rotation.z = 0.25
-    const membrane = new THREE.Mesh(
-      new THREE.CircleGeometry(2.35, 40),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false })
-    )
-    ringGrp.add(ringMain, ringSub, membrane)
-    group.add(ringGrp)
-    gateAnims.push((walked, t) => {
-      const pass = Math.max(0, 1 - Math.abs(g4 + 5 - walked) / 3)
-      membrane.material.opacity = 0.08 + 0.55 * pass * pass
-      ringMain.material.opacity = 0.25 + 0.7 * (1 - smooth01((g4 + 5 - walked - 18) / 14))
-      ringGrp.visible = g4 + 5 - walked < 28
-      ringSub.rotation.z = 0.25 + t * 0.15
-    })
-  }
 
   // ----- 존마다 하나씩, 그 존에만 있는 것 -----
 
@@ -2869,6 +2833,15 @@ export function buildWorld(scene, chapterCount, premises = []) {
   plazaRim.rotation.x = Math.PI / 2
   plazaRim.position.set(0, 0.09 + endY, -endD)
   group.add(plazaRim)
+  // 테두리 불 — 밤이 오면 광장 가장자리에 선이 들어온다. 없으면 멀리서 광장이 '땅에 난 검은 타원'
+  // 으로 보인다(실측: 도착 25m 전). 도착지는 어두운 구멍이 아니라 불 켜진 자리여야 한다.
+  const plazaEdge = new THREE.Mesh(
+    new THREE.TorusGeometry(5.52, 0.12, 6, 44),
+    new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0, depthWrite: false, fog: false })
+  )
+  plazaEdge.rotation.x = Math.PI / 2
+  plazaEdge.position.set(0, 0.12 + endY, -endD)
+  group.add(plazaEdge)
 
   // ----- 발밑 -----
   // 개수가 문제였다. 유사 요소 225개가 동시에 잡히면 개체로도 질감으로도 안 읽혀
@@ -3145,47 +3118,94 @@ export function buildWorld(scene, chapterCount, premises = []) {
   dream.visible = false // 멀리서 안개색 실루엣으로 새어 나오면 렌더 결함으로 보인다
   group.add(dream)
 
+  // 길 — 폭 1.7 의 균일한 청록 판은 '길'이 아니라 바닥에 깐 카펫이었다. 끝으로 갈수록
+  // 사라지는 그라데이션을 먹여, 걸어갈수록 앞이 지워지는 미완의 길로 만든다.
+  const dreamPathTex = (() => {
+    const cv = document.createElement('canvas')
+    cv.width = 8
+    cv.height = 128
+    const c = cv.getContext('2d')
+    const gr = c.createLinearGradient(0, 128, 0, 0)
+    gr.addColorStop(0, 'rgba(255,255,255,0.95)')
+    gr.addColorStop(0.35, 'rgba(255,255,255,0.42)')
+    gr.addColorStop(1, 'rgba(255,255,255,0)')
+    c.fillStyle = gr
+    c.fillRect(0, 0, 8, 128)
+    return new THREE.CanvasTexture(cv)
+  })()
   const dreamPath = new THREE.Mesh(
     new THREE.PlaneGeometry(1.7, 78),
-    new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.3 })
+    new THREE.MeshBasicMaterial({ map: dreamPathTex, color: GLOW, transparent: true, opacity: 0.34, depthWrite: false })
   )
   dreamPath.rotation.x = -Math.PI / 2
+  dreamPath.rotation.z = Math.PI // 그라데이션의 진한 쪽을 발밑으로
   dreamPath.position.set(0, 0.06, -(7 + 39))
   dream.add(dreamPath)
 
-  for (let k = 0; k < 5; k++) {
-    const r = 2.6 + k * 0.9
+  // 관문 고리 — 다섯 개는 화면에서 서로 겹쳐 가는 호가 엉킨 낙서로 보였다.
+  // 셋으로 줄이고 간격을 벌린다. 멀수록 크고 흐리게 — 그래야 겹침이 아니라 원근이 된다.
+  for (let k = 0; k < 3; k++) {
+    const r = 3.0 + k * 2.2
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(r, 0.06, 6, 36),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.72, fog: false })
+      new THREE.TorusGeometry(r, 0.075, 6, 36),
+      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.62 - k * 0.16, fog: false })
     )
-    ring.position.set(0, 1.6 + k * 0.5, -(14 + k * 16))
-    ring.rotation.z = (hash(k * 3.3) - 0.5) * 0.14
+    ring.position.set(0, 1.9 + k * 1.1, -(16 + k * 26))
+    ring.rotation.z = (hash(k * 3.3) - 0.5) * 0.12
     dream.add(ring)
   }
-  for (let k = 0; k < 4; k++) {
+  // 떠 있는 섬 — 예전에는 #cfe4ee 옥색이라 라벤더 밤하늘과 값이 같았고, 그래서 '떠 있는 것'이
+  // 아니라 '하늘에 난 얼룩'으로 보였다. 몸통을 하늘보다 어둡게 내리고 아랫면에만 청록을 남긴다.
+  // 어두운 덩어리 + 밝은 밑선 = 위에서 빛을 못 받는 물체, 즉 공중에 뜬 물체다.
+  for (let k = 0; k < 5; k++) {
     const side = k % 2 === 0 ? 1 : -1
-    const d = 22 + k * 16
-    const isle = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + hash(k * 7.7) * 1.3, 0), std('#cfe4ee'))
+    const d = 26 + k * 15
+    const rad = 1.5 + hash(k * 7.7) * 1.4
+    // 바깥으로 더 밀어 낸다 — 가까이 두면 화면에서 행성·모노리스와 겹쳐 한 덩어리가 된다
+    const ix = side * (11 + hash(k * 5.1) * 8)
+    const iy = 7.0 + hash(k * 9.1) * 6.5
+    const isle = new THREE.Mesh(new THREE.IcosahedronGeometry(rad, 0), std('#2f3358', { flatShading: true }))
     isle.scale.set(1, 0.42, 1)
-    isle.position.set(side * (7 + hash(k * 5.1) * 5), 5.5 + hash(k * 9.1) * 4.5, -d)
-    dream.add(isle)
+    isle.position.set(ix, iy, -d)
+    // 밑동 — 뜯겨 나온 자리. 짧고 뭉툭해야 '섬'이고, 길고 뾰족하면 창끝이 된다(v1 실패 지점).
+    const keel = new THREE.Mesh(new THREE.ConeGeometry(rad * 0.82, rad * 0.8, 5), std('#242847', { flatShading: true }))
+    keel.rotation.x = Math.PI
+    keel.position.set(ix, iy - rad * 0.5, -d)
+    // 밑동 아래 고인 빛 — 물체가 아니라 빛이라야 '떠 있다'가 증명된다
+    const under = new THREE.Mesh(
+      new THREE.PlaneGeometry(rad * 3.4, rad * 3.4),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: GLOW, transparent: true, opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    under.rotation.x = Math.PI / 2
+    under.position.set(ix, iy - rad * 1.0, -d)
+    dream.add(isle, keel, under)
   }
   // 모노리스 — 기울어 떠 있는 돌기둥. 아래 광원 원판이 부양을 증명한다.
+  // 몸통을 밤보다 어둡게(#dfe0f2 → #262a4c) 내린다. 밝은 기둥은 밤에 켜 둔 형광등이지 돌이 아니다.
   for (const [mx, md, my, tilt] of [[-16, 24, 9, 0.12], [21, 42, 14, -0.08], [-27, 58, 11, 0.05]]) {
-    const mono = new THREE.Mesh(new THREE.BoxGeometry(1.0, 13, 1.0), std('#dfe0f2'))
+    const mono = new THREE.Mesh(new THREE.BoxGeometry(1.0, 13, 1.0), std('#262a4c', { flatShading: true }))
     mono.position.set(mx, my, -md)
     mono.rotation.z = tilt
+    // 세로 이음선 — 어두운 기둥에 빛나는 선 한 줄이 있어야 실루엣이 '구조물'이 된다
+    const seam = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.08, 12.2),
+      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+    )
+    seam.position.set(mx + Math.cos(tilt) * 0.52, my, -md + 0.02)
+    seam.rotation.z = tilt
     const band = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.4, 1.15), glowMat(GLOW, 1.4))
     band.position.set(mx + Math.sin(tilt) * 6.3, my - Math.cos(tilt) * 6.3, -md)
     band.rotation.z = tilt
+    // 부양의 증거인 바닥 광원. 일반 블렌딩이면 밝은 지면 위에서 청록이 지면보다 어두워
+    // "빛 웅덩이"가 아니라 "검은 얼룩"으로 렌더된다(실측: 도착 직전 지면의 큰 검은 타원).
+    // 가산으로 바꾸고 가장자리를 풀어 준다 — 빛은 테두리가 없다.
     const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(2.4, 12),
-      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.12, depthWrite: false, fog: false })
+      new THREE.PlaneGeometry(5.6, 5.6),
+      new THREE.MeshBasicMaterial({ map: poolTex, color: GLOW, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
     )
     disc.rotation.x = -Math.PI / 2
     disc.position.set(mx, 0.1, -md)
-    dream.add(mono, band, disc)
+    dream.add(mono, seam, band, disc)
   }
 
 
@@ -3303,6 +3323,8 @@ export function buildWorld(scene, chapterCount, premises = []) {
     dreamLight.intensity = 40 * night
     rimLight.intensity = 18 * night
     plazaGlow.material.opacity = 0.12 * night
+    plazaEdge.material.opacity = 0.75 * night
+    plazaEdge.visible = night > 0.02
     debris.visible = night > 0.05 // 낮에 보이면 꿈의 재료가 아니라 낙석이다
     if (dream.visible) {
       if (debris.visible) {
