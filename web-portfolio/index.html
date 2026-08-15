@@ -371,20 +371,14 @@
       font-size: var(--fs-4); font-weight: 600; letter-spacing: 0.06em; color: var(--ink);
       transition: font-size 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    /* 네 칸 — 삭제한 지도가 갖고 있던 유일한 정보("장이 넷")만 여기로 옮겼다.
-       분모가 아니라 눈금이다: 숫자를 세지 않고 형태로 안다. */
-    #chapter .dots { display: flex; gap: 6px; }
-    #chapter .dots i {
-      display: block; width: 15px; height: 2px; border-radius: 1px;
-      background: rgba(22, 48, 60, 0.28); transition: background 0.4s ease;
-    }
-    #chapter .dots i.done { background: var(--zone-c, var(--accent-ink)); }
+    /* .dots 삭제(2026-08-15) — 지도 지표(지나온 자리 n/4)가 돌아오면서 진행도 표면이 셋이 됐다:
+       이 네 칸, 지도의 노드 4개, 그리고 n/4. 둘 이상이면 독자는 셋을 대조해 일치를 확인하는
+       무상 인지 작업을 한다. 이 칸들은 지도를 지우던 동안의 임시 거처였다. */
     /* 문을 지나는 3초 — 같은 문자열이 커졌다가 제자리로 내려앉는다.
        44:18 = 2.4:1 이라 "같은 것이 작아졌다"로 읽힌다. 3.6:1 이면 "다른 두 개"가 된다. */
     #chapter.big { top: 16vh; }
     #chapter.big .no { font-size: var(--fs-4); }
     #chapter.big .nm { font-size: var(--fs-7); letter-spacing: 0.02em; }
-    #chapter.big .dots { opacity: 0; transition: opacity 0.3s; }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
     /* 대사창 — 화면 하단 가로. 세계가 위쪽을 전부 쓴다 */
@@ -529,17 +523,61 @@
     #mini {
       position: fixed; top: 1.5rem; right: 1.5rem; z-index: 4;
       width: 12.5rem; padding: 0.9rem;
+      /* 판이 반투명이라 밝은 사막 하늘(Y 0.64) 위에서는 판 가장자리 대비가 1.2:1 로 사라진다.
+         재질은 그대로 두고 1px 윤곽선만 더한다 — 2.2:1. */
+      box-shadow:
+        0 10px 40px rgba(20, 80, 110, 0.16),
+        0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+        0 0 26px rgba(14, 168, 184, 0.1),
+        0 0 0 1px rgba(22, 48, 60, 0.34);
     }
     #mini svg { display: block; width: 100%; height: auto; }
-    #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.16); stroke-width: 2.4; stroke-linecap: round; }
-    #mini .route-done { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; }
+    /* 케이싱 — 지도학의 관용구. 선이 자기 밑에 밝은 지지면을 깔면 배경 5종과 무관하게
+       국소 대비를 갖는다. 이게 없으면 진행선이 밤 판 위에서 1.4:1 로 소멸한다. */
+    #mini .route-casing { fill: none; stroke: rgba(255,255,255,0.78); stroke-width: 4.4; stroke-linecap: round; }
+    #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.32); stroke-width: 1.5; stroke-linecap: round; }
+    /* --accent(#0ea8b8)는 케이싱 위에서도 2.4:1 이라 필수 정보를 못 싣는다. --accent-ink 는 4.7:1. */
+    #mini .route-done { fill: none; stroke: var(--accent-ink); stroke-width: 2.0; stroke-linecap: round; }
     #mini .node {
-      fill: #ffffff; stroke: rgba(22, 48, 60, 0.28); stroke-width: 1.6;
-      transition: fill 0.32s ease, stroke 0.32s ease;
+      fill: #ffffff; stroke: rgba(22, 48, 60, 0.5); stroke-width: 1.0;
+      transition: fill 0.28s ease, stroke 0.28s ease;
     }
-    #mini .node.done { fill: var(--accent); stroke: var(--accent); }
-    #mini .me { fill: var(--coral); stroke: #ffffff; stroke-width: 2; }
+    /* 예전에는 .done 이 청록 fill + 청록 stroke 라, 청록 진행선 위에 얹히면 노드가 선에 먹혔다.
+       4/4 상태에서는 매끈한 곡선만 남고 정거장 표시가 0개였다. 흰 링이 선과 점을 분리한다. */
+    #mini .node.done { fill: var(--accent-ink); stroke: #ffffff; stroke-width: 1.1; animation: node-arrive 0.42s ease-out 1; }
+    @keyframes node-arrive { 0% { stroke-width: 1.1; } 40% { stroke-width: 3.0; } 100% { stroke-width: 1.1; } }
+    /* 종점 — 이 판의 임무가 "이 길에 끝이 있다"인데 끝이 안 그려져 있었다.
+       크기(1.47배)로 구분하고 색으로만 구분하지 않는다: 색만 쓰면 색각 이상에서 정거장과 같아진다. */
+    #mini .goal { fill: #ffffff; stroke: rgba(22, 48, 60, 0.5); stroke-width: 1.1; }
+    #mini .goal.done { fill: var(--accent-ink); stroke: #ffffff; }
+    #mini .me-halo { fill: rgba(244, 85, 43, 0.18); }
+    #mini .me { fill: var(--coral); stroke: #ffffff; stroke-width: 1.4; }
+    /* 지도가 위, 지표가 아래 — 코너는 주변시가 잡는 자리다. 형태는 주변시로 읽히고
+       숫자는 중심시가 있어야 읽히므로, 읽어야 하는 것을 코너에서 멀리 둔다.
+       구분 규칙선은 넣지 않는다: 15.2px 공백이 이미 두 덩어리를 나눈다. */
+    #mini .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 0.95rem; }
+    #mini .stat { display: grid; row-gap: 0.22rem; }
+    /* 라벨을 --ink-45 로 낮추면 밤 판 위에서 2.8:1 로 무너진다. 둘 다 불투명 잉크를 쓰고
+       위계는 크기(21 vs 12 = 1.75:1)가 전담한다. */
+    #mini .stats .k {
+      font-size: var(--fs-1); font-weight: 500; letter-spacing: 0.06em;
+      line-height: 1.2; color: var(--ink); white-space: nowrap;
+    }
+    #mini .stats .v {
+      font-family: var(--mono); font-size: var(--fs-5); font-weight: 600;
+      line-height: 1.1; color: var(--ink);
+      font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+    }
+    /* 콜론은 숫자와 같은 전각 폭을 차지해, 같은 농도면 04·:·12 세 덩어리로 읽힌다 */
+    #mini .stats .v .sep { color: rgba(22, 48, 60, 0.55); }
+    /* 분모는 회색으로 낮추지 않고 크기만 줄인다(밤 대비 유지). 눈은 3 을 사실로, /4 를 눈금으로 읽는다. */
+    #mini .stats .v i { font-style: normal; font-size: var(--fs-2); font-weight: 500; color: var(--ink); }
+    #mini .stats .v .sl { font-size: var(--fs-2); font-weight: 400; color: rgba(22,48,60,0.5); margin: 0 0.06em; }
     @media (max-width: 1000px) { #mini { display: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      #mini .node { transition: none; }
+      #mini .node.done { animation: none; }
+    }
 
     /* 엔딩 */
     #outro-panel {
@@ -547,40 +585,74 @@
       left: clamp(1.5rem, 6vw, 7rem);
       top: 50%;
       transform: translateY(-50%);
-      max-width: 28.5em; /* 알약 셋이 한 줄에 앉는 폭 — 25em 에서는 GitHub 이 혼자 두 번째 줄로 내려갔다 */
-      padding: 2.5rem 2.6rem;
+      /* 28.5em 의 근거였던 "알약 셋이 한 줄"은 실측에서 무효였다(GitHub 이 두 번째 줄로 내려갔다).
+         최장 줄 '문제를 해결하기 위해'가 250px 이라 카드 오른쪽 33% 가 늘 비어 있었다.
+         25em 이면 빈 공간이 18% 로 줄고 알약 둘(295px)이 확실히 한 줄에 앉는다. */
+      max-width: 25em;
+      padding: 2.4rem 2.5rem;
       z-index: 3;
     }
     #outro-panel.hidden-panel { transform: translateY(calc(-50% + 18px)); }
     /* 위계 셋: 걸은 기록(작게) → 관통 축(가장 크게) → 초대(중간).
        예전에는 넷이 전부 같은 크기(21px)로 쌓여 있어 무엇이 결론인지 알 수 없었고,
        'DATA PLATFORM ENGINEER'는 랜딩이 이미 한 말이라 8분을 걸은 사람에게 새것이 0이었다. */
-    #outro-panel > * { opacity: 0; transform: translateY(8px); transition: opacity 0.55s, transform 0.55s; }
+    /* 스태거 1.65s → 0.97s. 예전에는 도착하고 1.65초 동안 누를 것이 없었다.
+       인접 간격 150ms 는 "계단"으로 지각되는 하한(~80ms)과 개별 사건으로 분해되는
+       상한(~250ms) 사이다 — 350ms 는 이미 분해 구간이었다. 스태거의 목적은 순서를
+       보여주는 것이지 기다리게 하는 것이 아니다. */
+    #outro-panel > * { opacity: 0; transform: translateY(8px);
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); }
     #outro-panel:not(.hidden-panel) > * { opacity: 1; transform: none; }
-    #outro-panel:not(.hidden-panel) .axis { transition-delay: 0.35s; }
-    #outro-panel:not(.hidden-panel) .invite { transition-delay: 0.8s; }
-    #outro-panel:not(.hidden-panel) .links { transition-delay: 1.1s; }
-    #outro-panel .record {
-      font-size: var(--fs-3); color: var(--ink-45); letter-spacing: 0.01em;
-      margin-bottom: 1.25em;
+    #outro-panel:not(.hidden-panel) .axis { transition-delay: 0.15s; }
+    #outro-panel:not(.hidden-panel) .invite { transition-delay: 0.3s; }
+    #outro-panel:not(.hidden-panel) .links { transition-delay: 0.45s; }
+    #outro-panel:not(.hidden-panel) .more { transition-delay: 0.52s; }
+    @media (prefers-reduced-motion: reduce) {
+      #outro-panel > * { transform: none; transition: opacity 0.2s; }
+      #outro-panel:not(.hidden-panel) > * { transition-delay: 0s !important; }
     }
-    #outro-record b { font-family: var(--mono); font-weight: 600; color: var(--accent-ink); }
+    /* --ink-45 는 이 판 위에서 3.6:1 로 AA 미달이다. #2b4655 는 5.2:1 이면서 --ink 보다 물러난다. */
+    #outro-panel .record {
+      font-size: var(--fs-3); line-height: 1.6; color: #2b4655; letter-spacing: 0.01em;
+      margin-bottom: 1.4em;
+    }
+    /* 유리 위 #087280 텍스트는 2.7:1 — 이 사이트에서 유일하게 '숫자'인 값이 가장 안 읽히고 있었다.
+       청록을 버리고 mono + 잉크로 구분한다. */
+    #outro-record b { font-family: var(--mono); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
     /* 관통 축 — 네 장을 다 지나온 사람에게만 뜻이 생기는 문장이라, 도착의 보상 자격이 있는 유일한 줄이다 */
     #outro-panel .axis {
       font-size: var(--fs-6); font-weight: 700; line-height: 1.5;
       letter-spacing: -0.012em; color: var(--ink); word-break: keep-all;
-      padding-left: 0.72em; border-left: 3px solid var(--accent);
-      margin-bottom: 1.15em;
+      /* --accent(#0ea8b8)는 이 판 위에서 1.4:1 이라 규칙선이 흐릿했다. --accent-ink 는 3.4:1 —
+         화면에 남는 유일한 청록이다. */
+      padding-left: 0.72em; border-left: 3px solid var(--accent-ink);
+      margin-bottom: 1.2em;
     }
     #outro-panel .invite {
-      font-size: var(--fs-4); line-height: 1.7; color: var(--ink-70);
-      word-break: keep-all; margin-bottom: 1.7em;
+      font-size: var(--fs-4); line-height: 1.7; color: #2b4655;
+      word-break: keep-all; margin-bottom: 1.8em;
+    }
+    #outro-panel .links { gap: 0.7rem; }
+    #outro-panel a {
+      min-height: 44px; display: inline-flex; align-items: center; /* HIG 44 / Material 48 터치 하한 */
+      padding: 0 1.35em;
     }
     #outro-panel .links a.primary {
       background: var(--accent-ink); color: #ffffff; border-color: transparent;
       box-shadow: 0 6px 18px -6px rgba(8, 114, 128, 0.55);
     }
-    #outro-panel .links a.primary:hover { background: #0a8b9c; color: #ffffff; border-color: transparent; }
+    /* 밝히는 호버(#0a8b9c)는 흰 글자 대비를 4.05:1 로 떨어뜨려, 호버하는 순간 AA 를 잃었다. */
+    #outro-panel .links a.primary:hover { background: #065e69; color: #ffffff; border-color: transparent; }
+    /* 청록 0.55 알파 테두리는 1.7:1. 화면에서 색을 가진 버튼은 하나뿐이어야 1차가 1차다. */
+    #outro-panel .links a.secondary { border-color: rgba(22, 48, 60, 0.7); color: var(--ink); }
+    #outro-panel .more { margin-top: 0.9rem; }
+    #outro-panel .more a {
+      min-height: 0; padding: 0; border: 0; border-radius: 0;
+      font-size: var(--fs-2); font-weight: 500; color: #2b4655;
+      border-bottom: 1px solid rgba(22, 48, 60, 0.35);
+    }
+    #outro-panel .more a:hover { color: var(--ink); border-bottom-color: var(--ink); box-shadow: none; }
+    #outro-panel a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
 
     /* 클릭의 보답 — 로봇 머리 위 이모트 버블(하트). 말 대신 게임의 문법으로 */
@@ -628,7 +700,7 @@
       padding: 0.55em 1.3em; border: 1px solid rgba(14,168,184,0.45); border-radius: 999px;
       transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
     }
-    #outro-panel a:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 14px rgba(14,168,184,0.35); }
+    #outro-panel a:hover { border-color: var(--ink); color: var(--ink); background: rgba(255,255,255,0.55); }
 
     body.no-webgl #bg { display: none; }
     body.no-webgl #landing { background: linear-gradient(180deg, #cfe9f8, #d6edf6); }
@@ -728,7 +800,6 @@
   <div id="chapter" aria-live="polite">
     <span class="no"></span>
     <span class="nm"></span>
-    <span class="dots"><i></i><i></i><i></i><i></i></span>
   </div>
 
   <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길 위의 자리">
@@ -740,23 +811,42 @@
     <div class="hint"><span class="step"></span><button type="button" class="go"><span class="verb">다음</span><kbd>SPACE</kbd></button></div>
   </section>
   <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
+  <!-- aria-hidden 유지 — aria-live 를 걸면 스크린리더가 시계를 매초 낭독한다. -->
   <aside id="mini" class="panel hidden-panel" aria-hidden="true">
-    <svg viewBox="0 0 150 150">
+    <!-- viewBox 는 경로 bbox 에 맞춘다. 0 0 150 150 은 우측 38px·상하 9px 이 빈 채로 렌더돼
+         그만큼 그림이 작게 그려지고 있었다. -->
+    <svg id="map-svg" viewBox="1 6 117 141">
+      <path class="route-casing" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
       <path class="route" id="route" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
       <path class="route-done" id="route-done" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
+      <circle class="goal" id="map-goal" r="4.4" cx="112" cy="140" />
       <g id="map-nodes"></g>
-      <circle class="me" id="map-me" r="4" cx="20" cy="14" />
+      <circle class="me-halo" id="map-me-halo" r="5.8" cx="20" cy="14" />
+      <circle class="me" id="map-me" r="3.6" cx="20" cy="14" />
     </svg>
+    <div class="stats">
+      <div class="stat">
+        <span class="k">머문 시간</span>
+        <b class="v" id="mini-time">00<span class="sep">:</span>00</b>
+      </div>
+      <div class="stat">
+        <span class="k">지나온 자리</span>
+        <b class="v" id="mini-stops">0<span class="sl">/</span><i>4</i></b>
+      </div>
+    </div>
   </aside>
-  <section id="outro-panel" class="panel hud hidden-panel">
+  <!-- hud 클래스 제거 — 청록 코너 브래킷은 "계기판"의 표시다. 아웃트로는 계기판이 아니라 마침표다. -->
+  <section id="outro-panel" class="panel hidden-panel">
     <p class="record" id="outro-record">여기까지 함께 걸어주셨습니다.</p>
     <p class="axis">기술을 쌓는 것에서,<br />문제를 해결하기 위해<br />기술을 선택하는 것으로.</p>
     <p class="invite">다음 구간은, 만나서 걷고 싶습니다.</p>
+    <!-- 알약 셋 → 둘 + 텍스트 링크. 셋은 400px 안에서 줄바꿈했고(실측), 나란히 두면
+         위계가 "채움 하나 + 나머지"뿐이다. 형태를 셋으로 나누면 시선 순서가 확정된다. -->
     <div class="links">
       <a class="primary" href="mailto:96tmdtmd@gmail.com">이메일 보내기</a>
-      <a href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
-      <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">GitHub</a>
+      <a class="secondary" href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
     </div>
+    <p class="more"><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a></p>
   </section>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
   <script type="module" src="/src/main.js"></script>

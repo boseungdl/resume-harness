@@ -46,10 +46,13 @@ const routeEl = document.getElementById('route')
 const routeDone = document.getElementById('route-done')
 const mapNodes = document.getElementById('map-nodes')
 const mapMe = document.getElementById('map-me')
+const mapMeHalo = document.getElementById('map-me-halo')
+const mapGoal = document.getElementById('map-goal')
+const miniTime = document.getElementById('mini-time')
+const miniStops = document.getElementById('mini-stops')
 const chapEl = document.getElementById('chapter')
 const chapNo = chapEl.querySelector('.no')
 const chapNm = chapEl.querySelector('.nm')
-const chapDots = [...chapEl.querySelectorAll('.dots i')]
 const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
@@ -502,12 +505,56 @@ if (!webglAvailable()) {
     mapNodes.appendChild(c)
     return c
   })
+  {
+    // 종점 — 경로 끝에 실제로 표시를 찍는다. 이 판의 임무가 "이 길에 끝이 있다"인데
+    // 그동안 끝이 안 그려져 있었다.
+    const end = routeEl.getPointAtLength(routeLen)
+    mapGoal.setAttribute('cx', end.x.toFixed(1))
+    mapGoal.setAttribute('cy', end.y.toFixed(1))
+  }
   function drawMap(progress) {
     const at = Math.min(1, Math.max(0, progress)) * routeLen
     routeDone.style.strokeDasharray = `${at} ${routeLen}`
     const pt = routeEl.getPointAtLength(at)
-    mapMe.setAttribute('cx', pt.x.toFixed(1))
-    mapMe.setAttribute('cy', pt.y.toFixed(1))
+    const cx = pt.x.toFixed(1)
+    const cy = pt.y.toFixed(1)
+    mapMe.setAttribute('cx', cx)
+    mapMe.setAttribute('cy', cy)
+    mapMeHalo.setAttribute('cx', cx)
+    mapMeHalo.setAttribute('cy', cy)
+  }
+
+  // ── 머문 시간 ──
+  // 예전에 이 지표를 지운 이유는 "시계는 압박이다"였는데, 압박은 주기가 아니라 *끝나지 않음*에서
+  // 온다. 도착하면 영구히 멈춘다 — 멈춘 숫자는 계기판이 아니라 기록이 되고, 아웃트로의 296m 과
+  // 같은 종류의 문장이 된다.
+  // 시작은 페이지 로드가 아니라 여정 진입이다. 탭만 열어 둔 사람에게 첫 화면부터 거짓말하지 않는다.
+  let stayMs = 0
+  let stayFrom = -1 // -1 이면 멈춘 상태
+  let stayFrozen = false
+  let stayShown = -1
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && stayFrom >= 0) {
+      stayMs += performance.now() - stayFrom
+      stayFrom = -1
+    }
+  })
+  function tickStay(running) {
+    if (stayFrozen) return
+    const now = performance.now()
+    if (running && !document.hidden) {
+      if (stayFrom < 0) stayFrom = now
+    } else if (stayFrom >= 0) {
+      stayMs += now - stayFrom
+      stayFrom = -1
+    }
+    const total = stayMs + (stayFrom >= 0 ? now - stayFrom : 0)
+    const sec = Math.min(3599, Math.floor(total / 1000)) // 3자리 분이 되면 열 폭이 바뀐다
+    if (sec === stayShown) return
+    stayShown = sec
+    const mm = String(Math.floor(sec / 60)).padStart(2, '0')
+    const ss = String(sec % 60).padStart(2, '0')
+    miniTime.innerHTML = `${mm}<span class="sep">:</span>${ss}`
   }
 
   // ---------- 걷는 로봇 ----------
@@ -956,7 +1003,7 @@ if (!webglAvailable()) {
   // 번들에서 충돌한다("Identifier 'collect' has already been declared"). dev 서버는 모듈을
   // 따로 두어 멀쩡하고, 프로덕션 빌드에서만 스크립트 전체가 파싱 단계에서 죽는다.
   // 매 프레임 같은 값을 다시 쓰면 레이아웃이 무효화된다 — 바뀔 때만 손댄다
-  const ui = { dist: -1, fade: -1, inJourney: null, beatKey: '', verdict: '' }
+  const ui = { dist: -1, fade: -1, inJourney: null, beatKey: '', verdict: '', stops: -1 }
   let veilOn = false
   let arrived = 0 // 자리 도착 계수 — 몸 돌림·카메라·비네트가 함께 탄다
 
@@ -981,9 +1028,26 @@ if (!webglAvailable()) {
       miniEl.classList.toggle('hidden-panel', !inJourney)
     }
 
+    let stops = 0
     world.npcs.forEach((n, i) => {
-      if (walked > n.dist - 2) journeyNodes[i]?.classList.add('done')
+      if (walked > n.dist - 2) {
+        stops++
+        journeyNodes[i]?.classList.add('done')
+      }
     })
+    if (stops !== ui.stops) {
+      ui.stops = stops
+      // 라벨이 '문항'이 아니라 '지나온 자리'인 이유: 같은 숫자쌍이 채점으로 읽히느냐
+      // 서수적 위치로 읽히느냐를 라벨이 정한다. 그리고 분모 4 는 끝까지 걸으면 반드시 채워진다 —
+      // 예전 13 / 24 는 조각이 13개인 길에서 24를 요구해, 도달 불가능한 분모였다.
+      miniStops.innerHTML = `${stops}<span class="sl">/</span><i>${world.npcs.length}</i>`
+    }
+    mapGoal.classList.toggle('done', atEnd)
+    tickStay(inJourney)
+    if (atEnd && !stayFrozen) {
+      tickStay(false)
+      stayFrozen = true
+    }
 
     // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
     const wasEnd = atEnd
@@ -1052,7 +1116,6 @@ if (!webglAvailable()) {
       chapEl.style.setProperty('--zone-c', PREMISES[chapIdx].themeColor ?? '')
       chapEl.classList.toggle('big', big)
       chapEl.classList.toggle('on', chapOn)
-      chapDots.forEach((d, i) => d.classList.toggle('done', i <= chapIdx))
     }
 
     drawMap(progress)
