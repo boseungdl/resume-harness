@@ -37,12 +37,15 @@ const popupEl = document.getElementById('popup')
 const popupQ = popupEl.querySelector('.q')
 const popupA = popupEl.querySelector('.a')
 const outroEl = document.getElementById('outro-panel')
-// #mini(지도·칩) 전면 삭제(2026-08-15).
-//   지도는 클릭이 안 되니 이동에 못 쓰고, 곡선은 3D 지형과 무관한 임의의 선이라 위치도 못 알려준다.
-//   남는 정보는 "장이 넷"뿐이라 그 하나만 챕터 표시 아래 네 칸 대시로 옮겼다.
-//   칩(chip)은 변별력이 0이었다 — "문제를 먼저 바라봅니다"는 3장에도 4장에도 참이고,
-//   "기술을 쌓는 데 집중했습니다"는 1장에도 참이다. 넷 중 셋이 다른 장에서도 성립하는 요약은
-//   이동을 지우고 도착점만 남긴 문장이라, 누구나 쓸 수 있다.
+// 우상단 지도 — 글자 없는 그래픽 하나. 칩 목록은 되살리지 않았다(2026-08-15):
+//   "문제를 먼저 바라봅니다"는 3장에도 4장에도 참이고 "기술을 쌓는 데 집중했습니다"는 1장에도
+//   참이라, 넷 중 셋이 다른 장에서도 성립했다 — 이동을 지우고 도착점만 남긴 요약은 변별력이 0이다.
+//   문제 삼은 건 상시 표시되는 '읽을거리'였지 그림이 아니므로, 판과 경로는 남긴다.
+const miniEl = document.getElementById('mini')
+const routeEl = document.getElementById('route')
+const routeDone = document.getElementById('route-done')
+const mapNodes = document.getElementById('map-nodes')
+const mapMe = document.getElementById('map-me')
 const chapEl = document.getElementById('chapter')
 const chapNo = chapEl.querySelector('.no')
 const chapNm = chapEl.querySelector('.nm')
@@ -485,6 +488,28 @@ if (!webglAvailable()) {
   // 느린 기기에서만 해상도를 단계적으로 낮춘다 (45fps 이상이면 아무것도 하지 않는다)
   const quality = createQualityGovernor({ renderer, onDisableBloom: () => {} })
 
+  // 지도 — 굽은 경로 하나에 자리 4개를 얹고, 걸은 만큼 실선이 따라온다
+  const NS = 'http://www.w3.org/2000/svg'
+  const routeLen = routeEl.getTotalLength()
+  routeDone.style.strokeDasharray = `0 ${routeLen}`
+  const journeyNodes = world.npcs.map((n) => {
+    const pt = routeEl.getPointAtLength((n.dist / world.TOTAL) * routeLen)
+    const c = document.createElementNS(NS, 'circle')
+    c.setAttribute('class', 'node')
+    c.setAttribute('r', '3')
+    c.setAttribute('cx', pt.x.toFixed(1))
+    c.setAttribute('cy', pt.y.toFixed(1))
+    mapNodes.appendChild(c)
+    return c
+  })
+  function drawMap(progress) {
+    const at = Math.min(1, Math.max(0, progress)) * routeLen
+    routeDone.style.strokeDasharray = `${at} ${routeLen}`
+    const pt = routeEl.getPointAtLength(at)
+    mapMe.setAttribute('cx', pt.x.toFixed(1))
+    mapMe.setAttribute('cy', pt.y.toFixed(1))
+  }
+
   // ---------- 걷는 로봇 ----------
 
   // 성장 연출 — 한계를 깰 때마다 발밑에서 빛 고리가 퍼지고 불꽃이 오르며, 로봇이 실제로 조금 자란다
@@ -640,7 +665,10 @@ if (!webglAvailable()) {
 
   let walked = 0
   const GATES = [0, 1, 2, 3].map((i) => 26 + i * 60 + 48)
-  const verdictHold = PREMISES.map(() => -1) // 결론 최소 노출 시한 — 창을 뛰어넘어도 4초는 보인다
+  // 챕터 카드가 크게 뜨는 지점. 문 넷 앞에 '걷기 시작(3m)'을 하나 더 둔다 —
+  // 01 앞에는 문이 없어서, 문 통과에만 물려 두면 첫 장만 큰 카드를 못 받았다.
+  const CHAP_MARKS = [3, ...GATES]
+  const chapHold = CHAP_MARKS.map(() => -1)
   // 발동·결론 판정 전용. prevWalked(groundSpeed 용)와 갱신 시점이 달라 공유하면 안 된다 —
   // 그 값은 판정 시점에 walked 와 같아서 곱이 항상 제곱이 되고 교차가 영영 잡히지 않는다.
   let checkedWalked = 0
@@ -948,6 +976,14 @@ if (!webglAvailable()) {
     }
 
     const inJourney = window.scrollY > journeyBase() * 0.72
+    if (inJourney !== ui.inJourney) {
+      ui.inJourney = inJourney
+      miniEl.classList.toggle('hidden-panel', !inJourney)
+    }
+
+    world.npcs.forEach((n, i) => {
+      if (walked > n.dist - 2) journeyNodes[i]?.classList.add('done')
+    })
 
     // 엔딩 — 임계에 이력을 둬야 경계에서 패널과 로봇이 덜덜 떨지 않는다
     const wasEnd = atEnd
@@ -1003,9 +1039,9 @@ if (!webglAvailable()) {
     // 시계는 walkTime 이 아니라 실시간이다 — walkTime 은 20초 이상 멈춰 서면 누적을 멈춘다
     const nowSec = performance.now() / 1000
     let big = false
-    for (let i = 0; i < GATES.length; i++) {
-      if ((checkedWalked - GATES[i]) * (walked - GATES[i]) <= 0) verdictHold[i] = nowSec + 3
-      if (nowSec < verdictHold[i]) big = true
+    for (let i = 0; i < CHAP_MARKS.length; i++) {
+      if ((checkedWalked - CHAP_MARKS[i]) * (walked - CHAP_MARKS[i]) <= 0) chapHold[i] = nowSec + 3
+      if (nowSec < chapHold[i]) big = true
     }
     const chapOn = inJourney && !atEnd && talkingNow() < 0
     const chapKey = `${chapIdx}:${big ? 1 : 0}:${chapOn ? 1 : 0}`
@@ -1018,6 +1054,8 @@ if (!webglAvailable()) {
       chapEl.classList.toggle('on', chapOn)
       chapDots.forEach((d, i) => d.classList.toggle('done', i <= chapIdx))
     }
+
+    drawMap(progress)
   }
 
   // ── 문을 지나는 순간의 가속 ──

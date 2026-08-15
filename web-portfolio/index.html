@@ -50,6 +50,8 @@
       /* 행장은 em 으로만 잰다. ch 는 숫자 0 의 폭(≈0.55em)이라 한글에 쓰면 절반으로 센다 —
          예전 #verdict 의 max-width:24ch 는 한글 13자였고, 그래서 55자 결론이 4줄로 넘쳤다. */
       --measure-body: 30em;    /* 본문 30자 — 한글 최적 행장 26~34자의 가운데 */
+      /* 대사창 본문만 34자 — 상한이지만, 한 조각이 3줄에서 2줄로 줄어 진행 버튼 띠와 안 만난다 */
+      --measure-wide: 34em;
       --measure-lead: 22em;
       --measure-display: 20em;
     }
@@ -391,7 +393,7 @@
       left: 50%;
       bottom: 2.1rem;
       transform: translateX(-50%);
-      width: min(680px, 92vw);
+      width: min(780px, 92vw);
       /* 46vh — 03(문제)은 관점이 바뀌는 자리라 비트가 넷이고 문장이 길다. 38vh 에서는 마지막 줄이 잘렸다. */
       max-height: 52vh;
       overflow: hidden;
@@ -509,7 +511,7 @@
       grid-column: 1;
       font-size: var(--fs-4);
       line-height: 1.75; word-break: keep-all; font-weight: 400; color: rgba(22, 48, 60, 0.85);
-      max-width: var(--measure-body);
+      max-width: var(--measure-wide);
       border-top: 1px dashed rgba(14, 168, 184, 0.32);
       padding: 0.9rem 0 0.1rem;
       /* 조각마다 높이가 달라지면 SPACE 를 누를 때마다 힌트 줄이 튄다 — 3줄분을 미리 잡는다 */
@@ -521,24 +523,64 @@
     }
     #popup .a.on { opacity: 1; transform: none; }
 
+    /* 우상단 지도 — 글자 없는 그래픽 하나. 칩 목록은 되살리지 않는다.
+       리뷰가 문제 삼은 건 상시 표시되는 '읽을거리'였지 그림이 아니었고,
+       이 판 하나가 "이 길에 끝이 있다"는 감각과 화면의 밀도를 동시에 맡는다. */
+    #mini {
+      position: fixed; top: 1.5rem; right: 1.5rem; z-index: 4;
+      width: 12.5rem; padding: 0.9rem;
+    }
+    #mini svg { display: block; width: 100%; height: auto; }
+    #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.16); stroke-width: 2.4; stroke-linecap: round; }
+    #mini .route-done { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; }
+    #mini .node {
+      fill: #ffffff; stroke: rgba(22, 48, 60, 0.28); stroke-width: 1.6;
+      transition: fill 0.32s ease, stroke 0.32s ease;
+    }
+    #mini .node.done { fill: var(--accent); stroke: var(--accent); }
+    #mini .me { fill: var(--coral); stroke: #ffffff; stroke-width: 2; }
+    @media (max-width: 1000px) { #mini { display: none; } }
+
     /* 엔딩 */
     #outro-panel {
       position: fixed;
       left: clamp(1.5rem, 6vw, 7rem);
       top: 50%;
       transform: translateY(-50%);
-      max-width: 27em;
-      padding: 2.3rem 2.5rem;
+      max-width: 28.5em; /* 알약 셋이 한 줄에 앉는 폭 — 25em 에서는 GitHub 이 혼자 두 번째 줄로 내려갔다 */
+      padding: 2.5rem 2.6rem;
       z-index: 3;
     }
     #outro-panel.hidden-panel { transform: translateY(calc(-50% + 18px)); }
-    #outro-panel .verdict { font-size: var(--fs-5); line-height: 1.72; letter-spacing: -0.005em; word-break: keep-all; margin-bottom: 1.5rem; font-weight: 600; }
-    /* 엔딩 3행 스태거 — 기록 → 감사 → 제안 순서로 떠오른다 */
-    #outro-panel .verdict span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 0.5s, transform 0.5s; }
-    #outro-panel:not(.hidden-panel) .verdict span { opacity: 1; transform: none; }
-    #outro-panel:not(.hidden-panel) .verdict span:nth-child(2) { transition-delay: 0.45s; }
-    #outro-panel:not(.hidden-panel) .verdict span:nth-child(3) { transition-delay: 0.9s; }
+    /* 위계 셋: 걸은 기록(작게) → 관통 축(가장 크게) → 초대(중간).
+       예전에는 넷이 전부 같은 크기(21px)로 쌓여 있어 무엇이 결론인지 알 수 없었고,
+       'DATA PLATFORM ENGINEER'는 랜딩이 이미 한 말이라 8분을 걸은 사람에게 새것이 0이었다. */
+    #outro-panel > * { opacity: 0; transform: translateY(8px); transition: opacity 0.55s, transform 0.55s; }
+    #outro-panel:not(.hidden-panel) > * { opacity: 1; transform: none; }
+    #outro-panel:not(.hidden-panel) .axis { transition-delay: 0.35s; }
+    #outro-panel:not(.hidden-panel) .invite { transition-delay: 0.8s; }
+    #outro-panel:not(.hidden-panel) .links { transition-delay: 1.1s; }
+    #outro-panel .record {
+      font-size: var(--fs-3); color: var(--ink-45); letter-spacing: 0.01em;
+      margin-bottom: 1.25em;
+    }
     #outro-record b { font-family: var(--mono); font-weight: 600; color: var(--accent-ink); }
+    /* 관통 축 — 네 장을 다 지나온 사람에게만 뜻이 생기는 문장이라, 도착의 보상 자격이 있는 유일한 줄이다 */
+    #outro-panel .axis {
+      font-size: var(--fs-6); font-weight: 700; line-height: 1.5;
+      letter-spacing: -0.012em; color: var(--ink); word-break: keep-all;
+      padding-left: 0.72em; border-left: 3px solid var(--accent);
+      margin-bottom: 1.15em;
+    }
+    #outro-panel .invite {
+      font-size: var(--fs-4); line-height: 1.7; color: var(--ink-70);
+      word-break: keep-all; margin-bottom: 1.7em;
+    }
+    #outro-panel .links a.primary {
+      background: var(--accent-ink); color: #ffffff; border-color: transparent;
+      box-shadow: 0 6px 18px -6px rgba(8, 114, 128, 0.55);
+    }
+    #outro-panel .links a.primary:hover { background: #0a8b9c; color: #ffffff; border-color: transparent; }
 
 
     /* 클릭의 보답 — 로봇 머리 위 이모트 버블(하트). 말 대신 게임의 문법으로 */
@@ -698,16 +740,22 @@
     <div class="hint"><span class="step"></span><button type="button" class="go"><span class="verb">다음</span><kbd>SPACE</kbd></button></div>
   </section>
   <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
+  <aside id="mini" class="panel hidden-panel" aria-hidden="true">
+    <svg viewBox="0 0 150 150">
+      <path class="route" id="route" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
+      <path class="route-done" id="route-done" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
+      <g id="map-nodes"></g>
+      <circle class="me" id="map-me" r="4" cx="20" cy="14" />
+    </svg>
+  </aside>
   <section id="outro-panel" class="panel hud hidden-panel">
-    <div class="verdict">
-      <span id="outro-record">여기까지 함께 걸어주셨습니다.</span>
-      <span>DATA PLATFORM ENGINEER</span>
-      <span>Problem · Data · Infrastructure · AI — 다음 구간은, 만나서 걷고 싶습니다.</span>
-    </div>
+    <p class="record" id="outro-record">여기까지 함께 걸어주셨습니다.</p>
+    <p class="axis">기술을 쌓는 것에서,<br />문제를 해결하기 위해<br />기술을 선택하는 것으로.</p>
+    <p class="invite">다음 구간은, 만나서 걷고 싶습니다.</p>
     <div class="links">
+      <a class="primary" href="mailto:96tmdtmd@gmail.com">이메일 보내기</a>
       <a href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
       <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">GitHub</a>
-      <a href="mailto:96tmdtmd@gmail.com">이메일</a>
     </div>
   </section>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
