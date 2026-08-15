@@ -759,7 +759,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     return v
   }
   // 존1 은 구역 분리 이전의 '푸른 해안'(#cfe0cb) — 채도 있는 초록은 목가적 들판이 되어 바다와 따로 논다
-  const GROUND_TONE = ['#cfe0cb', '#e6d2a4', '#b4b8b4', '#c2d4b0', '#9caf9a'].map((c) => new THREE.Color(c))
+  const GROUND_TONE = ['#cfe0cb', '#e6d2a4', '#b4b8b4', '#cbcb93', '#9caf9a'].map((c) => new THREE.Color(c))
   // 전이는 매끈한 lerp 가 아니라 디더 — 다음 존의 땅이 다각형 조각으로 침범해 온다.
   // 시작은 게이트 3m 뒤 — 문턱 앞 땅색까지 바뀌면 안개 커튼 안쪽(근접 미포그 영역)에서 다음 존이 샌다.
   function groundColorAt(out, d, x = 0) {
@@ -1977,7 +1977,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
     root.add(shaftBloom)
     // 젖은 바닥에 흘러내린 그 빛 — 비 오는 도시에서 빛은 반드시 바닥에 두 번 나온다.
     const pool = new THREE.Mesh(
-      new THREE.PlaneGeometry(GAP * 2, 9),
+      new THREE.PlaneGeometry(GAP * 2 + 3.2, 13),
       new THREE.MeshBasicMaterial({ map: poolTex, color: tint, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
     )
     pool.rotation.x = -Math.PI / 2
@@ -2003,7 +2003,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
           shafts[i].material.opacity = (0.07 + 0.17 * approach + 0.1 * pass) * flick * vis * linger
         }
         shaftBloom.material.opacity = (0.02 + 0.06 * approach + 0.16 * pass) * vis * linger
-        pool.material.opacity = (0.05 + 0.2 * approach + 0.34 * pass) * vis
+        pool.material.opacity = (0.1 + 0.34 * approach + 0.4 * pass) * vis
       }
     })
   }
@@ -2411,7 +2411,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
         const linger = 1 - 0.9 * smooth01((-near - 1.5) / 4.5)
         // 통과 순간 돌이 볕을 머금는다 — 물의 문에서 물이 빛나던 그 한 박자
         pillars.material.emissiveIntensity = 0.04 + 0.12 * approach * (0.6 + 0.4 * breath) + 0.5 * pass
-        membrane.material.opacity = (0.24 + 0.45 * approach + 0.06 * breath) * (1 - 0.8 * core) * vis * linger
+        membrane.material.opacity = (0.13 + 0.26 * approach + 0.05 * breath) * (1 - 0.8 * core) * vis * linger
         for (let i = 1; i < memPos.count; i++) {
           const [r0, a0] = memBase[i]
           const w = 1 + 0.055 * Math.sin(a0 * 3 + t * 1.4) + 0.03 * Math.sin(a0 * 5 - t * 2.1)
@@ -2421,7 +2421,7 @@ export function buildWorld(scene, chapterCount, premises = []) {
         membrane.material.map.rotation = 0.08 * Math.sin(t * 0.5)
         // 모래 다리 — 통과하는 동안 바람이 거세진다(위상은 t 의 나머지 연산이라 되감아도 같다)
         const gust = 1 + 0.9 * pass
-        grains.material.opacity = (0.35 + 0.5 * approach) * vis * linger
+        grains.material.opacity = (0.5 + 0.5 * approach) * vis * linger
         for (let i = 0; i < GRAIN_N; i++) {
           const gs = grainSeed[i]
           const u = (t * gs.sp * gust + gs.ph) % 1
@@ -3159,11 +3159,13 @@ export function buildWorld(scene, chapterCount, premises = []) {
   // 어두운 덩어리 + 밝은 밑선 = 위에서 빛을 못 받는 물체, 즉 공중에 뜬 물체다.
   for (let k = 0; k < 5; k++) {
     const side = k % 2 === 0 ? 1 : -1
-    const d = 26 + k * 15
+    // 고리행성은 화면 우상단에 고정으로 뜬다(하늘은 카메라를 따라다닌다). 오른쪽 섬을 가까이 두면
+    // 행성 원반을 파고들어 "한 입 베어 먹힌 행성"이 된다 — 화면에서 유일한 온기를 훼손한다.
+    // 오른쪽은 26m 더 멀리, 그리고 낮게. 멀면 작아지므로 겹쳐도 상처가 얕다.
+    const d = 26 + k * 15 + (side > 0 ? 26 : 0)
     const rad = 1.5 + hash(k * 7.7) * 1.4
-    // 바깥으로 더 밀어 낸다 — 가까이 두면 화면에서 행성·모노리스와 겹쳐 한 덩어리가 된다
     const ix = side * (11 + hash(k * 5.1) * 8)
-    const iy = 7.0 + hash(k * 9.1) * 6.5
+    const iy = (side > 0 ? 3.4 : 8.4) + hash(k * 9.1) * 4.2
     const isle = new THREE.Mesh(new THREE.IcosahedronGeometry(rad, 0), std('#2f3358', { flatShading: true }))
     isle.scale.set(1, 0.42, 1)
     isle.position.set(ix, iy, -d)
@@ -3182,19 +3184,22 @@ export function buildWorld(scene, chapterCount, premises = []) {
   }
   // 모노리스 — 기울어 떠 있는 돌기둥. 아래 광원 원판이 부양을 증명한다.
   // 몸통을 밤보다 어둡게(#dfe0f2 → #262a4c) 내린다. 밝은 기둥은 밤에 켜 둔 형광등이지 돌이 아니다.
-  for (const [mx, md, my, tilt] of [[-16, 24, 9, 0.12], [21, 42, 14, -0.08], [-27, 58, 11, 0.05]]) {
-    const mono = new THREE.Mesh(new THREE.BoxGeometry(1.0, 13, 1.0), std('#262a4c', { flatShading: true }))
+  // 높이 13 → 8.5, 고도도 내린다. 전에는 위쪽이 화면 밖으로 잘려 "검은 막대"라는 추상으로 남았다 —
+  // 끝이 보여야 이름이 붙는다("떠 있는 돌기둥"). 잘린 형태에는 이름을 붙일 수 없다.
+  // 가장 가까운 하나는 34m 뒤로 물린다 — 24m 에서는 화면 좌상단이 잘려 다시 "검은 막대"가 됐다
+  for (const [mx, md, my, tilt] of [[-19, 34, 7, 0.12], [23, 42, 10.5, -0.08], [-28, 62, 8, 0.05]]) {
+    const mono = new THREE.Mesh(new THREE.BoxGeometry(1.0, 8.5, 1.0), std('#262a4c', { flatShading: true }))
     mono.position.set(mx, my, -md)
     mono.rotation.z = tilt
     // 세로 이음선 — 어두운 기둥에 빛나는 선 한 줄이 있어야 실루엣이 '구조물'이 된다
     const seam = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.08, 12.2),
+      new THREE.PlaneGeometry(0.08, 7.9),
       new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
     )
     seam.position.set(mx + Math.cos(tilt) * 0.52, my, -md + 0.02)
     seam.rotation.z = tilt
     const band = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.4, 1.15), glowMat(GLOW, 1.4))
-    band.position.set(mx + Math.sin(tilt) * 6.3, my - Math.cos(tilt) * 6.3, -md)
+    band.position.set(mx + Math.sin(tilt) * 4.1, my - Math.cos(tilt) * 4.1, -md)
     band.rotation.z = tilt
     // 부양의 증거인 바닥 광원. 일반 블렌딩이면 밝은 지면 위에서 청록이 지면보다 어두워
     // "빛 웅덩이"가 아니라 "검은 얼룩"으로 렌더된다(실측: 도착 직전 지면의 큰 검은 타원).
@@ -3299,7 +3304,11 @@ export function buildWorld(scene, chapterCount, premises = []) {
       n.group.position.y = n.baseY + 0.12 + hop + Math.sin(t * (near ? 4 : 1.6) + n.dist) * (near ? 0.12 : 0.05)
     })
 
-    dream.visible = walked > endD - 95
+    // 문을 지나기 전에는 절대 켜지 않는다. endD-95(=198) 는 게이트4(254) 보다 56m 앞이라,
+    // 노을 존 하늘에 도착 공간의 모노리스·부유섬이 각진 판때기로 떠 있었다 —
+    // 블라인드 판독에서 "하늘에 이름 붙일 수 없는 흰 슬래브"로 지목된 그것이다.
+    // 문 바로 뒤에서 켜면 문틀이 시야를 막고 안개 커튼이 원경을 덮어, 팝인이 보이지 않는다.
+    dream.visible = walked > gateOf(3) + 1
 
     // 생성되는 길 — 앞 5m 에서 청록 윤곽으로 나타나 실체가 되고, 지난 지 8m 에서 흩어진다
     for (let i = 0; i < GEN_N; i++) {

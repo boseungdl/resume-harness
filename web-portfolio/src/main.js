@@ -216,7 +216,7 @@ if (!webglAvailable()) {
   // 광원만 오른쪽 뒤(6, 9, 4)에 있어 그림자가 해를 향해 뻗었다. 방위각을 SUN2D 와 맞추고(왼쪽 29°)
   // 고도만 40° 로 남겨(스프라이트는 낮게 걸려 있어도 그림자는 짧게) 그림자가 오른쪽 앞으로 눕게 한다.
   // world.js 의 SUN_XZ(접지 그림자 방향)와 짝이다 — 해를 옮기면 거기도 옮긴다.
-  const SUN_POS = [[-5.4, 9, -9.6], [-5.6, 9.5, -10.3], [1, 12.5, -1], [-16, 3.0, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
+  const SUN_POS = [[-5.4, 9, -9.6], [-5.6, 9.5, -10.3], [1, 12.5, -1], [-16, 5.5, -8], [-20, 1.6, -11], [-22, 0.6, -12]]
   const SUN_INT = [1.6, 1.8, 0.55, 1.2, 0.75, 0.85] // 존1 은 구역 분리 이전 값(1.6)
   const SUN_COL = ['#fff6e4', '#ffe9c0', '#eef0f2', '#ffb478', '#d9a0b0', '#7f86d8'].map((c) => new THREE.Color(c))
   // 존1 의 하늘빛 앰비언트는 흰색이 아니라 파랑이어야 한다 — 흰 앰비언트가 채도를 씻어낸다
@@ -585,6 +585,30 @@ if (!webglAvailable()) {
   walker.rotation.y = -0.49 // 랜딩에서는 관람자를 바라본다
   scene.add(walker)
   walker.add(lvSprite)
+
+  // 접지 얼룩 — 그림자맵만으로는 밤에 발이 땅에서 떨어진다. 해가 저각(존4)이면 그림자가
+  // 그림자 카메라(±26m) 밖으로 뻗어 잘리고, 미지의 밤에는 광원 자체가 약해 아예 사라진다.
+  // 캐릭터가 땅을 딛고 있다는 신호는 여정 내내 끊기면 안 되므로, 방향 없는 얼룩 한 장을 항상 깐다.
+  const footCv = document.createElement('canvas')
+  footCv.width = footCv.height = 64
+  const fctx = footCv.getContext('2d')
+  const fgrad = fctx.createRadialGradient(32, 32, 1, 32, 32, 32)
+  fgrad.addColorStop(0, 'rgba(24,26,34,0.62)')
+  fgrad.addColorStop(0.5, 'rgba(24,26,34,0.28)')
+  fgrad.addColorStop(1, 'rgba(24,26,34,0)')
+  fctx.fillStyle = fgrad
+  fctx.fillRect(0, 0, 64, 64)
+  const footShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5, 1.5),
+    new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(footCv), transparent: true, opacity: 0.75,
+      depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
+    })
+  )
+  footShadow.rotation.x = -Math.PI / 2
+  footShadow.position.y = 0.015
+  footShadow.renderOrder = 2
+  walker.add(footShadow)
 
   let mixer = null
   let walkAction = null
