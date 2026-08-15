@@ -9,7 +9,7 @@ import * as echarts from 'echarts/core'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { PREMISES, STOP_LABELS, PANEL_IN, PANEL_OUT } from './story.js'
+import { PREMISES } from './story.js'
 import { buildWorld } from './world.js'
 
 function smooth01(u) {
@@ -43,9 +43,6 @@ const qlistEl = document.getElementById('qlist')
 const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
 const thanksBubble = document.getElementById('thanks-bubble')
-
-// 길목 라벨 — 몇 번째 자리인지가 진행의 언어다 (story.js 소유)
-const MEET_LABELS = STOP_LABELS
 
 const veil = document.getElementById('veil')
 function liftVeil() {
@@ -516,20 +513,6 @@ if (!webglAvailable()) {
     mapMe.setAttribute('cy', pt.y.toFixed(1))
   }
 
-  // 챕터 진입 타이틀 카드
-  const cardEl = document.getElementById('chapter-card')
-  const cardNum = cardEl.querySelector('.num')
-  const cardTitle = cardEl.querySelector('.t')
-  let cardTimer = null
-  function flashChapterCard(i) {
-    cardNum.textContent = `CHAPTER ${String(i + 1).padStart(2, '0')}`
-    cardEl.style.setProperty('--zone-c', PREMISES[i].themeColor ?? '')
-    cardTitle.textContent = PREMISES[i].kicker
-    cardEl.classList.add('show')
-    if (cardTimer) clearTimeout(cardTimer)
-    cardTimer = setTimeout(() => cardEl.classList.remove('show'), 2400)
-  }
-
   // ---------- 걷는 로봇 ----------
 
   // 성장 연출 — 한계를 깰 때마다 발밑에서 빛 고리가 퍼지고 불꽃이 오르며, 로봇이 실제로 조금 자란다
@@ -804,19 +787,9 @@ if (!webglAvailable()) {
   // ---------- UI 갱신 (만남 팝업 · 대시보드 · 인트로/엔딩) ----------
 
   let activePopup = -1
-  let typeTimer = null
   let outroFilled = false
   let atEnd = false
   let farthest = 0 // 가장 멀리 간 지점 — 되돌아 걸어도 기록은 줄지 않는다
-
-  // 전제가 한 글자씩 새겨지고, 걸음에 따라 비트가 하나씩 얹힌다.
-  // 한 번에 다 쏟으면 읽기 벽이 되고, 정작 세계에서 일어나는 일을 못 본다.
-  function stopTyping() {
-    if (typeTimer) {
-      clearInterval(typeTimer)
-      typeTimer = null
-    }
-  }
 
   // 만남 — 로봇은 자리에 멈춰 NPC 를 마주 보고, 스페이스로 문답을 넘긴다. 최대 3문답.
   // state 0 대기 / 1 대화 중(걸음·스크롤 잠금) / 2 끝(다시 걸음)
@@ -852,16 +825,34 @@ if (!webglAvailable()) {
     // 진행 표시는 국소적이다 — 전체가 아니라 지금 이 자리의 몇/몇. 먼 지평선은 그만둘 이유가 된다.
     popupStep.textContent = chunks.length > 1 ? `${Math.min(m.step, chunks.length)} / ${chunks.length}` : ''
     popupHint.classList.add('on')
-    // 힌트는 즉시 뜬다. 예전에는 2s 를 지연시켰는데(+opacity 0.4s = 2.4초),
-    // 그동안 화면은 어두워졌고 휠은 무응답이고 안내는 없었다. 그 조합의 표준 해석은
-    // "몰입하라"가 아니라 "페이지가 멈췄다"다. 재촉으로 읽힐 위험보다 고장으로 읽힐 위험이 크다.
-    popupHint.style.transitionDelay = '0s'
+    // 힌트는 첫 조각에서만 한 박자 늦다(0.7s). 두 번째 조각부터는 즉시 —
+    // 이미 규칙을 아는 사람에게 안내를 다시 기다리게 하면 그건 재촉이 아니라 지연이다.
+    // 0s 로 되돌리는 이 줄이 없으면 조각마다 0.7초씩 힌트가 사라졌다 나타난다.
+    popupHint.style.transitionDelay = m.step === 1 ? '0.7s' : '0s'
     popupVerb.textContent = m.step >= chunks.length ? '계속 걷기' : '다음'
     const shown = chunks[Math.min(m.step, chunks.length) - 1] || []
     ui.beatKey = `meet:${i}:${m.step}`
     // 스태거는 없앴다 — 벽이 조립되는 과정을 1.5초 보여주는 연출이었는데, 벽이 없어지면 필요 없다.
-    // 한 줄은 즉시 자리에 있어야 한다. 기다림 뒤에 오는 글은 그 기다림만큼 비싸 보인다.
-    popupA.innerHTML = shown.map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`).join('')
+    // 대신 조각과 조각 사이를 겹쳐 넘긴다: 예전에는 innerHTML 을 즉시 갈아치워 이전 줄이
+    // 퇴장 없이 사라졌고, 그 사이 빈 패널이 한 프레임 보였다. 나가는 줄은 자리에서 빠지고(140ms)
+    // 들어오는 줄이 그 위에 앉는다(220ms). 컨테이너 높이는 CSS 가 3줄로 고정해 둔다.
+    const prev = [...popupA.children]
+    for (const el of prev) {
+      el.classList.add('out')
+      setTimeout(() => el.remove(), 160)
+    }
+    for (const b of shown) {
+      const el = document.createElement('p')
+      if (b.kind === 'cost') el.className = 'cost'
+      el.textContent = b.text
+      el.style.opacity = '0'
+      el.style.transform = 'translateY(7px)'
+      popupA.appendChild(el)
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.opacity = ''
+        el.style.transform = ''
+      }))
+    }
     popupA.classList.add('on')
   }
   function endMeet(i) {
@@ -905,16 +896,22 @@ if (!webglAvailable()) {
   // 350ms 간격 플릭 2회)은 화면 어디에도 없었다. 배우지 못한 규칙은 고장으로 읽힌다.
   // 지금은 같은 동작(굴리기)이 같은 뜻(앞으로)을 유지한다 — 대상만 걸음에서 줄로 바뀐다.
   // 위로 굴리면 되돌아간다: 되돌릴 수 있어야 마음 놓고 빨리 굴리고, 걸린 문장에서 되돌아온다.
-  let talkWheelT = 0
+  // 쿨다운은 세 입력(SPACE·휠·클릭)이 함께 쓴다 — 예전엔 휠만 110ms 필터가 있고 SPACE 는
+  // 무제한이라, 스페이스를 연타하면 여덟 조각이 0.3초에 지나가 아무것도 안 읽혔다.
+  // 220ms 는 교체 애니메이션(320ms)보다 짧아 손이 답답하지 않으면서, 연타는 걸러낸다.
+  let talkInputT = 0
+  const talkCooldown = () => {
+    const now = performance.now()
+    if (now - talkInputT < 220) return false
+    talkInputT = now
+    return true
+  }
   const blockIfTalking = (e) => {
     const i = talkingNow()
     if (i < 0) return
     e.preventDefault()
     if (e.type !== 'wheel') return
-    const now = performance.now()
-    // 걸어오던 관성이 한 번에 여러 줄을 삼키지 않게 — 트랙패드 한 스와이프가 8줄이 되면 안 된다
-    if (now - talkWheelT < 110) return
-    talkWheelT = now
+    if (!talkCooldown()) return
     if (e.deltaY > 0) advanceMeet()
     else backMeet()
   }
@@ -922,7 +919,8 @@ if (!webglAvailable()) {
   window.addEventListener('touchmove', blockIfTalking, { passive: false })
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.key === ' ') {
-      if (advanceMeet()) e.preventDefault()
+      if (talkingNow() >= 0) e.preventDefault()
+      if (talkCooldown()) advanceMeet()
       return
     }
     if (e.key === 'Escape' && talkingNow() >= 0) {
@@ -933,32 +931,20 @@ if (!webglAvailable()) {
       e.preventDefault()
     }
   })
-  popupEl.addEventListener('click', () => advanceMeet()) // 마우스만 쓰는 손님을 위해
-
-  // 화면에 동시에 두 개까지. 세 번째가 뜨면 첫째는 빠진다.
-  function renderBeats(index, rel) {
-    const item = PREMISES[index]
-    const shown = item.beats.filter((b) => rel >= b.at)
-    const key = `${index}:${shown.length}`
-    if (key === ui.beatKey) return
-    ui.beatKey = key
-    if (!shown.length) {
-      popupA.innerHTML = ''
-      popupA.classList.remove('on')
-      return
-    }
-    popupA.innerHTML = shown
-      .slice(-2)
-      .map((b) => `<p class="${b.kind === 'cost' ? 'cost' : ''}">${b.text}</p>`)
-      .join('')
-    popupA.classList.add('on')
-  }
+  // 마우스만 쓰는 손님을 위해. 단, 문장을 드래그해 복사하면 선택이 끝나는 순간 click 이 뒤따라
+  // 발생해 본문이 교체됐다 — 인용·복사가 구조적으로 불가능했다. 선택이 있으면 넘기지 않는다.
+  popupEl.addEventListener('click', () => {
+    if ((window.getSelection()?.toString() ?? '').length) return
+    if (talkCooldown()) advanceMeet()
+  })
 
   function typeQuestion(index) {
-    stopTyping()
     const text = PREMISES[index].premise
-    // 헤더는 존 테마('시작' 등)를 존 색으로 — 서수는 HUD 번호가 이미 말한다
-    popupWho.textContent = PREMISES[index].kicker
+    // 한 자리를 부르는 이름은 하나다. 예전에는 셋이 돌았다 —
+    // kicker('기술') / STOP_LABELS('첫 번째 자리') / 마크업 기본값. STOP_LABELS 는 사문이었고,
+    // 삭제한 #chapter-card 의 'CHAPTER 01' 이 여기 번호로 흡수됐다.
+    popupWho.querySelector('.no').textContent = String(index + 1).padStart(2, '0')
+    popupWho.querySelector('.lb').textContent = PREMISES[index].kicker
     popupEl.style.setProperty('--zone-c', PREMISES[index].themeColor ?? '')
     popupA.innerHTML = ''
     popupA.classList.remove('on')
@@ -967,7 +953,10 @@ if (!webglAvailable()) {
     // (오브 예열 0.4s → 임팩트 → 결상 1.4s). 훅으로 설계한 한 줄이 화면에서 가장 강한 모션과
     // 정면으로 겹쳤고, 훅이 졌다. 그리고 이미 존재하는 정보를 1.3초 감추는 연출이기도 했다 —
     // 이 사이트에서 가장 중요한 문장이 가장 늦게 완성되고 있었다.
-    popupQ.innerHTML = `“${text}”`
+    // 큰따옴표를 뺀다 — 그건 "다른 사람이 한 말"의 기호다. 이 문장은 인용이 아니라
+    // 화자 본인의 문항 제목이라, 세 독자 모두에게 '누가 한 말인가'를 묻게 만들었다.
+    // 문항임은 위치·크기·굵기·왼쪽 규칙선(CSS)이 말한다.
+    popupQ.textContent = text
   }
 
   // 이름을 collect 로 되돌리지 말 것 — echarts 가 최상위에 같은 이름의 함수를 갖고 있어
@@ -1013,10 +1002,14 @@ if (!webglAvailable()) {
     const wasEnd = atEnd
     atEnd = atEnd ? progress > 0.945 : progress > 0.955
     if (atEnd !== wasEnd) outroEl.classList.toggle('hidden-panel', !atEnd)
-    if (atEnd && !outroFilled && outroRecord && walked / world.TOTAL > 0.95) {
-      outroFilled = true
-      const secs = Math.floor(t)
-      outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${Math.round(farthest)}m</b>.`
+    // 예전에는 임계에 닿는 순간 1회만 채웠다. 그 시점의 farthest 가 0.955 × 296 = 282.7 이라
+    // 끝까지 걸어도 숫자가 "283m" 에서 굳었고, 총 거리를 알 방법이 없어 "다 못 걸었다"로 읽혔다.
+    if (atEnd && outroRecord) {
+      const m = Math.round(farthest)
+      if (m !== ui.dist) {
+        ui.dist = m
+        outroRecord.innerHTML = `여기까지 함께 걸어주셨습니다 — <b>${m}m</b>.`
+      }
     }
 
     // 칩 적립은 팝업과 무관 — 지나친 정거장은 무조건 쌓인다 (점프 스크롤 포함)
@@ -1034,19 +1027,19 @@ if (!webglAvailable()) {
     if (near !== activePopup) {
       activePopup = near
       if (near >= 0) {
-        popupEl.classList.remove('hidden-panel')
+        // 내용을 먼저 채우고 패널은 0.9초 뒤에 올린다 — 그 0.9초는 소등과 빔이 쓴다.
+        // 예전에는 글이 0ms 에 전부 떠 있고 영사가 1.9초에 끝나, 화면에서 가장 강한 모션이
+        // 이미 다 읽은 글 뒤에 도착했다. 도중에 지나쳐 가면 올리지 않는다.
         typeQuestion(near)
-        flashChapterCard(near)
+        setTimeout(() => {
+          if (activePopup === near && meets[near].state === 1) popupEl.classList.remove('hidden-panel')
+        }, 900)
       } else {
-        stopTyping() // 타이핑 중에 지나쳐도 숨은 팝업이 혼자 진행되지 않게
         popupEl.classList.add('hidden-panel')
       }
     }
     if (veilEl) veilEl.classList.toggle('on', veilOn)
-    if (near >= 0 && PREMISES[near].flow) {
-      // 흐르는 존 — 걸음이 곧 페이지 넘김. 정지도 클릭도 없다. (현재 미사용 — oneShot 상영이 표준)
-      renderBeats(near, walked - world.npcs[near].dist)
-    } else if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
+    if (near >= 0 && meets[near].state === 1 && ui.beatKey !== `meet:${near}:${meets[near].step}`) {
       renderMeet(near) // 대화는 멈춰 선 문답이 전부다 — 걷는 중에는 아무것도 재생하지 않는다
     }
     if (near !== ui.nowChip) {
@@ -1060,23 +1053,38 @@ if (!webglAvailable()) {
     // 창을 13m 에서 26m 로 넓히고, 그 창을 뛰어넘는 속도에 대비해 교차 래치를 둔다.
     // 예전에는 폭 13m 를 매 프레임 점 샘플링해서 빠른 스크롤에서 결론 네 줄이 전부 안 떴다 —
     // 이 페이지에서 가장 인용 가치가 높은 문장들이 구조적으로 가장 잘 스킵되고 있었다.
+    // 창의 오른쪽 끝이 다음 자리를 0.1m 차이로 삼키고 있었다:
+    //   창① = [76, 102], 다음 정지점 = npcDist(104) - 2.1 = 101.9.
+    // 걸음이 101.9 에 수렴해 멈추므로 walked < 102 가 계속 참이고, 결론①이 대화② 내내
+    // 상단에 떠 있었다(자리 2·3·4 전부). 다음 자리보다 8m 앞에서 닫는다.
+    const nowSec = performance.now() / 1000
     let verdict = -1
     for (let i = 0; i < PREMISES.length; i++) {
       const gate = 26 + i * 60 + 48
-      if (walked > gate + 2 && walked < gate + 28) verdict = i
-      // 창을 통째로 건너뛴 경우: 교차한 순간부터 4초를 보장한다
-      if ((checkedWalked - (gate + 2)) * (walked - (gate + 2)) <= 0) verdictHold[i] = t + 4
-      if (verdict < 0 && t < verdictHold[i]) verdict = i
+      const nextStop = i + 1 < PREMISES.length ? world.npcs[i + 1].dist - 2.1 : Infinity
+      const winEnd = Math.min(gate + 28, nextStop - 8)
+      if (walked > gate + 2 && walked < winEnd) verdict = i
+      // 창을 통째로 건너뛴 경우: 교차한 순간부터 4초를 보장한다.
+      // 시계는 walkTime(t)이 아니라 실시간이다 — walkTime 은 20초 이상 멈춰 서면 누적을 멈춰,
+      // 서 있는 동안 래치가 영영 안 풀렸다.
+      if ((checkedWalked - (gate + 2)) * (walked - (gate + 2)) <= 0) verdictHold[i] = nowSec + 4
+      if (verdict < 0 && nowSec < verdictHold[i]) verdict = i
       const passed = walked > gate + 2
       if (passed !== chipShown[i]) {
         chipShown[i] = passed
         chips[i].innerHTML = `<b>${i + 1}</b><span>${passed ? PREMISES[i].chip : PREMISES[i].kicker}</span>`
       }
     }
+    // 읽기 표면은 셋(결론·대화·엔딩)이고 한 번에 하나만 켜진다. 결론이 가장 낮은 우선순위다 —
+    // 대화가 시작되면 남은 래치를 버리고 즉시 끈다. 대화 뒤에 다시 띄우면 '돌아왔다'로 읽힌다.
+    if (talkingNow() >= 0 || atEnd) verdict = -1
     if (verdict !== ui.verdict) {
       ui.verdict = verdict
       if (verdict >= 0) {
-        verdictEl.textContent = PREMISES[verdict].conclusion
+        const line = PREMISES[verdict].conclusion
+        verdictEl.textContent = line
+        // 예산(38자)을 넘는 결론은 글이 아니라 크기를 내린다 — 03 의 결론이 55자다
+        verdictEl.classList.toggle('long', [...line].length > 38)
         verdictEl.style.opacity = '1'
       } else {
         verdictEl.style.opacity = '0'
@@ -1130,6 +1138,7 @@ if (!webglAvailable()) {
       // 새로고침으로 중간에서 시작하면, 걸어온 척 되감지 않고 그 자리에서 시작한다
       booting = false
       walked = walkedTarget
+      checkedWalked = walked // 이 한 줄이 없으면 지나온 게이트를 전부 '방금 건넜다'로 판정한다
       const passed = world.npcs.filter((n) => walked > n.dist - 2).length
       world.npcs.forEach((n, i) => {
         if (walked > n.dist - 2) markCollected(i)
@@ -1158,7 +1167,9 @@ if (!webglAvailable()) {
           m.step = 1
           m.t0 = sceneTime // 성급한 입력·관성 스크롤 판정 기준
           projZone = i // 이 존의 영사기가 소등 페이드까지 주인이다
-          talkWheelT = 0 // 휠 연타 필터 초기화 — 걸어오던 관성이 첫 줄을 넘기지 않게
+          // 쿨다운을 지금으로 밀어 둔다 — 걸어오던 관성 스크롤이 첫 줄을 그냥 넘기지 않게.
+          // 0 으로 초기화하면 반대로 "220ms 훨씬 전"이 되어 다음 휠 이벤트가 곧장 통과했다.
+          talkInputT = performance.now()
           lockScrollY = window.scrollY // 대화 동안 화면도 여기 선다
         }
         if (m.state === 1) target = stopD // 남은 걸음은 자동 — 스페이스로 끝내야 풀린다
@@ -1246,7 +1257,7 @@ if (!webglAvailable()) {
       const dz = -npc.dist + walked
       facing += (Math.atan2(dx, dz) - Math.PI) * arrived
     }
-    veilOn = arrived > 0.5
+    veilOn = talkingNow() >= 0
     let dFace = facing - walker.rotation.y
     dFace = ((dFace + Math.PI) % (Math.PI * 2)) - Math.PI // 최단 회전 — 돌아섰던 방향 그대로 되돌아온다
     if (dFace < -Math.PI) dFace += Math.PI * 2
@@ -1263,7 +1274,10 @@ if (!webglAvailable()) {
     camera.position.x = THREE.MathUtils.lerp(-2.8, -2.1, ph) + Math.sin(t * 0.32) * 0.18 + px + talkF * 0.55
     const terrace = Math.max(0, world.trackYAt(Math.max(0, walked - 8.8)) - world.trackYAt(walked))
     // 대화 중에는 카메라가 반 걸음 다가서고 낮아진다 — 시선이 두 사람에게 모인다
-    talkF += (arrived - talkF) * Math.min(1, dt * 2.2)
+    // 영사는 도착 진행도(arrived)가 아니라 대화 상태를 탄다 — arrived 는 마지막 한 걸음(1.1m)
+    // 안에서만 0→1 이라, 빔이 로봇이 다 멈춘 뒤에야 나가고 결상이 +1.9초에 끝났다.
+    // 지금은 대화가 시작되는 프레임에 소등·빔·접근이 동시에 출발한다(시정수 0.53s).
+    talkF += ((talkingNow() >= 0 ? 1 : 0) - talkF) * Math.min(1, dt * 1.9)
     // 상영 구동 — 빔·스크린은 대화 몰입 계수를 그대로 탄다 (점등·소등 이징이 공짜)
     world.projectors?.forEach((p) => p.update(p.zone === projZone ? talkF : 0, t, dt))
     camera.position.y = THREE.MathUtils.lerp(2.0, 3.1, ph) + terrace * 0.85 + Math.sin(t * 0.45) * 0.08 + py - talkF * 0.75

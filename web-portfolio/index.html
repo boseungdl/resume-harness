@@ -31,7 +31,30 @@
       --accent-ink: #087280;   /* 텍스트용 청록 — AA 대비 */
       --coral: #f4552b;   /* 3D 간판·현재 위치 마커 공통 */
       --mono: 'IBM Plex Mono', 'Consolas', monospace;
+
+      /* ===== 타입 스케일 — 랜딩과 여정이 같은 사다리를 쓴다 =====
+         전에는 두 시스템이 돌았다: 랜딩은 고정 px(lead 20 / intro 15 / meta 13),
+         여정은 clamp()+vw. 그래서 화면을 키우면 여정만 커지고 랜딩은 그대로였고,
+         1600px 에서 랜딩 본문이 15px 로 남아 가장 먼저 읽히는 글이 가장 작았다.
+         768px 최소 → 1600px 최대, 그 사이 선형, 이후 고정. 절편을 rem 으로 둬서
+         브라우저 글자 크기 설정이 살아 있다. 주석은 768 → 1600 실측 px. */
+      --fs-1: clamp(0.688rem, 0.12vw + 0.630rem, 0.750rem);  /* 11   → 12   */
+      --fs-2: clamp(0.750rem, 0.18vw + 0.664rem, 0.844rem);  /* 12   → 13.5 */
+      --fs-3: clamp(0.875rem, 0.18vw + 0.789rem, 0.969rem);  /* 14   → 15.5 */
+      --fs-4: clamp(1.000rem, 0.24vw + 0.884rem, 1.125rem);  /* 16   → 18   */
+      --fs-5: clamp(1.094rem, 0.42vw + 0.892rem, 1.313rem);  /* 17.5 → 21   */
+      --fs-6: clamp(1.188rem, 0.72vw + 0.841rem, 1.563rem);  /* 19   → 25   */
+      --fs-7: clamp(1.375rem, 1.08vw + 0.856rem, 1.938rem);  /* 22   → 31   */
+      --fs-8: clamp(3.000rem, 4.80vw + 0.693rem, 5.500rem);  /* 48   → 88   */
+
+      /* 행장은 em 으로만 잰다. ch 는 숫자 0 의 폭(≈0.55em)이라 한글에 쓰면 절반으로 센다 —
+         예전 #verdict 의 max-width:24ch 는 한글 13자였고, 그래서 55자 결론이 4줄로 넘쳤다. */
+      --measure-body: 30em;    /* 본문 30자 — 한글 최적 행장 26~34자의 가운데 */
+      --measure-lead: 22em;
+      --measure-display: 20em;
     }
+    /* 한글에 letter-spacing 을 0.08em 넘게 주면 글자가 낱자로 흩어진다.
+       0.12em 이상은 라틴 대문자 라벨(SPACE·CHAPTER·WALKING WITH HAN)에만 허용한다. */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #cfe9f8;
@@ -117,20 +140,29 @@
       display: block;
       flex: none;
     }
+    .role {
+      font-size: var(--fs-3);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--accent-ink);
+      margin-bottom: 0.5em;
+    }
     .land-col h1 {
-      font-size: clamp(56px, 6vw, 88px);
+      font-size: var(--fs-8);
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.02;
       margin-left: -0.035em; /* 광학 정렬 */
     }
     .lead {
-      font-size: 20px;
+      font-size: var(--fs-5);
       font-weight: 400;
-      line-height: 1.55;
+      line-height: 1.58;
+      letter-spacing: -0.005em;
       color: var(--ink-70);
       word-break: keep-all;
-      margin-bottom: 54px;
+      max-width: var(--measure-lead);
+      margin-bottom: 2.6em;
     }
     .lead b { color: var(--ink); font-weight: 700; }
     .nums {
@@ -138,15 +170,19 @@
       font-variant-numeric: tabular-nums;
       margin-bottom: 14px;
     }
-    .nums .kpi { font-size: 13px; color: var(--ink-45); word-break: keep-all; }
-    .nums .kpi b { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent-ink); letter-spacing: -0.01em; margin-right: 4px; }
+    .nums .kpi { font-size: var(--fs-3); color: var(--ink-45); word-break: keep-all; }
+    /* 숫자를 24px 로 띄우면 이름(88px) 다음으로 큰 글자가 "7"과 "4"가 된다 —
+       숫자는 크기가 아니라 모노 서체와 청록으로 구분한다. */
+    .nums .kpi b { font-family: var(--mono); font-size: var(--fs-5); font-weight: 600; color: var(--accent-ink); letter-spacing: -0.01em; margin-right: 4px; }
+    /* 여정 본문(#popup .a)과 같은 단계다 — 랜딩에서 읽는 글과 걸으며 읽는 글의 크기가
+       달라야 할 이유가 없다. 46ch 는 한글 25자였다(ch=숫자 0 의 폭). */
     .intro {
-      font-size: 15px;
-      line-height: 1.8;
+      font-size: var(--fs-4);
+      line-height: 1.75;
       color: var(--ink-70);
       word-break: keep-all;
-      max-width: 46ch;
-      margin-bottom: 54px;
+      max-width: var(--measure-body);
+      margin-bottom: 2.6em;
     }
     .meta {
       border-top: 1px solid var(--hair);
@@ -154,7 +190,7 @@
       display: flex; flex-direction: column; gap: 9px;
       margin-bottom: 28px;
     }
-    .meta > div { display: flex; font-size: 13px; line-height: 1.65; }
+    .meta > div { display: flex; font-size: var(--fs-3); line-height: 1.65; }
     .meta dt { width: 64px; flex: none; color: var(--ink-45); }
     .meta dd { color: var(--ink-70); word-break: keep-all; }
     .meta dd b { color: var(--ink); font-weight: 600; }
@@ -255,7 +291,7 @@
     }
     .footline .cap {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: var(--fs-1);
       letter-spacing: 0.1em;
       color: var(--ink-45);
       white-space: nowrap;
@@ -272,7 +308,7 @@
       .land-fade { opacity: 1; transform: none; }
       .land-fade.in { transition: none; }
       /* 읽는 자리는 흔들리지 않는다 — 무한 반복 모션은 전부 끈다 */
-      #popup, #popup .who::before, #popup .q .caret,
+      #popup, #popup .who::before,
       #thanks-bubble.show svg { animation: none !important; }
       #mini, #mini * { transition: none !important; }
       #popup .a { transition: none; }
@@ -307,12 +343,15 @@
     #verdict {
       position: fixed; top: 16vh; left: 50%; transform: translateX(-50%);
       z-index: 3; pointer-events: none;
-      font-size: clamp(1.25rem, 2.3vw, 1.85rem); font-weight: 700;
-      letter-spacing: 0.01em; color: var(--accent-ink);
+      font-size: var(--fs-7); font-weight: 700; line-height: 1.38;
+      letter-spacing: -0.018em; color: var(--accent-ink);
       text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 6px rgba(255, 255, 255, 0.8), 0 4px 24px rgba(255, 255, 255, 0.6);
       opacity: 0; transition: opacity 0.5s ease;
       white-space: normal; word-break: keep-all; text-wrap: balance;
-      width: max-content; max-width: min(88vw, 24ch); text-align: center;
+      width: max-content; max-width: min(88vw, var(--measure-lead)); text-align: center;
+    }
+    /* 긴 결론 강등 — 글을 고치지 않고 크기만 내린다. 03 의 결론이 55자다. */
+    #verdict.long { font-size: var(--fs-6); max-width: min(92vw, 26em); line-height: 1.42;
     }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
@@ -332,19 +371,24 @@
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
-      grid-template-columns: minmax(16rem, 24rem) 1fr;
+      grid-template-columns: minmax(19rem, 27rem) 1fr;
       column-gap: 1.9rem;
       align-items: start;
     }
     #popup.hidden-panel { transform: translateX(-50%) translateY(18px) scale(0.99); }
     #popup .head { grid-column: 1; }
-    #popup .a {
-      grid-column: 2;
-      border-top: 0;
-      border-left: 1px dashed rgba(14, 168, 184, 0.32);
-      padding: 0.1rem 0 0.1rem 1.7rem;
+    #popup .a p {
+      margin: 0 0 0.8em;
+      /* 0.95em 재축소를 뺀다 — 부모(--fs-4)가 이미 본문 단계다. 겹쳐 걸면 17.3px 선언이 16.4px 로 렌더됐다. */
+      line-height: 1.75;
+      transition: opacity 0.22s, transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
-    #popup .a p { margin: 0 0 0.62rem; font-size: 0.95em; line-height: 1.68; animation: beat-in 0.45s ease both; }
+    /* 조각 교체 — 이전 조각이 겹친 자리에서 빠지고 다음이 들어온다.
+       예전에는 innerHTML 즉시 교체라 퇴장 없이 사라지고 0ms 짜리 빈 화면이 생겼다. */
+    #popup .a > p.out {
+      position: absolute; inset: 0; opacity: 0; transform: translateY(-5px);
+      transition-duration: 0.14s; pointer-events: none;
+    }
 
     /* 문답 단계 + 스페이스 안내 */
     #popup .hint .step {
@@ -353,7 +397,7 @@
     }
     #popup .hint {
       position: absolute; right: 1.6rem; bottom: 0.9rem;
-      font-size: 0.72rem; letter-spacing: 0.14em; font-weight: 600;
+      font-size: var(--fs-2); letter-spacing: 0.12em; font-weight: 600;
       color: var(--accent-ink); opacity: 0;
       transition: opacity 0.4s ease;
     }
@@ -372,7 +416,7 @@
       font-weight: 500;
     }
     @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
-    @media (max-width: 900px) {
+    @media (max-width: 1200px) {
       /* padding-bottom 2.4rem: 힌트(.hint, absolute bottom)가 본문 마지막 줄을 덮지 않게 */
       #popup { grid-template-columns: 1fr; row-gap: 0.7rem; bottom: 1rem; max-height: 34vh; padding-bottom: 2.4rem; }
       #popup .a { border-left: 0; border-top: 1px dashed rgba(14, 168, 184, 0.32); padding: 0.7rem 0 0 0; }
@@ -381,8 +425,9 @@
     #popup .who {
       /* 존 테마('시작' 등)를 존 색으로 — 한 화면의 테마색은 현재 존 1색뿐 */
       display: flex; align-items: center; gap: 0.6em;
-      font-size: 0.7rem; letter-spacing: 0.32em; color: var(--zone-c, var(--accent));
-      font-weight: 600; margin-bottom: 0.9rem;
+      /* 0.32em 은 한글에 못 쓴다 — '시작'이 '시 작'으로 분해된다. 라틴 번호만 넓게 준다. */
+      font-size: var(--fs-2); letter-spacing: 0.06em; color: var(--zone-c, var(--accent));
+      font-weight: 600; margin-bottom: 0.55em;
     }
     #popup .who::before {
       content: ''; width: 0.55em; height: 0.55em; border-radius: 50%;
@@ -390,30 +435,45 @@
       box-shadow: 0 0 8px var(--zone-c, var(--accent));
       animation: blink 1.6s ease-in-out infinite;
     }
+    /* 장 번호 — 삭제한 #chapter-card 의 'CHAPTER 01' 이 여기로 흡수됐다.
+       라틴 숫자에만 넓은 자간을 준다(한글 라벨은 0.06em). */
+    #popup .who .no {
+      font-family: var(--mono); letter-spacing: 0.1em; opacity: 0.72;
+      font-variant-numeric: tabular-nums;
+    }
+    #popup .who .no::after { content: '·'; margin: 0 0.15em 0 0.45em; opacity: 0.6; }
+    /* 문항 — 인용이 아니라 제목이다. 큰따옴표를 빼고 왼쪽 규칙선으로 표시한다:
+       따옴표는 "다른 사람이 한 말"의 기호라, 세 독자 모두에게 '누가 한 말인가'를 묻게 만든다.
+       문항임은 위치(머리)·크기(본문의 1.4배)·굵기(700)·규칙선 넷이면 충분하다. */
     #popup .q {
-      /* 흔적①이 위계의 머리 — verdict(1.85) 아래, 본문(1.08) 위. balance 가 쉼표 뒤에서 줄을 끊는다 */
-      font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+      font-size: var(--fs-6);
       font-weight: 700;
       line-height: 1.5;
+      letter-spacing: -0.01em;
       word-break: keep-all;
       text-wrap: balance;
-      margin-bottom: 1rem;
-      min-height: 1.6em;
+      border-left: 3px solid var(--zone-c, var(--accent));
+      padding-left: 0.72em;
+      max-width: var(--measure-display);
+      margin-bottom: 1em;
+      min-height: calc(1.5em * 2); /* 2줄 예약 — 존마다 머리 높이가 바뀌면 본문이 위아래로 튄다 */
+      opacity: 0; transform: translateY(4px);
+      transition: opacity 0.2s ease 0.2s, transform 0.2s ease 0.2s;
     }
-    #popup .q .caret {
-      display: inline-block; width: 2px; height: 1em; background: var(--accent);
-      vertical-align: -0.12em; margin-left: 2px;
-      animation: blink 0.8s step-end infinite;
-    }
+    #popup:not(.hidden-panel) .q { opacity: 1; transform: none; }
     #popup .a {
-      font-size: clamp(0.95rem, 1.12vw, 1.08rem);
-      /* 존1의 흰 물거품·밝은 바다가 블러 뒤에서 배경을 계속 흔든다 — 잉크만 한 단 진하게 (패널 배경은 존3·4 를 위해 유지) */
-      line-height: 1.72; word-break: keep-all; font-weight: 400; color: rgba(22, 48, 60, 0.85);
-      border-top: 1px dashed rgba(14, 168, 184, 0.3);
-      padding-top: 0.9rem;
+      grid-column: 2;
+      font-size: var(--fs-4);
+      line-height: 1.75; word-break: keep-all; font-weight: 400; color: rgba(22, 48, 60, 0.85);
+      max-width: var(--measure-body);
+      border-left: 1px dashed rgba(14, 168, 184, 0.32);
+      padding: 0.1rem 0 0.1rem 1.7rem;
+      /* 조각마다 높이가 달라지면 SPACE 를 누를 때마다 힌트 줄이 튄다 — 3줄분을 미리 잡는다 */
+      position: relative;
+      min-height: calc(1.75em * 3);
       opacity: 0;
       transform: translateY(6px);
-      transition: opacity 0.5s, transform 0.5s;
+      transition: opacity 0.24s ease 0.4s, transform 0.24s ease 0.4s;
     }
     #popup .a.on { opacity: 1; transform: none; }
 
@@ -423,22 +483,8 @@
       width: 16.5rem; padding: 1.05rem 1.1rem 1rem;
       display: flex; flex-direction: column; gap: 0.95rem;
     }
-    /* 지표 — 칸막이·박스 없이 숨 쉬게. 라벨 위, 값 아래 두 칸뿐 */
-    #mini .stats {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;
-      font-variant-numeric: tabular-nums;
-    }
-    #mini .stats span {
-      display: block; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.12em;
-      color: var(--accent-ink); white-space: nowrap;
-    }
-    #mini .stats b {
-      display: block; margin-top: 0.32rem;
-      font-size: 0.94rem; font-weight: 500;
-      line-height: 1.15; color: rgba(22, 48, 60, 0.88); letter-spacing: 0.005em;
-    }
-    /* 매초 바뀌는 자리와 분모는 무게·색만 낮춘다 — 크기를 줄이면 베이스라인이 어긋난다 */
-    #mini .stats b i { font-style: normal; font-weight: 400; color: rgba(22, 48, 60, 0.42); }
+    /* #mini .stats 삭제(2026-08-15) — 자식(머문 시간·읽은 문단)을 지운 뒤에도
+       빈 div 와 CSS 가 남아 flex gap 0.95rem 을 그대로 먹고 지도 위에 죽은 여백을 만들었다. */
 
     #mini svg { display: block; width: 100%; height: auto; }
     #mini .route { fill: none; stroke: rgba(22, 48, 60, 0.16); stroke-width: 2.4; stroke-linecap: round; }
@@ -452,10 +498,10 @@
     #mini ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.34rem; }
     #mini li {
       display: grid; grid-template-columns: 1.15rem 1fr; gap: 0.4rem; align-items: baseline;
-      font-size: 0.74rem; line-height: 1.42; color: var(--ink-45); word-break: keep-all;
+      font-size: var(--fs-3); line-height: 1.5; color: var(--ink-45); word-break: keep-all;
       transition: color 0.4s;
     }
-    #mini li b { font-weight: 700; color: var(--ink-45); font-size: 0.68rem; }
+    #mini li b { font-weight: 700; color: var(--ink-45); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
     #mini li.done { color: var(--ink-70); }
     #mini li.done b { color: var(--accent-ink); }
     #mini li.now { color: var(--zone-c, var(--ink)); font-weight: 600; }
@@ -473,7 +519,7 @@
       z-index: 3;
     }
     #outro-panel.hidden-panel { transform: translateY(calc(-50% + 18px)); }
-    #outro-panel .verdict { font-size: clamp(1.05rem, 1.4vw, 1.3rem); line-height: 1.95; word-break: keep-all; margin-bottom: 1.5rem; font-weight: 600; }
+    #outro-panel .verdict { font-size: var(--fs-5); line-height: 1.72; letter-spacing: -0.005em; word-break: keep-all; margin-bottom: 1.5rem; font-weight: 600; }
     /* 엔딩 3행 스태거 — 기록 → 감사 → 제안 순서로 떠오른다 */
     #outro-panel .verdict span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 0.5s, transform 0.5s; }
     #outro-panel:not(.hidden-panel) .verdict span { opacity: 1; transform: none; }
@@ -523,7 +569,7 @@
     }
     #outro-panel .links { display: flex; gap: 0.85rem; flex-wrap: wrap; }
     #outro-panel a {
-      font-size: 0.87rem; color: var(--ink); text-decoration: none; font-weight: 600;
+      font-size: var(--fs-3); color: var(--ink); text-decoration: none; font-weight: 600;
       padding: 0.55em 1.3em; border: 1px solid rgba(14,168,184,0.45); border-radius: 999px;
       transition: border-color 0.25s, color 0.25s, box-shadow 0.25s;
     }
@@ -537,36 +583,17 @@
       position: fixed; inset: 0; z-index: 9;
       background: #cfe9f8;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; letter-spacing: 0.4em; color: rgba(22,48,60,0.5);
-      transition: opacity 0.9s ease;
+      font-size: var(--fs-2); letter-spacing: 0.2em; color: rgba(22,48,60,0.5);
+      transition: opacity 0.6s ease;
     }
     #veil.off { opacity: 0; pointer-events: none; }
 
-    /* 챕터 진입 타이틀 카드 */
-    #chapter-card {
-      position: fixed;
-      left: 50%; top: 24%;
-      transform: translate(-50%, 14px);
-      z-index: 2;
-      text-align: center;
-      opacity: 0;
-      transition: opacity 0.6s ease, transform 0.6s ease;
-      pointer-events: none;
-    }
-    #chapter-card.show { opacity: 1; transform: translate(-50%, 0); }
-    #chapter-card .num {
-      display: block;
-      font-size: 0.85rem; letter-spacing: 0.55em; font-weight: 600;
-      color: var(--zone-c, var(--accent));
-      text-shadow: 0 0 14px rgba(255, 255, 255, 0.6); /* 흰 halo — 존 4종 배경 모두에서 안전 */
-      margin-bottom: 0.4rem;
-    }
-    #chapter-card .t {
-      font-size: clamp(1.5rem, 2.6vw, 2.2rem); font-weight: 700;
-      letter-spacing: 0.02em;
-      color: rgba(22, 48, 60, 0.82);
-      text-shadow: 0 2px 18px rgba(255,255,255,0.8);
-    }
+    /* #chapter-card 삭제(2026-08-15) — 셋이 동시에 틀렸다:
+       ① 존 진입이 아니라 대화 시작 시점에 떠서, 0.9rem 아래 .who 와 같은 kicker 를 두 번 말했다.
+       ② top 24% 라 top 16vh 의 #verdict 와 세로로 겹쳤다.
+       ③ 두 글자 라벨('시작')이 페이지 최대 글자(35px)를 차지해, 55자짜리 결론(30px)보다 컸다.
+       존이 바뀌었다는 신호는 하늘색·지형 낙차·문 통과 연출·HUD 칩 색이 이미 넷이서 한다.
+       장 번호는 .who 의 '01 · 시작'으로 흡수했다. */
 
     /* ===== 좁은 화면 — 패널이 서로 겹치지 않게 위아래로 나눠 앉힌다 ===== */
     @media (max-width: 900px) {
@@ -588,7 +615,12 @@
   <header id="landing">
     <div class="land-col land-fade">
       <div class="name-row">
-        <h1>한승보</h1>
+        <div>
+          <!-- 직무 한 줄 — 없으면 HR 이 이 사람을 뭐라고 불러야 할지 3초 안에 못 정한다.
+               페이지 안에서 이미 두 번(메타 설명·아웃트로) 말하고 있던 말을, 가장 먼저 읽는 자리로 옮겼다. -->
+          <p class="role">데이터 플랫폼 엔지니어</p>
+          <h1>한승보</h1>
+        </div>
         <img class="face" src="./han2.png" alt="한승보 증명사진" />
       </div>
       <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
@@ -612,11 +644,14 @@
         </dd></div>
         <div><dt>연락</dt><dd><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a> · 서울</dd></div>
       </dl>
+      <!-- 이 셋은 HR 이 실제로 누르는 유일한 링크다. 전에는 전부 href="#" 였고,
+           누르면 scrollY 가 0 이 되어 걸어온 거리가 통째로 사라졌다.
+           대상 파일은 predev/prebuild 가 public/docs 로 복사한다(package.json).
+           자기소개서는 지원처마다 새로 짓는 빈 틀이라 웹에 실을 본문이 없다 — 넣지 않는다. -->
       <div class="links">
-        <a href="#">기술 포트폴리오</a>
-        <a href="#">이력서</a>
-        <a href="#">자기소개서</a>
-        <!-- <a href="#">경력 기술서</a> -->
+        <a href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
+        <a href="./docs/이력서.html" target="_blank" rel="noreferrer">이력서</a>
+        <a href="./docs/경력기술서.html" target="_blank" rel="noreferrer">경력 기술서</a>
       </div>
     </div>
     <div class="cta-wrap land-fade">
@@ -637,7 +672,7 @@
 
   <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길 위의 자리">
     <div class="head">
-      <div class="who">첫 번째 자리</div>
+      <div class="who"><span class="no"></span><span class="lb"></span></div>
       <div class="q"></div>
     </div>
     <div class="a"></div>
@@ -645,10 +680,12 @@
   </section>
   <div id="thanks-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.7-4.2-9.3-8C.9 10.4 1.6 6.6 4.6 5.2c2-.9 4.3-.2 5.6 1.4L12 8.5l1.8-1.9c1.3-1.6 3.6-2.3 5.6-1.4 3 1.4 3.7 5.2 1.9 7.8-2.6 3.8-9.3 8-9.3 8z"/></svg></div>
   <aside id="mini" class="panel hidden-panel" aria-label="지도와 지나온 자리">
-    <div class="stats">
-      <div><span>머문 시간</span><b id="st-time">00<i>:00</i></b></div>
-      <div><span>읽은 문단</span><b id="st-read">00<i>&#8202;/&#8202;24</i></b></div>
-    </div>
+    <!-- 머문 시간·읽은 문단 제거(2026-08-15).
+         분모는 견적서고 시계는 압박이다 — 둘 다 관객이 아니라 주인을 위한 숫자였다.
+         게다가 분모가 /24 로 하드코딩돼 있었고 실제 비트는 13 이라, 전부 읽은 사람이
+         마지막에 보는 숫자가 "13 / 24" 였다. 가장 성실하게 읽은 사람에게 실패를 통보하고 있었다.
+         컨테이너(div.stats)까지 지운다 — 자식 없는 div 가 flex gap 0.95rem 을 그대로 먹어
+         지도 위에 죽은 여백 15px 를 남기고 있었다. -->
     <svg viewBox="0 0 150 150" aria-hidden="true">
       <path class="route" id="route" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
       <path class="route-done" id="route-done" d="M20 14 C 92 30, 32 56, 70 80 S 124 108, 42 122 S 40 142, 112 140" />
@@ -664,12 +701,11 @@
       <span>Problem · Data · Infrastructure · AI — 다음 구간은, 만나서 걷고 싶습니다.</span>
     </div>
     <div class="links">
-      <a href="#" target="_blank" rel="noreferrer">기술 포트폴리오</a>
+      <a href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
       <a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">GitHub</a>
       <a href="mailto:96tmdtmd@gmail.com">이메일</a>
     </div>
   </section>
-  <div id="chapter-card"><span class="num"></span><span class="t"></span></div>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
   <script type="module" src="/src/main.js"></script>
 </body>
