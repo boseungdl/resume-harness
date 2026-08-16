@@ -367,7 +367,7 @@
       left: 50%;
       bottom: 2.1rem;
       transform: translateX(-50%);
-      width: min(920px, 94vw);
+      width: min(1040px, 94vw);
       /* max-height 와 overflow:hidden 을 뺀다. 힌트를 흐름 안으로 옮긴 뒤로는 이 둘이
          본문 마지막 줄과 진행 버튼을 그 선에서 잘라 냈다 — 겹침을 고쳤더니 절단이 됐다.
          패널은 bottom 에 앵커돼 위로 자란다. 가장 긴 조각(03의 4번째, 3문장)이 기준이고,
@@ -405,19 +405,16 @@
     /* 문답 단계 + 스페이스 안내 */
     #popup .hint .step {
       font-variant-numeric: tabular-nums; letter-spacing: 0.08em;
-      color: var(--accent-ink); opacity: 0.8;
+      color: var(--accent-ink); opacity: 0.75; text-align: center;
     }
-    /* 오른쪽 진행 칸 — 두 행에 걸쳐 세로 가운데. 글의 길이와 무관하게 자리가 고정이라,
-       조각을 넘길 때마다 버튼이 위아래로 튀지 않는다. */
+    /* 오른쪽 아래 진행 칸 — 세로로 늘여 가운데 두면 칸이 '영역'이 되는데, 이건 버튼이어야 한다.
+       내용만큼만 차지하고 아래에 앉는다. 두 행에 걸치되(grid-row 1/-1) align-self:end 로
+       바닥에 붙어, 글이 길어져도 버튼은 늘 같은 자리(패널 오른쪽 아래)에 있다. */
     #popup .hint {
       grid-column: 2; grid-row: 1 / -1;
-      align-self: stretch;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 0.9em;
-      min-width: 8.8rem; padding: 0.9rem 1rem;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.4);
-      border: 1px solid rgba(14, 168, 184, 0.22);
+      align-self: end;
+      display: flex; flex-direction: column; align-items: stretch; gap: 0.55em;
+      min-width: 8.4rem;
       font-size: var(--fs-2); letter-spacing: 0.12em; font-weight: 600;
       color: var(--accent-ink); opacity: 0;
       transition: opacity 0.4s ease;
@@ -456,7 +453,7 @@
       #popup { bottom: 1rem; grid-template-columns: minmax(0, 1fr); }
       #popup .hint {
         grid-column: 1; grid-row: auto; align-self: end; justify-self: end;
-        flex-direction: row; min-width: 0; padding: 0.55rem 0.8rem; gap: 1.1em;
+        flex-direction: row; align-items: center; min-width: 0; gap: 1.1em;
       }
       #popup .go { width: auto; }
     }
@@ -493,9 +490,9 @@
       text-wrap: balance;
       border-left: 3px solid var(--zone-c, var(--accent));
       padding-left: 0.72em;
-      max-width: var(--measure-display);
-      margin-bottom: 1em;
-      min-height: calc(1.5em * 2); /* 2줄 예약 — 존마다 머리 높이가 바뀌면 본문이 위아래로 튄다 */
+      margin-bottom: 0.75em;
+      min-height: 1.5em; /* 한 줄 — 예전 2줄 예약이 존마다 머리 높이를 고정하려던 것인데,
+                            한 줄에 다 들어가면 애초에 흔들릴 일이 없다 */
       opacity: 0; transform: translateY(4px);
       transition: opacity 0.2s ease 0.2s, transform 0.2s ease 0.2s;
     }
