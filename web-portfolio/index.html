@@ -211,18 +211,6 @@
     .meta .tools img.aws { width: auto; height: 20px; }
     /* 문서 버튼 — secondary: 종이 카드 필. 코랄 primary와 시선을 다투지 않는다 */
     .links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .dl {
-      display: flex; align-items: baseline; gap: 0.85em; flex-wrap: wrap;
-      margin-top: 0.9rem; font-size: var(--fs-2);
-    }
-    .dl span { color: var(--ink-45); letter-spacing: 0.04em; }
-    .dl a {
-      color: var(--ink); text-decoration: none; font-weight: 600;
-      border-bottom: 1px solid rgba(22, 48, 60, 0.35);
-    }
-    .dl a::after { content: ' ↓'; opacity: 0.55; } /* 새 탭이 아니라 저장이라는 예고 */
-    .dl a:hover { border-bottom-color: var(--ink); }
-    .dl a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
     /* 1차 행동은 하나다. 나머지 셋은 문서라서 같은 무게로 두면 무엇을 먼저 할지 못 정한다. */
     .links .primary {
       font: inherit; font-size: var(--fs-3); font-weight: 700; cursor: pointer;
@@ -234,6 +222,7 @@
     .links .primary:hover { background: #0a8b9c; box-shadow: 0 8px 22px -6px rgba(8,114,128,0.6); }
     .links .primary:active { transform: translateY(1px); box-shadow: none; }
     .links .primary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .links a[download]::after { content: ' ↓'; opacity: 0.5; font-weight: 400; } /* 새 탭이 아니라 저장 */
     .links a {
       display: inline-flex; align-items: center; justify-content: center;
       height: 44px;
@@ -834,23 +823,15 @@
         </dd></div>
         <div><dt>연락</dt><dd><a href="https://github.com/boseungdl" target="_blank" rel="noreferrer">github.com/boseungdl</a> · <a href="mailto:96tmdtmd@gmail.com">96tmdtmd@gmail.com</a> · 서울</dd></div>
       </dl>
-      <!-- 이 셋은 HR 이 실제로 누르는 유일한 링크다. 전에는 전부 href="#" 였고,
-           누르면 scrollY 가 0 이 되어 걸어온 거리가 통째로 사라졌다.
-           대상 파일은 predev/prebuild 가 public/docs 로 복사한다(package.json).
-           자기소개서는 지원처마다 새로 짓는 빈 틀이라 웹에 실을 본문이 없다 — 넣지 않는다. -->
+      <!-- HR 이 실제로 누르는 링크. 전에는 전부 href="#" 였고, 누르면 scrollY 가 0 이 되어
+           걸어온 거리가 통째로 사라졌다. 대상 파일은 predev/prebuild 가 public/docs 로 복사한다.
+           문서는 둘뿐이므로 표적도 둘이다 — HTML 판과 PDF 를 같이 주면 같은 문서를 두 번 주는 셈이고,
+           별도 내려받기 줄은 .land-col 의 풋라인 예약(3vh + 76px)을 넘겨 커밋 차트와 겹쳤다. -->
       <div class="links">
         <button type="button" id="walk-cta" class="primary">걸으면서 보기</button>
-        <a href="./docs/portfolio/index2.html" target="_blank" rel="noreferrer">기술 포트폴리오</a>
-        <a href="./docs/이력서.html" target="_blank" rel="noreferrer">이력서</a>
-        <a href="./docs/경력기술서.html" target="_blank" rel="noreferrer">경력 기술서</a>
-      </div>
-      <!-- 내려받기 — 알약(HTML, 훑기·Ctrl+F 가 사는 쪽)과 분리한다.
-           1차 표적 개수를 늘리지 않으면서 저장·전달 경로를 연다. -->
-      <p class="dl">
-        <span>내려받기</span>
         <a href="./docs/han-portfolio.pdf" download="한승보_portfolio.pdf">포트폴리오 PDF</a>
         <a href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
-      </p>
+      </div>
     </div>
     <div class="cta-wrap land-fade">
       <button id="start-walk" class="sign-hotspot" aria-label="한 걸음씩 소개하겠습니다 — 함께 걷기 시작"></button>
