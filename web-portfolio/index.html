@@ -676,7 +676,6 @@
       border-bottom: 1px dashed rgba(255, 255, 255, 0.4); transition: border-color 0.2s, color 0.2s;
     }
     #outro-panel .copy:hover { color: #ffffff; border-bottom-color: rgba(255, 255, 255, 0.9); }
-    #outro-panel .cap { font-size: var(--fs-2); color: rgba(255, 255, 255, 0.62); }
     #outro-panel a:focus-visible, #outro-panel .copy:focus-visible {
       outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: 3px;
     }
@@ -891,14 +890,16 @@
   <section id="outro-panel" class="hidden-panel" role="region" aria-label="도착">
     <p class="rec" id="outro-record">296<i>m</i></p>
     <p class="thanks">여기까지 걸어주셔서 고맙습니다.</p>
-    <p class="next">이 공간처럼,<br />다음도 함께 알아가고 싶습니다.</p>
+    <p class="next">새로운 문제를 마주할 준비가 되어 있습니다.<br />그 답을 함께 찾아가고 싶습니다.</p>
     <div class="acts">
       <a class="send" id="outro-mail" href="mailto:96tmdtmd@gmail.com">메일 쓰기</a>
+      <a class="doc" href="./docs/han-portfolio.pdf" download="한승보_portfolio.pdf">포트폴리오 PDF</a>
       <a class="doc" href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
     </div>
+    <!-- 복사 피드백은 별도 캡션이 아니라 버튼 자신이 낸다 — 줄 하나를 덜 쓰고,
+         누른 자리와 바뀌는 자리가 같아 인과가 분명하다. -->
     <p class="addr">
       <button type="button" class="copy" id="outro-copy">96tmdtmd@gmail.com</button>
-      <span class="cap" id="outro-cap">제목과 첫 문장은 채워 두었습니다</span>
     </p>
   </section>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>

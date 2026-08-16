@@ -77,7 +77,6 @@ const MAIL_BODY = [
   }
   // 메일 클라이언트가 없는 사람(Gmail 웹·회사 PC)에게는 복사가 유일한 탈출구다.
   const copyBtn = document.getElementById('outro-copy')
-  const cap = document.getElementById('outro-cap')
   copyBtn?.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(MAIL_TO)
@@ -90,9 +89,11 @@ const MAIL_BODY = [
       sel.addRange(r)
       return
     }
-    if (!cap) return
-    cap.textContent = '주소를 복사했습니다'
-    setTimeout(() => { cap.textContent = '제목과 첫 문장은 채워 두었습니다' }, 1600)
+    // 피드백을 버튼 자신이 낸다 — 누른 자리와 바뀌는 자리가 같아야 인과가 분명하다.
+    // 폭이 바뀌면 가운데 정렬이 흔들리므로 현재 폭을 고정해 두고 글자만 바꾼다.
+    copyBtn.style.minWidth = `${copyBtn.offsetWidth}px`
+    copyBtn.textContent = '복사했습니다'
+    setTimeout(() => { copyBtn.textContent = MAIL_TO }, 1600)
   })
 }
 
