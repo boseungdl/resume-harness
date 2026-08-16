@@ -367,7 +367,7 @@
       left: 50%;
       bottom: 2.1rem;
       transform: translateX(-50%);
-      width: min(780px, 92vw);
+      width: min(920px, 94vw);
       /* max-height 와 overflow:hidden 을 뺀다. 힌트를 흐름 안으로 옮긴 뒤로는 이 둘이
          본문 마지막 줄과 진행 버튼을 그 선에서 잘라 냈다 — 겹침을 고쳤더니 절단이 됐다.
          패널은 bottom 에 앵커돼 위로 자란다. 가장 긴 조각(03의 4번째, 3문장)이 기준이고,
@@ -379,12 +379,16 @@
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
-      grid-template-columns: 1fr;
+      /* 왼쪽에 글, 오른쪽에 진행 칸. 버튼이 자기 행을 차지하면 패널이 그만큼 높아지는데,
+         높이는 3D 세계를 가리는 비용이고 가로는 남는 자원이다(1600px 에서 판이 920px). */
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      column-gap: 1.6rem;
       row-gap: 0.9rem;
       align-items: start;
     }
     #popup.hidden-panel { transform: translateX(-50%) translateY(18px) scale(0.99); }
-    #popup .head { grid-column: 1; }
+    #popup .head { grid-column: 1; grid-row: 1; }
     #popup .a p {
       margin: 0 0 0.8em;
       /* 0.95em 재축소를 뺀다 — 부모(--fs-4)가 이미 본문 단계다. 겹쳐 걸면 17.3px 선언이 16.4px 로 렌더됐다. */
@@ -400,12 +404,20 @@
 
     /* 문답 단계 + 스페이스 안내 */
     #popup .hint .step {
-      margin-right: 1.1em; font-variant-numeric: tabular-nums;
-      color: var(--accent-ink); opacity: 0.85;
+      font-variant-numeric: tabular-nums; letter-spacing: 0.08em;
+      color: var(--accent-ink); opacity: 0.8;
     }
+    /* 오른쪽 진행 칸 — 두 행에 걸쳐 세로 가운데. 글의 길이와 무관하게 자리가 고정이라,
+       조각을 넘길 때마다 버튼이 위아래로 튀지 않는다. */
     #popup .hint {
-      justify-self: end;
-      display: flex; align-items: center; gap: 0.7em;
+      grid-column: 2; grid-row: 1 / -1;
+      align-self: stretch;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.9em;
+      min-width: 8.8rem; padding: 0.9rem 1rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(14, 168, 184, 0.22);
       font-size: var(--fs-2); letter-spacing: 0.12em; font-weight: 600;
       color: var(--accent-ink); opacity: 0;
       transition: opacity 0.4s ease;
@@ -413,8 +425,8 @@
     /* 진행 버튼 — 'SPACE' 안내만으로는 마우스만 쓰는 손님이 진행할 수 없었고,
        화면 어디를 눌러야 하는지가 명시되지 않았다. */
     #popup .go {
-      display: inline-flex; align-items: center; gap: 0.5em;
-      padding: 0.62em 1.25em; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+      width: 100%; padding: 0.7em 1em; border-radius: 999px;
       border: 1px solid rgba(8, 114, 128, 0.45);
       background: rgba(255, 255, 255, 0.72);
       color: var(--accent-ink); font: inherit; font-weight: 700;
@@ -439,9 +451,14 @@
       font-weight: 500;
     }
     @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
-    @media (max-width: 1200px) {
-      /* padding-bottom 2.4rem: 힌트(.hint, absolute bottom)가 본문 마지막 줄을 덮지 않게 */
-      #popup { bottom: 1rem; padding-bottom: 1.3rem; }
+    /* 두 칸을 유지할 가로가 없으면 한 칸으로 되돌리고, 진행 칸은 마지막 행에 눕힌다 */
+    @media (max-width: 1120px) {
+      #popup { bottom: 1rem; grid-template-columns: minmax(0, 1fr); }
+      #popup .hint {
+        grid-column: 1; grid-row: auto; align-self: end; justify-self: end;
+        flex-direction: row; min-width: 0; padding: 0.55rem 0.8rem; gap: 1.1em;
+      }
+      #popup .go { width: auto; }
     }
 
     #popup .who {
@@ -485,6 +502,7 @@
     #popup:not(.hidden-panel) .q { opacity: 1; transform: none; }
     #popup .a {
       grid-column: 1;
+      grid-row: 2;
       font-size: var(--fs-4);
       line-height: 1.75; word-break: keep-all; font-weight: 400; color: rgba(22, 48, 60, 0.85);
       max-width: var(--measure-wide);
