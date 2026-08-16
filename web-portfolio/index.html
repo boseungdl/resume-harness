@@ -38,14 +38,14 @@
          1600px 에서 랜딩 본문이 15px 로 남아 가장 먼저 읽히는 글이 가장 작았다.
          768px 최소 → 1600px 최대, 그 사이 선형, 이후 고정. 절편을 rem 으로 둬서
          브라우저 글자 크기 설정이 살아 있다. 주석은 768 → 1600 실측 px. */
-      --fs-1: clamp(0.688rem, 0.12vw + 0.630rem, 0.750rem);  /* 11   → 12   */
-      --fs-2: clamp(0.750rem, 0.18vw + 0.664rem, 0.844rem);  /* 12   → 13.5 */
-      --fs-3: clamp(0.875rem, 0.18vw + 0.789rem, 0.969rem);  /* 14   → 15.5 */
-      --fs-4: clamp(1.000rem, 0.24vw + 0.884rem, 1.125rem);  /* 16   → 18   */
-      --fs-5: clamp(1.094rem, 0.42vw + 0.892rem, 1.313rem);  /* 17.5 → 21   */
-      --fs-6: clamp(1.188rem, 0.72vw + 0.841rem, 1.563rem);  /* 19   → 25   */
-      --fs-7: clamp(1.875rem, 1.68vw + 1.068rem, 2.75rem);   /* 30   → 44   — 문 통과 카드 전용 */
-      --fs-8: clamp(3.000rem, 4.80vw + 0.693rem, 5.500rem);  /* 48   → 88   */
+      --fs-1: clamp(0.656rem, 0.12vw + 0.599rem, 0.719rem);  /* 10.5 → 11.5 */
+      --fs-2: clamp(0.750rem, 0.12vw + 0.692rem, 0.813rem);  /* 12   → 13   */
+      --fs-3: clamp(0.844rem, 0.18vw + 0.757rem, 0.938rem);  /* 13.5 → 15   */
+      --fs-4: clamp(0.938rem, 0.24vw + 0.822rem, 1.063rem);  /* 15   → 17   */
+      --fs-5: clamp(1.031rem, 0.36vw + 0.858rem, 1.219rem);  /* 16.5 → 19.5 */
+      --fs-6: clamp(1.125rem, 0.60vw + 0.837rem, 1.438rem);  /* 18   → 23   */
+      --fs-7: clamp(1.688rem, 1.56vw + 0.938rem, 2.500rem);  /* 27   → 40   — 문 통과 카드 전용 */
+      --fs-8: clamp(2.750rem, 4.33vw + 0.673rem, 5.000rem);  /* 44   → 80   */
 
       /* 행장은 em 으로만 잰다. ch 는 숫자 0 의 폭(≈0.55em)이라 한글에 쓰면 절반으로 센다 —
          예전 #verdict 의 max-width:24ch 는 한글 13자였고, 그래서 55자 결론이 4줄로 넘쳤다. */
@@ -368,9 +368,10 @@
       bottom: 2.1rem;
       transform: translateX(-50%);
       width: min(780px, 92vw);
-      /* 46vh — 03(문제)은 관점이 바뀌는 자리라 비트가 넷이고 문장이 길다. 38vh 에서는 마지막 줄이 잘렸다. */
-      max-height: 52vh;
-      overflow: hidden;
+      /* max-height 와 overflow:hidden 을 뺀다. 힌트를 흐름 안으로 옮긴 뒤로는 이 둘이
+         본문 마지막 줄과 진행 버튼을 그 선에서 잘라 냈다 — 겹침을 고쳤더니 절단이 됐다.
+         패널은 bottom 에 앵커돼 위로 자란다. 가장 긴 조각(03의 4번째, 3문장)이 기준이고,
+         낮은 화면은 아래 @media (max-height) 가 줄 간격으로 흡수한다. */
       /* 진행 버튼은 이제 흐름 안의 마지막 행이다(.hint). 예전에는 absolute 로 띄우고
          padding-bottom 으로 자리를 예약했는데, 예약은 글이 짧을 때만 맞는다 —
          조각이 3줄이 되면 마지막 줄이 버튼 띠와 같은 높이에서 만났다. */
@@ -440,7 +441,7 @@
     @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
     @media (max-width: 1200px) {
       /* padding-bottom 2.4rem: 힌트(.hint, absolute bottom)가 본문 마지막 줄을 덮지 않게 */
-      #popup { bottom: 1rem; max-height: 40vh; padding-bottom: 1.3rem; }
+      #popup { bottom: 1rem; padding-bottom: 1.3rem; }
     }
 
     #popup .who {
@@ -579,11 +580,13 @@
        판(.panel)을 버렸다. 상자는 두 가지를 한다: 캐릭터를 가리고, "또 하나의 UI"로 읽힌다.
        296m 를 걸어 도착한 자리에서 마지막으로 뜨는 것이 계기판이면 여정이 안 끝난다.
        글은 스크림 위에 직접 앉고, 로봇은 그 위에 온전히 선다.
-       세로 위치 62% — 58% 에서는 기록 줄이 로봇 발치에 닿았다(실측 로봇 하단 y≈515, 글 상단 522). */
+       바닥에서 7vh 띄운다 — 작업표시줄·브라우저 하단 UI 와 붙지 않는 최소 거리다. */
     #outro-panel {
+      /* 위(top)가 아니라 아래에 앵커한다 — top 고정은 화면이 낮아지면 글이 화면 밖으로 밀린다.
+         로봇과의 간격은 카메라 엔딩 프레이밍(endF)이 맡는다. */
       position: fixed;
       left: 50%;
-      top: 62%;
+      bottom: max(7vh, 52px);
       transform: translateX(-50%);
       width: min(680px, 88vw);
       z-index: 3;
@@ -743,6 +746,11 @@
        고정 여백을 줄이는 쪽이 글자를 줄이는 것보다 손실이 적다. */
     @media (max-height: 720px) {
       .land-col { padding-top: clamp(28px, 6vh, 104px); }
+      #popup { padding: 1.1rem 1.6rem 1rem; row-gap: 0.7rem; bottom: 1.4rem; }
+      #popup .q { margin-bottom: 0.7em; min-height: 0; }
+      #popup .a { padding-top: 0.7rem; min-height: calc(1.7em * 2); line-height: 1.68; }
+      #popup .a p { margin-bottom: 0.6em; }
+      #outro-panel { row-gap: 0.6rem; }
       .name-row { margin-bottom: 10px; }
       .intro { margin-bottom: 1.4em; }
       .nums { margin-bottom: 8px; }
@@ -758,12 +766,11 @@
         left: 1rem; right: 1rem; max-width: none;
         top: auto; bottom: 5.2rem; transform: none;
         animation: none;
-        max-height: 56vh;
         padding: 1.4rem 1.5rem 1.2rem;
       }
       #popup.hidden-panel { transform: translateY(12px) scale(0.98); }
       /* 좁은 화면 — 로봇이 화면을 더 채우므로 글을 조금 더 아래로 민다 */
-      #outro-panel { top: auto; bottom: 8vh; width: calc(100% - 2rem); row-gap: 0.7rem; }
+      #outro-panel { bottom: max(5vh, 40px); width: calc(100% - 2rem); row-gap: 0.7rem; }
       #outro-panel .acts { width: 100%; flex-direction: column-reverse; align-items: stretch; }
       #outro-panel .acts a { justify-content: center; }
     }
