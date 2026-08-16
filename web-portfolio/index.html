@@ -280,20 +280,25 @@
       opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;
     }
     #scroll-hint.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+    /* 배경을 0.82 → 0.34 로 내리는 대신 글자에 흰 테를 두른다 —
+       바탕이 옅어지면 대비는 배경이 아니라 글자 자신이 만들어야 한다. */
     #scroll-hint .txt {
-      font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.02em; color: var(--ink);
-      background: rgba(255, 255, 255, 0.82); padding: 0.42em 0.95em; border-radius: 999px;
-      box-shadow: 0 4px 16px -6px rgba(20, 80, 110, 0.4);
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      font-size: var(--fs-4); font-weight: 700; letter-spacing: 0.01em; color: var(--ink);
+      background: rgba(255, 255, 255, 0.34); padding: 0.55em 1.25em; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 1px 8px rgba(255,255,255,0.8);
+      box-shadow: 0 6px 22px -10px rgba(20, 80, 110, 0.5);
+      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
     }
     #scroll-hint .arw {
-      display: flex; width: 30px; height: 30px; color: var(--accent-ink);
+      display: flex; width: 42px; height: 42px; color: var(--accent-ink);
+      filter: drop-shadow(0 0 4px rgba(255,255,255,0.9));
       animation: scroll-nudge 1.6s ease-in-out infinite;
     }
     #scroll-hint .arw svg { width: 100%; height: 100%; }
     @keyframes scroll-nudge {
       0%, 100% { transform: translateY(0); opacity: 0.55; }
-      50%      { transform: translateY(7px); opacity: 1; }
+      50%      { transform: translateY(10px); opacity: 1; }
     }
     @media (prefers-reduced-motion: reduce) { #scroll-hint .arw { animation: none; } }
 
@@ -368,11 +373,16 @@
       text-shadow: 0 0 2px rgba(255,255,255,0.9), 0 1px 6px rgba(255,255,255,0.8), 0 4px 22px rgba(255,255,255,0.6);
     }
     #chapter.on { opacity: 1; }
-    #chapter .no {
+    /* 라틴 한 줄 — 번호와 영문이 한 덩어리다. 한글 이름과 섞으면 자간 규칙이 충돌한다:
+       라틴 대문자는 0.14em 이 필요하고 한글은 0.08em 을 넘으면 낱자로 흩어진다. */
+    #chapter .lat {
+      display: flex; align-items: baseline; gap: 0.62em;
       font-family: var(--mono); font-size: var(--fs-2); font-weight: 600;
       letter-spacing: 0.14em; color: var(--zone-c, var(--accent-ink));
       transition: font-size 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
+    #chapter .lat i { font-style: normal; }
+    #chapter .lat .en { opacity: 0.72; }
     #chapter .nm {
       font-size: var(--fs-4); font-weight: 600; letter-spacing: 0.06em; color: var(--ink);
       transition: font-size 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
@@ -383,7 +393,7 @@
     /* 문을 지나는 3초 — 같은 문자열이 커졌다가 제자리로 내려앉는다.
        44:18 = 2.4:1 이라 "같은 것이 작아졌다"로 읽힌다. 3.6:1 이면 "다른 두 개"가 된다. */
     #chapter.big { top: 16vh; }
-    #chapter.big .no { font-size: var(--fs-4); }
+    #chapter.big .lat { font-size: var(--fs-4); gap: 0.7em; }
     #chapter.big .nm { font-size: var(--fs-7); letter-spacing: 0.02em; }
 
     /* 만남 팝업 — 떠 있는 홀로그램 패널 */
@@ -499,11 +509,14 @@
     }
     /* 장 번호 — 삭제한 #chapter-card 의 'CHAPTER 01' 이 여기로 흡수됐다.
        라틴 숫자에만 넓은 자간을 준다(한글 라벨은 0.06em). */
-    #popup .who .no {
+    #popup .who .no, #popup .who .en {
       font-family: var(--mono); letter-spacing: 0.1em; opacity: 0.72;
       font-variant-numeric: tabular-nums;
     }
-    #popup .who .no::after { content: '·'; margin: 0 0.15em 0 0.45em; opacity: 0.6; }
+    #popup .who .en { opacity: 0.58; }
+    #popup .who .no::after, #popup .who .en::after {
+      content: '·'; margin: 0 0.15em 0 0.45em; opacity: 0.6;
+    }
     /* 문항 — 인용이 아니라 제목이다. 큰따옴표를 빼고 왼쪽 규칙선으로 표시한다:
        따옴표는 "다른 사람이 한 말"의 기호라, 세 독자 모두에게 '누가 한 말인가'를 묻게 만든다.
        문항임은 위치(머리)·크기(본문의 1.4배)·굵기(700)·규칙선 넷이면 충분하다. */
@@ -873,13 +886,13 @@
   <!-- 여정 중 유일한 상시 텍스트. 형태는 모든 구간에서 같다 — 장 번호·장 이름·네 칸.
        문을 지나는 3초 동안만 크게 떴다가 제자리로 축소 이동한다. -->
   <div id="chapter" aria-live="polite">
-    <span class="no"></span>
+    <span class="lat"><i class="no"></i><i class="en"></i></span>
     <span class="nm"></span>
   </div>
 
   <section id="popup" class="panel hud hidden-panel" aria-live="polite" aria-label="길 위의 자리">
     <div class="head">
-      <div class="who"><span class="no"></span><span class="lb"></span></div>
+      <div class="who"><span class="no"></span><span class="en"></span><span class="lb"></span></div>
       <div class="q"></div>
     </div>
     <div class="a"></div>

@@ -47,6 +47,7 @@ export const PREMISES = [
   {
     id: 'p1',
     kicker: '시작',
+    en: 'START',
     themeColor: '#1A5FB4', // 깊은 바다 파랑
     premise: '정해진 길보다, 새로운 길을 선택해보고 싶었습니다',
     conclusion: '그렇게 개발에서 인프라까지, 관심의 범위를 넓혀갔습니다',
@@ -60,6 +61,7 @@ export const PREMISES = [
   {
     id: 'p2',
     kicker: '기술',
+    en: 'SKILL',
     themeColor: '#8A5A00', // 다크 오커 — 사구의 그늘
     premise: '기술을 익히는 것과 문제를 해결하는 것은 달랐습니다',
     conclusion: '그러다 데이터 분석 프로젝트를 시작했습니다',
@@ -73,6 +75,7 @@ export const PREMISES = [
   {
     id: 'p3',
     kicker: '문제',
+    en: 'PROBLEM',
     themeColor: '#44607A', // 비 젖은 강청
     premise: '처음으로, 무엇을 해결해야 하는지가 보이기 시작했습니다',
     conclusion: '기술은 더 이상 익혀야 할 대상이 아니라, 문제를 해결하기 위해 선택하고 조합하는 도구가 되었습니다',
@@ -88,6 +91,7 @@ export const PREMISES = [
   {
     id: 'p4',
     kicker: '방향',
+    en: 'DIRECTION',
     themeColor: '#C2410C', // 번트 오렌지 — 노을의 심지
     premise: '문제를 정의하고, 필요한 기술을 연결하는 엔지니어가 되고 싶습니다',
     conclusion: '기술을 쌓는 것에서, 문제를 해결하기 위해 기술을 선택하는 것으로',

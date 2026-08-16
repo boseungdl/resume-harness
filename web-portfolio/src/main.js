@@ -53,6 +53,7 @@ const miniTime = document.getElementById('mini-time')
 const miniStops = document.getElementById('mini-stops')
 const chapEl = document.getElementById('chapter')
 const chapNo = chapEl.querySelector('.no')
+const chapEn = chapEl.querySelector('.en')
 const chapNm = chapEl.querySelector('.nm')
 const popupWho = popupEl.querySelector('.who')
 const outroRecord = document.getElementById('outro-record')
@@ -1059,6 +1060,7 @@ if (!webglAvailable()) {
     // kicker('기술') / STOP_LABELS('첫 번째 자리') / 마크업 기본값. STOP_LABELS 는 사문이었고,
     // 삭제한 #chapter-card 의 'CHAPTER 01' 이 여기 번호로 흡수됐다.
     popupWho.querySelector('.no').textContent = String(index + 1).padStart(2, '0')
+    popupWho.querySelector('.en').textContent = PREMISES[index].en ?? ''
     popupWho.querySelector('.lb').textContent = PREMISES[index].kicker
     popupEl.style.setProperty('--zone-c', PREMISES[index].themeColor ?? '')
     popupA.innerHTML = ''
@@ -1208,6 +1210,7 @@ if (!webglAvailable()) {
     if (chapKey !== ui.verdict) {
       ui.verdict = chapKey
       chapNo.textContent = String(chapIdx + 1).padStart(2, '0')
+      chapEn.textContent = PREMISES[chapIdx].en ?? ''
       chapNm.textContent = PREMISES[chapIdx].kicker
       chapEl.style.setProperty('--zone-c', PREMISES[chapIdx].themeColor ?? '')
       chapEl.classList.toggle('big', big)
