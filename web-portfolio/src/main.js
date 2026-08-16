@@ -453,9 +453,12 @@ if (!webglAvailable()) {
   const signPostR = signPostL.clone()
   signPostR.position.x = 0.76
   // 간판 글씨 — 버튼 DOM 대신 판에 직접 그린다 (클릭하면 문구가 바뀐다)
+  // 640 은 화면 폭(약 500px)의 1.28배뿐이라 밉맵·원근 축소가 겹치면 획이 뭉갰다.
+  // 1280(2배)이면 2.5배 여유가 생긴다. 좌표는 SS 로 곱해 쓰므로 그리는 코드는 그대로 읽힌다.
+  const SS = 2
   const signCv = document.createElement('canvas')
-  signCv.width = 640
-  signCv.height = 344
+  signCv.width = 640 * SS
+  signCv.height = 344 * SS
   const signCtx = signCv.getContext('2d')
   // roundRect 미지원 브라우저에서 간판 그리기가 통째로 죽지 않도록 폴백을 깐다
   if (typeof signCtx.roundRect !== 'function') {
@@ -465,6 +468,7 @@ if (!webglAvailable()) {
   function drawSign(mode) {
     signMode = mode ?? signMode
     const W = 640
+    signCtx.setTransform(SS, 0, 0, SS, 0, 0) // 좌표는 논리 640×344 그대로 쓰고 픽셀만 2배
     signCtx.fillStyle = '#ffffff'
     signCtx.fillRect(0, 0, W, 344)
     signCtx.textAlign = 'center'
@@ -476,29 +480,34 @@ if (!webglAvailable()) {
       signCtx.font = '700 58px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
       signCtx.fillText('감사합니다', W / 2, 212)
     } else {
+      // 한 줄이 24자라 46px 로는 판을 넘는다. 두 줄로 나누고 34px 로 앉힌다.
       signCtx.fillStyle = '#16303c'
-      signCtx.font = '700 46px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('한 걸음씩 소개하겠습니다', W / 2, 118)
+      signCtx.font = '700 34px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('하나씩 알아가며, 저만의 방향을', W / 2, 108)
+      signCtx.fillText('찾아온 이야기입니다.', W / 2, 154)
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
-      signCtx.roundRect(W / 2 - 90, 146, 180, 7, 4)
+      signCtx.roundRect(W / 2 - 90, 184, 180, 7, 4)
       signCtx.fill()
-      signCtx.fillStyle = 'rgba(22, 48, 60, 0.82)'
-      signCtx.font = '600 32px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('바쁘시겠지만, 잠깐 걸으며 알아가요', W / 2, 214)
       // 클릭 어포던스 — 코랄 필
       signCtx.fillStyle = '#f4552b'
       signCtx.beginPath()
-      signCtx.roundRect(W / 2 - 92, 248, 184, 52, 26)
+      signCtx.roundRect(W / 2 - 100, 224, 200, 58, 29)
       signCtx.fill()
       signCtx.fillStyle = '#ffffff'
-      signCtx.font = '700 27px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
-      signCtx.fillText('눌러서 시작', W / 2, 283)
+      signCtx.font = '700 30px "IBM Plex Sans KR", "Malgun Gothic", sans-serif'
+      signCtx.fillText('탐험 시작', W / 2, 263)
     }
   }
   drawSign()
   const signTex = new THREE.CanvasTexture(signCv)
   signTex.colorSpace = THREE.SRGBColorSpace
+  // 기울어 선 판이라 화면에서 가로·세로 축소율이 다르다 — 등방 밉맵만으로는 획이 씻긴다.
+  // 이방성 필터가 기울어진 면의 선명도를 살리는 유일한 수단이다.
+  signTex.anisotropy = renderer.capabilities.getMaxAnisotropy()
+  signTex.minFilter = THREE.LinearMipmapLinearFilter
+  signTex.magFilter = THREE.LinearFilter
+  signTex.generateMipmaps = true
   if (document.fonts?.ready) document.fonts.ready.then(() => { drawSign(signMode); signTex.needsUpdate = true })
   const signSideMat = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#dff2f8', emissiveIntensity: 0.42, flatShading: true })
   const signFaceMat = new THREE.MeshStandardMaterial({
@@ -773,9 +782,27 @@ if (!webglAvailable()) {
     return span > 0 ? Math.min(1, Math.max(0, (window.scrollY - base) / span)) : 0
   }
 
+  // 스크롤 안내 — 클릭 다음에 무엇을 해야 하는지. 한 번이라도 굴리면 영영 사라진다.
+  const scrollHint = document.getElementById('scroll-hint')
+  let scrolledOnce = false
+  let hintFromY = 0
+  let autoUntil = 0 // 자동 스크롤이 도는 동안은 사람의 입력이 아니다
+  window.addEventListener('scroll', () => {
+    if (scrolledOnce) return
+    // 기준점을 목적지로 잡으면, 출발 지점에서 이미 한참 벌어져 있어 첫 프레임이
+    // '사람이 굴렸다'로 오판된다. 자동 구간 동안은 기준점을 계속 따라 옮긴다.
+    if (performance.now() < autoUntil) { hintFromY = window.scrollY; return }
+    if (Math.abs(window.scrollY - hintFromY) < 40) return
+    scrolledOnce = true
+    scrollHint?.classList.remove('on')
+  }, { passive: true })
+
   let walkStarted = false
   function startWalk() {
-    const go = () => window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+    const go = () => {
+      autoUntil = performance.now() + 1500 // 부드러운 스크롤이 멎을 때까지
+      window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })
+    }
     if (walkStarted || reduceMotion) { walkStarted = true; go(); return }
     walkStarted = true
     landingFace = -0.49 // 간판을 보던 중이었어도 관람자를 향해 인사한다
@@ -784,6 +811,12 @@ if (!webglAvailable()) {
     signTex.needsUpdate = true
     const hint = document.getElementById('click-hint')
     if (hint) hint.style.display = 'none'
+    // 클릭 표시의 임무를 스크롤 표시가 이어받는다 — 클릭 다음에 무엇을 해야 하는지
+    // 말해 주지 않으면, 자동 스크롤이 멎는 자리에서 여정이 끝난 줄 안다.
+    // 실제로 굴리면 사라진다(한 번 배우면 안내는 방해다).
+    if (scrollHint) {
+      setTimeout(() => { if (!scrolledOnce) scrollHint.classList.add('on') }, 2000) // 자동 스크롤(1500)이 멎은 뒤
+    }
     // 클릭은 나에 대한 선택 — 로봇이 머리 위 말풍선과 함께 기뻐서 뛴다
     if (thanksBubble) {
       camera.updateMatrixWorld()
