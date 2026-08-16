@@ -798,9 +798,7 @@ if (!webglAvailable()) {
   }
   const startBtn = document.getElementById('start-walk')
   startBtn.addEventListener('click', startWalk)
-  // 같은 행동으로 가는 문이 둘이다 — 3D 팻말(분위기)과 DOM 버튼(접근성·명시성).
-  // 텍스처에 구워진 글자는 확대하면 뭉개지고 스크린리더가 못 읽으므로, 팻말만으로는 CTA 가 못 된다.
-  document.getElementById('walk-cta')?.addEventListener('click', startWalk)
+  // 걷기 진입은 3D 팻말(#start-walk)과 스크롤 둘이다 — DOM 버튼은 랜딩에서 뺐다.
   // 호버 — 간판이 반갑게 반응한다
   startBtn.addEventListener('pointerenter', () => {
     sign.scale.setScalar(0.89)

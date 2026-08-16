@@ -127,7 +127,7 @@
       width: min(640px, 47vw);
       padding-left: clamp(48px, 6vw, 96px);
       padding-top: clamp(56px, 8.5vh, 104px);
-      padding-bottom: calc(3vh + 76px); /* 풋라인 예약 — 컬럼이 길어져도 침범하지 않는다 */
+      padding-bottom: clamp(20px, 3vh, 34px);
       display: flex;
       flex-direction: column;
       justify-content: space-between; /* 남는 높이를 섹션 사이로 분배 — 아래 빈 공간 없음 */
@@ -156,17 +156,6 @@
       line-height: 1.02;
       margin-left: -0.035em; /* 광학 정렬 */
     }
-    .lead {
-      font-size: var(--fs-5);
-      font-weight: 400;
-      line-height: 1.58;
-      letter-spacing: -0.005em;
-      color: var(--ink-70);
-      word-break: keep-all;
-      max-width: var(--measure-lead);
-      margin-bottom: 2.6em;
-    }
-    .lead b { color: var(--ink); font-weight: 700; }
     .nums {
       display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap;
       font-variant-numeric: tabular-nums;
@@ -210,18 +199,9 @@
     .meta .tools img { width: 20px; height: 20px; display: block; opacity: 0.92; }
     .meta .tools img.aws { width: auto; height: 20px; }
     /* 문서 버튼 — secondary: 종이 카드 필. 코랄 primary와 시선을 다투지 않는다 */
-    .links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    /* 1차 행동은 하나다. 나머지 셋은 문서라서 같은 무게로 두면 무엇을 먼저 할지 못 정한다. */
-    .links .primary {
-      font: inherit; font-size: var(--fs-3); font-weight: 700; cursor: pointer;
-      height: 44px; padding: 0 22px; border-radius: 999px; border: 0;
-      background: var(--accent-ink); color: #ffffff;
-      box-shadow: 0 6px 18px -6px rgba(8, 114, 128, 0.55);
-      transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
-    }
-    .links .primary:hover { background: #0a8b9c; box-shadow: 0 8px 22px -6px rgba(8,114,128,0.6); }
-    .links .primary:active { transform: translateY(1px); box-shadow: none; }
-    .links .primary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    /* margin-bottom 은 space-between 이 여백을 0 으로 짜부라뜨리는 낮은 화면에서도
+       버튼과 커밋 차트 사이에 최소 간격을 남긴다 — auto 여백만으로는 1366×620 에서 0 이 됐다. */
+    .links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
     .links a[download]::after { content: ' ↓'; opacity: 0.5; font-weight: 400; } /* 새 탭이 아니라 저장 */
     .links a {
       display: inline-flex; align-items: center; justify-content: center;
@@ -292,11 +272,11 @@
     @media (prefers-reduced-motion: reduce) { .click-hint { animation: none; } }
 
     /* 풋라인 — 실데이터 스파크라인 */
+    /* 흐름 안의 마지막 블록이다. 예전에는 absolute + .land-col 의 padding-bottom 예약
+       (3vh + 76px)으로 자리를 비웠는데, 화면이 조금만 낮아지면 컬럼이 그 예약을 넘겨
+       커밋 차트 위에 버튼이 얹혔다. 예약은 높이가 고정일 때만 성립한다. */
     .footline {
-      position: absolute;
-      left: clamp(48px, 6vw, 96px);
-      width: calc(min(640px, 47vw) - clamp(48px, 6vw, 96px));
-      bottom: 3vh;
+      margin-top: auto;
       display: flex;
       align-items: flex-end;
       gap: 16px;
@@ -331,7 +311,6 @@
     @media (max-height: 920px) {
       .land-col h1 { font-size: clamp(48px, 5.4vw, 64px); }
       .name-row { margin-bottom: 14px; }
-      .lead { font-size: 18px; margin-bottom: 22px; }
       .nums { margin-bottom: 12px; }
       .intro { font-size: 14px; line-height: 1.7; margin-bottom: 22px; }
       .meta { padding-top: 13px; gap: 7px; margin-bottom: 22px; }
@@ -765,9 +744,22 @@
        존이 바뀌었다는 신호는 하늘색·지형 낙차·문 통과 연출·HUD 칩 색이 이미 넷이서 한다.
        장 번호는 .who 의 '01 · 시작'으로 흡수했다. */
 
+    /* 낮은 화면 — 폭이 아니라 높이가 모자란 경우다. 노트북 1366×620 에서 컬럼이 18px 넘쳤다.
+       space-between 은 남는 높이를 나눠 줄 뿐, 모자란 높이를 만들어 주지는 못한다.
+       고정 여백을 줄이는 쪽이 글자를 줄이는 것보다 손실이 적다. */
+    @media (max-height: 720px) {
+      .land-col { padding-top: clamp(28px, 6vh, 104px); }
+      .name-row { margin-bottom: 10px; }
+      .intro { margin-bottom: 1.4em; }
+      .nums { margin-bottom: 8px; }
+      .meta { padding-top: 11px; gap: 6px; margin-bottom: 16px; }
+      .links { margin-bottom: 14px; }
+      .footline { padding-top: 9px; }
+      #gh-chart { height: 24px; }
+    }
+
     /* ===== 좁은 화면 — 패널이 서로 겹치지 않게 위아래로 나눠 앉힌다 ===== */
     @media (max-width: 900px) {
-      .footline { position: static; width: auto; margin-top: 18px; }
       #popup {
         left: 1rem; right: 1rem; max-width: none;
         top: auto; bottom: 5.2rem; transform: none;
@@ -802,8 +794,6 @@
         </div>
         <img class="face" src="./han2.png" alt="한승보 증명사진" />
       </div>
-      <!-- [지원처별 수정 지점 ①] 직무·회사에 따라 역할 한 줄이 달라진다 -->
-      <p class="lead">주어진 상황 속에서 더 좋은 방법을 매순간 고민하고, 언제나 <b>진심으로</b> 다가갑니다</p>
       <p class="nums">
         <span class="kpi"><b>7</b>회 협업 경험</span>
         <span class="kpi"><b>4</b>회 수상</span>
@@ -828,18 +818,17 @@
            문서는 둘뿐이므로 표적도 둘이다 — HTML 판과 PDF 를 같이 주면 같은 문서를 두 번 주는 셈이고,
            별도 내려받기 줄은 .land-col 의 풋라인 예약(3vh + 76px)을 넘겨 커밋 차트와 겹쳤다. -->
       <div class="links">
-        <button type="button" id="walk-cta" class="primary">걸으면서 보기</button>
         <a href="./docs/han-portfolio.pdf" download="한승보_portfolio.pdf">포트폴리오 PDF</a>
         <a href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
+      </div>
+      <div class="footline land-fade">
+        <span class="cap" id="gh-cap">최근 6주 커밋</span>
+        <div id="gh-chart"></div>
       </div>
     </div>
     <div class="cta-wrap land-fade">
       <button id="start-walk" class="sign-hotspot" aria-label="한 걸음씩 소개하겠습니다 — 함께 걷기 시작"></button>
       <span class="click-hint" id="click-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 2.5v16.6l4.5-3.7 2.8 6.6 3.1-1.3-2.8-6.5 5.9-.6z"/></svg></span>
-    </div>
-    <div class="footline land-fade">
-      <span class="cap" id="gh-cap">최근 6주 커밋</span>
-      <div id="gh-chart"></div>
     </div>
   </header>
   <div id="spacer"></div>
