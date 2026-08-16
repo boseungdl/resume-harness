@@ -371,9 +371,10 @@
       /* 46vh — 03(문제)은 관점이 바뀌는 자리라 비트가 넷이고 문장이 길다. 38vh 에서는 마지막 줄이 잘렸다. */
       max-height: 52vh;
       overflow: hidden;
-      /* 아래 3.6rem 은 진행 버튼의 자리다. 조각을 beat 단위로 바꾸면서 한 조각이 최대 3줄이 됐고,
-         2.5rem 에서는 세 번째 줄이 버튼 띠와 같은 높이에서 만났다. 글이 그 띠를 침범하지 않게 비워 둔다. */
-      padding: 1.4rem 1.9rem 3.6rem;
+      /* 진행 버튼은 이제 흐름 안의 마지막 행이다(.hint). 예전에는 absolute 로 띄우고
+         padding-bottom 으로 자리를 예약했는데, 예약은 글이 짧을 때만 맞는다 —
+         조각이 3줄이 되면 마지막 줄이 버튼 띠와 같은 높이에서 만났다. */
+      padding: 1.4rem 1.9rem 1.3rem;
       font-size: 0.95rem;
       z-index: 3;
       display: grid;
@@ -402,7 +403,7 @@
       color: var(--accent-ink); opacity: 0.85;
     }
     #popup .hint {
-      position: absolute; right: 1.4rem; bottom: 0.85rem;
+      justify-self: end;
       display: flex; align-items: center; gap: 0.7em;
       font-size: var(--fs-2); letter-spacing: 0.12em; font-weight: 600;
       color: var(--accent-ink); opacity: 0;
@@ -439,7 +440,7 @@
     @keyframes beat-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
     @media (max-width: 1200px) {
       /* padding-bottom 2.4rem: 힌트(.hint, absolute bottom)가 본문 마지막 줄을 덮지 않게 */
-      #popup { bottom: 1rem; max-height: 40vh; padding-bottom: 3.6rem; }
+      #popup { bottom: 1rem; max-height: 40vh; padding-bottom: 1.3rem; }
     }
 
     #popup .who {
@@ -574,113 +575,106 @@
     #outro-scrim.on { opacity: 1; }
     @media (prefers-reduced-motion: reduce) { #outro-scrim { transition: opacity 0.25s; } }
 
-    /* ── 엔딩 = 다섯 번째 정거장 ──────────────────────────────────────────────
-       예전에는 화면 왼쪽 세로 중앙(모달의 자리)에 366px 카드였다. 두 가지가 틀렸다:
-       ① 화면에 중심이 둘이 됐다 — 296m 의 보상인 도착 공간(로봇·착륙 원반)과
-          유리판이 시선을 50:50 으로 나눠 가져, 둘 다 안 읽혔다.
-       ② 8분 동안 "누가 멈추면 하단 중앙 유리판"을 네 번 가르쳐 놓고 마지막에만 규칙을 바꿨다.
-          가장 중요한 화면에서 독자가 처음으로 UI 를 학습하게 만드는 셈이었다.
-       그래서 자리·크기·재료를 정거장 패널과 똑같이 둔다. 형식은 같고 역할만 반대다 —
-       앞의 넷은 그가 말했고, 여기서는 상대에게 넘긴다. 문항도 `1 / 3` 도 오지 않고,
-       여정이 13번 "여길 누르면 다음"이라고 가르친 그 우하단 자리에 연락이 앉는다. */
+    /* ── 아웃트로 = 엔딩 타이틀 ─────────────────────────────────────────────
+       판(.panel)을 버렸다. 상자는 두 가지를 한다: 캐릭터를 가리고, "또 하나의 UI"로 읽힌다.
+       296m 를 걸어 도착한 자리에서 마지막으로 뜨는 것이 계기판이면 여정이 안 끝난다.
+       글은 스크림 위에 직접 앉고, 로봇은 그 위에 온전히 선다.
+       세로 위치 62% — 58% 에서는 기록 줄이 로봇 발치에 닿았다(실측 로봇 하단 y≈515, 글 상단 522). */
     #outro-panel {
-      /* 바닥에 붙은 판은 도구 막대로 읽힌다 — 7vh 띄우면 카드가 된다.
-         모서리도 정거장(10px)보다 크게 — 같은 재료라도 마감은 조금 더 둥글다. */
-      position: fixed; left: 50%; bottom: 7vh; transform: translateX(-50%);
-      width: min(760px, 92vw); padding: 1.9rem 2.3rem 2rem; z-index: 3;
-      display: grid; row-gap: 1rem;
-      border-radius: 14px;
-      /* 밤(판 밝기 Y 0.33)이 최저 대비 케이스다 — 재료는 정거장과 같고 흰빛만 0.72 → 0.90 */
-      background: linear-gradient(150deg, rgba(255,255,255,0.90), rgba(228,247,251,0.74));
+      position: fixed;
+      left: 50%;
+      top: 62%;
+      transform: translateX(-50%);
+      width: min(680px, 88vw);
+      z-index: 3;
+      text-align: center;
+      display: grid;
+      justify-items: center;
+      row-gap: 0.85rem;
+      /* 밤하늘 위의 활자다 — 판이 없으므로 밝은 잉크로 뒤집는다.
+         그림자는 세 겹: 좁은 검정 테(형태) + 넓은 검정 번짐(바탕) + 청록 발광(공간의 색). */
+      color: rgba(255, 255, 255, 0.94);
+      text-shadow:
+        0 1px 2px rgba(4, 10, 18, 0.55),
+        0 4px 22px rgba(4, 10, 18, 0.5),
+        0 0 34px rgba(63, 212, 224, 0.16);
     }
-    #outro-panel.hidden-panel { transform: translateX(-50%) translateY(18px); }
-    /* 브래킷의 --accent 는 밤 판 위에서 1.4:1 — 형태는 유지하고 잉크만 바꾼다 */
-    #outro-panel.hud::before, #outro-panel.hud::after { border-color: var(--accent-ink); }
+    #outro-panel.hidden-panel { opacity: 0; pointer-events: none; visibility: hidden; }
 
-    #outro-panel > * { opacity: 0; transform: translateY(8px);
-      transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1); }
+    /* 등장 — 아래에서 위로 14px. 여정이 위로 올라와 멎는 방향이라, 스크롤의 관성과 같은 축이다. */
+    #outro-panel > * {
+      opacity: 0; transform: translateY(14px);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 0.9, 0.3, 1);
+    }
     #outro-panel:not(.hidden-panel) > * { opacity: 1; transform: none; }
-    #outro-panel:not(.hidden-panel) .axis { transition-delay: 0.1s; }
-    #outro-panel:not(.hidden-panel) .say { transition-delay: 0.2s; }
-    #outro-panel:not(.hidden-panel) .foot { transition-delay: 0.28s; }
+    #outro-panel:not(.hidden-panel) .thanks { transition-delay: 0.18s; }
+    #outro-panel:not(.hidden-panel) .next   { transition-delay: 0.42s; }
+    #outro-panel:not(.hidden-panel) .acts   { transition-delay: 0.72s; }
+    #outro-panel:not(.hidden-panel) .addr   { transition-delay: 0.86s; }
+
+    /* 걸은 기록 — 감사의 근거다. 이 숫자가 없으면 "여기까지"가 어디까지인지 모른다. */
+    #outro-panel .rec {
+      font-family: var(--mono); font-size: var(--fs-2); font-weight: 500;
+      letter-spacing: 0.16em; color: rgba(255, 255, 255, 0.7);
+      font-variant-numeric: tabular-nums;
+    }
+    #outro-panel .rec i { font-style: normal; font-size: 0.85em; opacity: 0.75; }
+    #outro-panel .thanks {
+      font-size: var(--fs-6); font-weight: 700; line-height: 1.45;
+      letter-spacing: -0.015em; word-break: keep-all;
+    }
+    #outro-panel .next {
+      font-size: var(--fs-4); line-height: 1.75; word-break: keep-all;
+      color: rgba(255, 255, 255, 0.82); margin-bottom: 0.6rem;
+    }
+
+    #outro-panel .acts { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+    #outro-panel .acts a {
+      min-height: 46px; display: inline-flex; align-items: center; /* HIG 44 / Material 48 */
+      padding: 0 1.5em; border-radius: 999px; font-size: var(--fs-3); font-weight: 700;
+      text-decoration: none; text-shadow: none;
+      transition: background 0.2s, border-color 0.2s, transform 0.12s, box-shadow 0.2s;
+    }
+    /* 1차 — 밤 배경에서 유일하게 채워진 면. 흰 바탕에 잉크 글자가 가장 강한 대비다(14:1). */
+    #outro-panel .acts .send {
+      background: rgba(255, 255, 255, 0.95); color: var(--ink); border: 1px solid transparent;
+      box-shadow: 0 8px 26px -10px rgba(0, 0, 0, 0.65), 0 0 30px rgba(63, 212, 224, 0.2);
+    }
+    #outro-panel .acts .send:hover { background: #ffffff; transform: translateY(-1px); }
+    #outro-panel .acts .doc {
+      border: 1px solid rgba(255, 255, 255, 0.5); color: rgba(255, 255, 255, 0.94);
+    }
+    #outro-panel .acts .doc::after { content: ' ↓'; opacity: 0.6; font-weight: 400; }
+    #outro-panel .acts .doc:hover { border-color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.1); }
+    #outro-panel .acts a:active { transform: translateY(1px); }
+
+    #outro-panel .addr { display: grid; row-gap: 0.28rem; justify-items: center; }
+    /* 주소를 눈으로 보여 주는 것이 mailto 공포("엉뚱한 앱이 뜬다")의 해독제다.
+       메일 클라이언트가 없는 사람에게는 클릭 = 복사가 유일한 탈출구다. */
+    #outro-panel .copy {
+      font: inherit; font-family: var(--mono); font-size: var(--fs-2); font-weight: 500;
+      color: rgba(255, 255, 255, 0.86); background: none; border: 0; padding: 0;
+      cursor: copy; user-select: text; text-shadow: inherit;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.4); transition: border-color 0.2s, color 0.2s;
+    }
+    #outro-panel .copy:hover { color: #ffffff; border-bottom-color: rgba(255, 255, 255, 0.9); }
+    #outro-panel .cap { font-size: var(--fs-2); color: rgba(255, 255, 255, 0.62); }
+    #outro-panel a:focus-visible, #outro-panel .copy:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: 3px;
+    }
     @media (prefers-reduced-motion: reduce) {
       #outro-panel > * { transform: none; transition: opacity 0.2s; }
       #outro-panel:not(.hidden-panel) > * { transition-delay: 0s !important; }
-    }
-
-    #outro-panel .head {
-      display: flex; align-items: center; gap: 0.6em;
-      font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.06em; color: var(--ink);
-    }
-    /* 정거장의 점은 깜빡인다(진행 중의 기호). 도착한 점은 멈춘다. */
-    #outro-panel .head .dot {
-      width: 0.55em; height: 0.55em; border-radius: 50%;
-      background: var(--accent-ink); box-shadow: 0 0 8px rgba(8,114,128,0.45);
-    }
-    /* 문장으로 쓰면 한 줄을 쓰고도 "그래서?"가 남는다. 영수증 형태면 읽는 비용이 0이다. */
-    #outro-panel .head .rec {
-      font-family: var(--mono); color: #2b4655;
-      font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
-    }
-    #outro-panel .head .rec i { font-style: normal; font-size: 0.85em; font-weight: 500; }
-
-    /* 관통 축 — 네 장을 다 지나온 사람에게만 뜻이 생기는 문장. story.js p4.conclusion 원문. */
-    #outro-panel .axis {
-      font-size: var(--fs-6); font-weight: 700; line-height: 1.5;
-      letter-spacing: -0.012em; color: var(--ink); word-break: keep-all;
-      border-left: 3px solid var(--accent-ink); padding-left: 0.72em;
-      max-width: 26em; /* 25em 이면 둘째 줄(23자)이 3줄로 깨진다 */
-    }
-
-    #outro-panel .say {
-      border-top: 1px dashed rgba(14,168,184,0.32); padding-top: 0.9rem;
-      font-size: var(--fs-4); line-height: 1.75; color: rgba(22,48,60,0.85);
-      max-width: var(--measure-wide); word-break: keep-all;
-    }
-    #outro-panel .say p + p { margin-top: 0.45em; }
-
-    #outro-panel .foot {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      gap: 1rem; flex-wrap: wrap;
-    }
-    #outro-panel .addr { display: grid; row-gap: 0.2rem; }
-    /* 주소를 눈으로 보여 주는 것이 mailto 공포("엉뚱한 앱이 뜬다")의 해독제다.
-       그리고 메일 클라이언트가 없는 사람에게는 클릭 = 복사가 유일한 탈출구다. */
-    #outro-panel .copy {
-      font: inherit; font-family: var(--mono); font-size: var(--fs-2);
-      font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0;
-      text-align: left; cursor: copy; user-select: text;
-      border-bottom: 1px dashed rgba(22,48,60,0.4); transition: border-color 0.2s;
-    }
-    #outro-panel .copy:hover { border-bottom-color: var(--ink); }
-    #outro-panel .cap { font-size: var(--fs-2); color: #2b4655; }
-
-    #outro-panel .acts { display: flex; gap: 0.7rem; align-items: center; }
-    #outro-panel .acts a {
-      min-height: 44px; display: inline-flex; align-items: center; /* HIG 44 / Material 48 */
-      padding: 0 1.35em; border-radius: 999px; font-size: var(--fs-3); font-weight: 700;
-      text-decoration: none; transition: background 0.2s, border-color 0.2s, transform 0.12s;
-    }
-    #outro-panel .acts .doc { border: 1px solid rgba(22,48,60,0.7); color: var(--ink); }
-    #outro-panel .acts .doc:hover { background: rgba(255,255,255,0.6); }
-    #outro-panel .acts .send {
-      background: var(--accent-ink); color: #ffffff;
-      border: 1px solid transparent; box-shadow: 0 6px 18px -6px rgba(8,114,128,0.55);
-    }
-    /* 밝히면(#0a8b9c) 흰 글자 대비가 4.05:1 로 떨어져 호버하는 순간 AA 를 잃는다 */
-    #outro-panel .acts .send:hover { background: #065e69; }
-    #outro-panel .acts a:active { transform: translateY(1px); }
-    #outro-panel a:focus-visible, #outro-panel .copy:focus-visible {
-      outline: 2px solid var(--ink); outline-offset: 3px;
     }
     /* 인쇄·캡처로도 연락 경로가 남아야 한다 */
     @media print {
       #outro-panel {
         position: static; visibility: visible !important; opacity: 1 !important;
-        transform: none !important; width: auto; background: none; box-shadow: none;
-        border: 1px solid #ccc; page-break-inside: avoid;
+        transform: none !important; width: auto; color: #000; text-shadow: none;
+        page-break-inside: avoid;
       }
       #outro-panel > * { opacity: 1 !important; transform: none !important; }
+      #outro-panel .copy, #outro-panel .cap, #outro-panel .rec, #outro-panel .next { color: #000; }
     }
 
 
@@ -764,20 +758,14 @@
         left: 1rem; right: 1rem; max-width: none;
         top: auto; bottom: 5.2rem; transform: none;
         animation: none;
-        max-height: 52vh;
-        padding: 1.4rem 1.5rem;
+        max-height: 56vh;
+        padding: 1.4rem 1.5rem 1.2rem;
       }
       #popup.hidden-panel { transform: translateY(12px) scale(0.98); }
-      /* 정거장 팝업과 같은 규칙 — 이 판은 이제 같은 물건이다 */
-      #outro-panel { left: 1rem; right: 1rem; width: auto; transform: none;
-        bottom: 1rem; padding: 1.2rem 1.3rem 1.3rem; }
-      #outro-panel.hidden-panel { transform: translateY(14px); }
-      /* 엄지 자리에 1차 행동을 전폭으로. 2차는 알약을 벗고 밑줄 링크로 강등한다. */
-      #outro-panel .foot { flex-direction: column-reverse; align-items: stretch; gap: 0.75rem; }
-      #outro-panel .acts { flex-direction: column-reverse; align-items: stretch; }
+      /* 좁은 화면 — 로봇이 화면을 더 채우므로 글을 조금 더 아래로 민다 */
+      #outro-panel { top: auto; bottom: 8vh; width: calc(100% - 2rem); row-gap: 0.7rem; }
+      #outro-panel .acts { width: 100%; flex-direction: column-reverse; align-items: stretch; }
       #outro-panel .acts a { justify-content: center; }
-      #outro-panel .acts .doc { border: 0; min-height: 32px;
-        text-decoration: underline; text-underline-offset: 3px; }
     }
   </style>
 </head>
@@ -875,30 +863,21 @@
       </div>
     </div>
   </aside>
-  <div id="outro-scrim" aria-hidden="true"></div>
-  <!-- 다섯 번째 정거장. 정거장 패널과 자리·크기·재료가 같고, 역할만 반대다 —
-       앞의 넷은 그가 말했고 여기서는 상대에게 넘긴다.
-       href 에 평문 mailto 를 남겨 둔다: JS 가 죽어도 연락 경로가 살고 Ctrl+F·인쇄에도 잡힌다. -->
-  <section id="outro-panel" class="panel hud hidden-panel" role="region" aria-label="도착">
-    <div class="head">
-      <span class="dot" aria-hidden="true"></span><span class="lb">도착</span>
-      <span class="rec" id="outro-record">296<i>m</i></span>
+  <!-- 아웃트로 = 엔딩 타이틀. 판을 없앴다 — 상자는 캐릭터를 가리고, 무엇보다
+       "또 하나의 UI"로 읽힌다. 여정이 끝났다는 말은 UI 가 아니라 활자가 해야 한다.
+       글은 스크림 위에 직접 앉고, 로봇은 그 위에 온전히 서 있는다. -->
+  <section id="outro-panel" class="hidden-panel" role="region" aria-label="도착">
+    <p class="rec" id="outro-record">296<i>m</i></p>
+    <p class="thanks">여기까지 걸어주셔서 고맙습니다.</p>
+    <p class="next">이 공간처럼,<br />다음도 함께 알아가고 싶습니다.</p>
+    <div class="acts">
+      <a class="send" id="outro-mail" href="mailto:96tmdtmd@gmail.com">메일 쓰기</a>
+      <a class="doc" href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
     </div>
-    <p class="axis">기술을 쌓는 것에서,<br />문제를 해결하기 위해 기술을 선택하는 것으로.</p>
-    <div class="say">
-      <p>여기까지 읽어주셔서 고맙습니다.</p>
-      <p>지금 함께 일할 자리를 찾고 있습니다. 궁금한 점은 무엇이든 물어봐 주세요.</p>
-    </div>
-    <div class="foot">
-      <div class="addr">
-        <button type="button" class="copy" id="outro-copy">96tmdtmd@gmail.com</button>
-        <span class="cap" id="outro-cap">제목과 첫 문장은 채워 두었습니다</span>
-      </div>
-      <div class="acts">
-        <a class="doc" href="./docs/han-resume.pdf" download="한승보_이력서.pdf">이력서 PDF</a>
-        <a class="send" id="outro-mail" href="mailto:96tmdtmd@gmail.com">메일 쓰기</a>
-      </div>
-    </div>
+    <p class="addr">
+      <button type="button" class="copy" id="outro-copy">96tmdtmd@gmail.com</button>
+      <span class="cap" id="outro-cap">제목과 첫 문장은 채워 두었습니다</span>
+    </p>
   </section>
   <div id="veil">WALKING&nbsp;WITH&nbsp;HAN</div>
   <script type="module" src="/src/main.js"></script>
