@@ -9,7 +9,7 @@ import * as echarts from 'echarts/core'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { PREMISES } from './story.js'
+import { PREMISES, VARIANT_DATA } from './story.js'
 import { buildWorld } from './world.js'
 
 function smooth01(u) {
@@ -31,6 +31,42 @@ const spacer = document.getElementById('spacer')
 // 160 → 1,024vh = 10.2 화면분, 정거장 사이 2.1 화면. 세계는 그대로고 걷는 속도만 4.4배다.
 const SCROLL_PER_STOP = 160
 spacer.style.height = `${(PREMISES.length + 2.4) * SCROLL_PER_STOP}vh`
+
+// 지원 직무별 변형 — 랜딩 첫 줄(직무)만 DOM 쪽 일이라 여기서 집는다.
+// 문장(04 방향)은 story.js 가 PREMISES 를 덮어쓰며 이미 끝냈다.
+if (VARIANT_DATA?.role) {
+  const roleEl = document.querySelector('#landing .role')
+  if (roleEl) roleEl.textContent = VARIANT_DATA.role
+}
+
+// 시작은 클릭이다 (2026-08-20). 간판을 누르기 전에는 문서가 굴러가지 않는다.
+// 예전에는 누르지 않고 굴려도 그냥 걸어갔고, 그러면 인사·간판·클릭 안내를 전부 지나친 채
+// 세계 한가운데에 들어와 있었다 — 무엇을 시작했는지 모르는 사람에게 다음 화면은 전부 소음이다.
+// 새로고침 복원도 끈다(scrollRestoration=manual): 복원된 자리에서 잠그면 걷던 사람이 갇히고,
+// 잠그지 않으면 규칙이 로드마다 달라진다. 언제나 간판에서 시작하는 쪽이 설명 가능하다.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+window.scrollTo(0, 0)
+document.documentElement.classList.add('gate-locked')
+const unlockGate = () => document.documentElement.classList.remove('gate-locked')
+{
+  // 잠긴 동안의 입력은 삼키되 침묵하지 않는다 — 눌러야 할 자리가 한 번 커진다.
+  const hintEl = document.getElementById('click-hint')
+  let knockT = 0
+  const knock = () => {
+    if (!hintEl || !document.documentElement.classList.contains('gate-locked')) return
+    const now = performance.now()
+    if (now - knockT < 800) return // 관성 한 번에 계속 튀지 않게
+    knockT = now
+    hintEl.classList.remove('nudge')
+    void hintEl.offsetWidth // 리플로우로 애니메이션을 되감는다
+    hintEl.classList.add('nudge')
+  }
+  window.addEventListener('wheel', knock, { passive: true })
+  window.addEventListener('touchmove', knock, { passive: true })
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowDown', 'PageDown', 'End', ' ', 'Spacebar'].includes(e.key)) knock()
+  })
+}
 
 const landingEl = document.getElementById('landing')
 const popupEl = document.getElementById('popup')
@@ -182,6 +218,7 @@ if (!webglAvailable()) {
   // 3D 가 없으면 여정도 없다 — 빈 스크롤과 유령 계기판을 남기지 않는다
   document.body.classList.add('no-webgl')
   spacer.style.height = '0'
+  unlockGate() // 걸을 세계가 없으면 잠글 문도 없다 — 여기서 잠그면 랜딩만 남긴 채 가둔다
 } else {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -800,6 +837,7 @@ if (!webglAvailable()) {
 
   let walkStarted = false
   function startWalk() {
+    unlockGate() // go() 의 부드러운 스크롤보다 먼저 — 잠긴 채로는 scrollTo 가 아무 데도 못 간다
     const go = () => {
       autoUntil = performance.now() + 1500 // 부드러운 스크롤이 멎을 때까지
       window.scrollTo({ top: journeyBase() + window.innerHeight * 0.25, behavior: 'smooth' })

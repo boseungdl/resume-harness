@@ -119,16 +119,21 @@ export const PREMISES = [
 // 온보딩 문서). 직무에 맞춰 없는 경험을 지어내지 않는다.
 export const VARIANTS = {
   // PM — 팀스파르타 AX교육팀 기준으로 처음 작성(2026-08-20). 직무 일반형으로 쓸 수 있게
-  // 'PM'·'교육' 같은 회사·직군 고유명사는 넣지 않았다.
+  // 'PM'·'교육' 같은 회사·직군 고유명사는 문장 안에 넣지 않았다.
   pm: {
-    p4: {
-      premise: '문제를 정의하고, 해결이 끝날 때까지 챙기는 사람이 되고 싶습니다',
-      conclusion: '기술을 쌓는 것에서, 문제를 해결하기 위해 기술을 선택하는 것으로',
-      beats: [
-        { at: 0, text: '이제는 새로운 기술을 많이 아는 것보다, 해결해야 할 문제를 정확히 바라보는 것이 먼저라고 생각합니다.' },
-        { at: 4, text: '문제를 정의하고, 필요한 사람과 순서를 정하고,<br>진행된 것과 남은 것을 기록으로 남기는 과정에 흥미를 느낍니다.' },
-        { at: 8, text: '현장에 상주하던 때, 매일의 점검을 루틴으로 만들고 패치 절차를 표준화했습니다.<br>기록이 쌓이자 다음 사람이 같은 순서로 시작할 수 있는 문서가 되었습니다.<br>앞으로도 흩어진 사람과 자료를 연결해, 프로젝트가 끝까지 도달하게 만드는 일을 하고 싶습니다.' },
-      ],
+    // 랜딩 첫 줄. HR 이 이 사람을 뭐라고 불러야 할지 3초 안에 정하는 자리라,
+    // 여기가 기본본('데이터 플랫폼 엔지니어') 그대로면 04 를 갈아 끼운 의미가 없다.
+    role: '프로젝트 매니저',
+    premises: {
+      p4: {
+        premise: '문제를 정의하고, 해결이 끝날 때까지 챙기는 사람이 되고 싶습니다',
+        conclusion: '기술을 쌓는 것에서, 문제를 해결하기 위해 기술을 선택하는 것으로',
+        beats: [
+          { at: 0, text: '이제는 새로운 기술을 많이 아는 것보다, 해결해야 할 문제를 정확히 바라보는 것이 먼저라고 생각합니다.' },
+          { at: 4, text: '문제를 정의하고, 필요한 사람과 순서를 정하고,<br>진행된 것과 남은 것을 기록으로 남기는 과정에 흥미를 느낍니다.' },
+          { at: 8, text: '현장에 상주하던 때, 매일의 점검을 루틴으로 만들고 패치 절차를 표준화했습니다.<br>기록이 쌓이자 다음 사람이 같은 순서로 시작할 수 있는 문서가 되었습니다.<br>앞으로도 흩어진 사람과 자료를 연결해, 프로젝트가 끝까지 도달하게 만드는 일을 하고 싶습니다.' },
+        ],
+      },
     },
   },
 }
@@ -141,15 +146,17 @@ const askedFor = (() => {
   }
 })()
 export const VARIANT = Object.hasOwn(VARIANTS, askedFor) ? askedFor : ''
-if (VARIANT) {
+// 변형 데이터 전체를 그대로 넘긴다 — 랜딩(직무 한 줄)은 DOM 쪽 일이라 main.js 가 집는다.
+export const VARIANT_DATA = VARIANT ? VARIANTS[VARIANT] : null
+if (VARIANT_DATA?.premises) {
   // 같은 객체를 덮어쓴다 — PREMISES 의 참조를 이미 들고 있는 world.js·main.js 가
   // 다시 읽을 필요 없이 그대로 바뀐 값을 본다.
-  for (const [id, patch] of Object.entries(VARIANTS[VARIANT])) {
+  for (const [id, patch] of Object.entries(VARIANT_DATA.premises)) {
     const target = PREMISES.find((p2) => p2.id === id)
     if (target) Object.assign(target, patch)
   }
-  console.info(`[story] 변형 '${VARIANT}' 적용 — ${Object.keys(VARIANTS[VARIANT]).join(', ')}`)
 }
+if (VARIANT) console.info(`[story] 변형 '${VARIANT}' 적용 — ${Object.keys(VARIANT_DATA).join(', ')}`)
 
 // STOP_LABELS·PANEL_IN·PANEL_OUT 삭제(2026-08-15).
 // STOP_LABELS('첫 번째 자리')는 한 자리를 부르는 세 번째 이름이었는데 어디서도 안 쓰였다 —
