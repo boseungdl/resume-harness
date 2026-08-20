@@ -1000,15 +1000,12 @@ if (!webglAvailable()) {
     renderMeet(i)
     return true
   }
-  // 대화 중 휠 — 죽이지 않고 뜻을 바꾼다 (2026-08-15).
-  // 예전에는 preventDefault 만 하고 아무것도 안 했다. 실측으로 입력 54,000px 에 이동 0px.
-  // 손이 움직이는데 화면이 대꾸를 안 하는 상태가 네 번 반복됐고, 탈출 규칙(1.5초 경과 +
-  // 350ms 간격 플릭 2회)은 화면 어디에도 없었다. 배우지 못한 규칙은 고장으로 읽힌다.
-  // 지금은 같은 동작(굴리기)이 같은 뜻(앞으로)을 유지한다 — 대상만 걸음에서 줄로 바뀐다.
-  // 위로 굴리면 되돌아간다: 되돌릴 수 있어야 마음 놓고 빨리 굴리고, 걸린 문장에서 되돌아온다.
-  // 쿨다운은 세 입력(SPACE·휠·클릭)이 함께 쓴다 — 예전엔 휠만 110ms 필터가 있고 SPACE 는
-  // 무제한이라, 스페이스를 연타하면 여덟 조각이 0.3초에 지나가 아무것도 안 읽혔다.
-  // 220ms 는 교체 애니메이션(320ms)보다 짧아 손이 답답하지 않으면서, 연타는 걸러낸다.
+  // 대화 중 휠 — 막되, 넘기지는 않는다 (2026-08-20).
+  // 한동안 휠에 '다음 줄'의 뜻을 줬다. 실제로는 NPC 앞에 서는 순간 문답이 통째로 지나갔다:
+  // 걸어오던 관성 스크롤이 1초 넘게 이벤트를 계속 뱉는데, 쿨다운 220ms 를 넘길 때마다 한 줄씩
+  // 넘어가 3~4조각이 1초 안에 소진됐다. 도착과 동시에 읽을 것이 사라지는 셈이다.
+  // 넘기는 입력은 이제 손가락이 '한 번'이라고 말하는 것만이다 — SPACE·클릭·↑↓.
+  // 다만 침묵하지는 않는다: 굴리면 진행 버튼이 한 번 뛴다. 삼킨 입력에 대꾸가 없으면 고장으로 읽힌다.
   let talkInputT = 0
   const talkCooldown = () => {
     const now = performance.now()
@@ -1016,14 +1013,20 @@ if (!webglAvailable()) {
     talkInputT = now
     return true
   }
+  let nudgeT = 0
+  const goBtn = popupEl.querySelector('.go')
+  function nudgeGo() {
+    const now = performance.now()
+    if (now - nudgeT < 700 || !goBtn) return // 관성 한 번에 버튼이 떨지 않게
+    nudgeT = now
+    goBtn.classList.remove('nudge')
+    void goBtn.offsetWidth // 리플로우로 애니메이션을 되감는다
+    goBtn.classList.add('nudge')
+  }
   const blockIfTalking = (e) => {
-    const i = talkingNow()
-    if (i < 0) return
+    if (talkingNow() < 0) return
     e.preventDefault()
-    if (e.type !== 'wheel') return
-    if (!talkCooldown()) return
-    if (e.deltaY > 0) advanceMeet()
-    else backMeet()
+    nudgeGo()
   }
   window.addEventListener('wheel', blockIfTalking, { passive: false })
   window.addEventListener('touchmove', blockIfTalking, { passive: false })
@@ -1039,6 +1042,11 @@ if (!webglAvailable()) {
     }
     if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key) && talkingNow() >= 0) {
       e.preventDefault()
+      // 휠에서 거둔 '앞/뒤'를 방향키가 받는다 — 한 번 누르면 한 줄이고, 관성이 없다.
+      // 되돌릴 수 있어야 걸린 문장에서 되돌아온다.
+      if (e.key === 'ArrowDown' && talkCooldown()) advanceMeet()
+      else if (e.key === 'ArrowUp' && talkCooldown()) backMeet()
+      else if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') nudgeGo()
     }
   })
   // 마우스만 쓰는 손님을 위해. 단, 문장을 드래그해 복사하면 선택이 끝나는 순간 click 이 뒤따라
@@ -1291,8 +1299,8 @@ if (!webglAvailable()) {
           m.step = 1
           m.t0 = sceneTime // 성급한 입력·관성 스크롤 판정 기준
           projZone = i // 이 존의 영사기가 소등 페이드까지 주인이다
-          // 쿨다운을 지금으로 밀어 둔다 — 걸어오던 관성 스크롤이 첫 줄을 그냥 넘기지 않게.
-          // 0 으로 초기화하면 반대로 "220ms 훨씬 전"이 되어 다음 휠 이벤트가 곧장 통과했다.
+          // 쿨다운을 지금으로 밀어 둔다 — 넘기려고 누르고 있던 SPACE 가 첫 줄을 그냥 지나치지 않게.
+          // 0 으로 초기화하면 반대로 "220ms 훨씬 전"이 되어 다음 입력이 곧장 통과했다.
           talkInputT = performance.now()
           lockScrollY = window.scrollY // 대화 동안 화면도 여기 선다
         }

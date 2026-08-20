@@ -469,6 +469,17 @@
     #popup .go:hover { background: #ffffff; border-color: var(--accent); }
     #popup .go:active { transform: translateY(1px); }
     #popup .go:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+    /* 굴렸는데 아무 일도 안 일어나면 고장이다 — 삼킨 입력에 버튼이 한 번 대꾸한다.
+       흔들지 않고 눌렀다 놓는 방향으로만 움직인다(경고가 아니라 안내). */
+    #popup .go.nudge { animation: go-nudge 0.5s cubic-bezier(0.22, 0.9, 0.3, 1); }
+    @keyframes go-nudge {
+      0%   { transform: none; }
+      35%  { transform: translateY(3px) scale(0.97); background: #ffffff; border-color: var(--accent); }
+      100% { transform: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #popup .go.nudge { animation: none; border-color: var(--accent); background: #ffffff; }
+    }
     #popup .hint kbd {
       display: inline-block; padding: 0.1em 0.55em; margin-right: 0.4em;
       border: 1px solid rgba(8, 114, 128, 0.4); border-bottom-width: 2px;
@@ -929,7 +940,42 @@
   <section id="outro-panel" class="hidden-panel" role="region" aria-label="도착">
     <p class="rec" id="outro-record">296<i>m</i></p>
     <p class="thanks">여기까지 걸어주셔서 고맙습니다.</p>
-    <p class="next">새로운 문제를 마주할 준비가 되어 있습니다.<br />그 답을 함께 찾아가고 싶습니다.</p>
+    <p class="next">빠르게 변데이터베이스 엔지니어 (1명)
+담당 업무
+ETL/ELT 데이터 파이프라인 구축 및 테스트
+
+대용량 데이터의 수집, 적재, 가공을 위한 파이프 라인 설계 및 운영
+
+Docker, Kubernetes, Linux 기반 설치·배포·운영 지원
+
+LLM, RAG, MCP, 벡터 검색 기반 AI 데이터 기능 개발 지원
+
+자격 요건
+학력: 초대졸 이상
+
+경력: 신입 또는 초급
+
+스킬
+SQL 기본 문법 이해 및 간단한 쿼리 작성 가능
+
+Linux 기본 명령어 사용 가능
+
+Java·Spring 또는 Python 코드를 읽고 간단히 수정 가능
+
+Docker 등 컨테이너 환경에 대한 기본 이해
+
+데이터베이스, ETL, AI 데이터 플랫폼 분야에 관심 있는 분
+
+우대 사항
+Apache Kafka 기반 메시지 처리 경험
+
+ETL 도구 사용 경험
+
+Docker, Kubernetes, Jenkins, GitLab CI 사용 경험
+
+폐쇄망·온프레미스 환경 구축 또는 배포 경험
+
+LLM, RAG, MCP, pgvector 등 AI 관련 학습 또는 프로젝트 경험화하는 환경에서도,<br />문제를 발견하고 답을 만들어가겠습니다.</p>
     <div class="acts">
       <a class="send" id="outro-mail" href="mailto:96tmdtmd@gmail.com">메일 쓰기</a>
       <a class="doc" href="./docs/han-portfolio.pdf" download="한승보_portfolio.pdf">포트폴리오 PDF</a>
