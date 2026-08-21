@@ -13,5 +13,5 @@ docs/profile/
 
 # 배포에 실려야 하는 PDF 두 개는 *.pdf 무시에서 뺀다 —
 # 없으면 빌드 시 copy-docs 가 4/6 이 되고 랜딩·아웃트로의 내려받기 링크가 404 가 된다.
-!web-portfolio/한승보_portfolio.pdf
+!web-portfolio/한승보_포트폴리오.pdf
 !web-portfolio/한승보_이력서.pdf
